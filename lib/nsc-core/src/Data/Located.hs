@@ -1,4 +1,7 @@
-module Data.Located where
+module Data.Located
+( module Text.Diagnose.Position
+, Located(..)
+) where
 
 import Text.Diagnose.Position
 
