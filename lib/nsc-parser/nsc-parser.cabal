@@ -1,0 +1,28 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           nsc-parser
+version:        0.0.0
+build-type:     Simple
+
+library
+  exposed-modules:
+      Language.NStar.Syntax.Common
+      Language.NStar.Syntax.Lexer
+  other-modules:
+      Paths_nsc_parser
+  hs-source-dirs:
+      src
+  default-extensions: BlockArguments LambdaCase BinaryLiterals
+  ghc-options: -Wno-name-shadowing -Wall
+  build-depends:
+      base >=4.7 && <5
+    , containers >=0.6
+    , diagnose
+    , megaparsec >=8.0
+    , nsc-core
+    , text >=1.2 && <1.4
+  default-language: Haskell2010
