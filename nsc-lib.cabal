@@ -29,6 +29,7 @@ library
       Paths_nsc_lib
   hs-source-dirs:
       src
+  default-extensions: BlockArguments LambdaCase BinaryLiterals
   build-depends:
       base >=4.7 && <5
     , diagnose
@@ -40,6 +41,7 @@ executable nsc
       Paths_nsc_lib
   hs-source-dirs:
       app
+  default-extensions: BlockArguments LambdaCase BinaryLiterals
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -54,6 +56,7 @@ test-suite n-star-test
       Paths_nsc_lib
   hs-source-dirs:
       test
+  default-extensions: BlockArguments LambdaCase BinaryLiterals
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5

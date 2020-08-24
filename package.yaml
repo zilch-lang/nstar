@@ -24,6 +24,8 @@ dependencies:
 library:
   source-dirs: src
 
+default-extensions: !include "default-extensions.txt"
+
 executables:
   nsc:
     main:                Main.hs
