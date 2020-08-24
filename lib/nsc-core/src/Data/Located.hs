@@ -2,7 +2,7 @@ module Data.Located where
 
 import Text.Diagnose.Position
 
--- | A simple data type to hold some locatio to keep track off.
+-- | A simple data type to hold some location to keep track off.
 data Located a
   = a :@ Position
   deriving (Show)
