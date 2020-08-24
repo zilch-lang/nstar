@@ -170,5 +170,7 @@ data Token v where
   -- | A comment starting with "@/\*@" and ending with "@\*/@"
   MultilineComment :: Text     -- ^ The content of the comment
                    -> Token ()
+  -- | End Of Line
+  EOL :: Token ()
 
 type LToken l = Located (Token l)
