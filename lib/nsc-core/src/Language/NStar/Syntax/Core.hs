@@ -4,6 +4,17 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeApplications #-}
 
+{-|
+  Module: Language.NStar.Syntax.Core
+  Description: NStar's core language
+  Copyright: (c) Mesabloo, 2020
+  License: BSD3
+  Stability: experimental
+
+  This module contains all the definitions of all AST nodes and Tokens that will be
+  used across the whole compiler.
+-}
+
 module Language.NStar.Syntax.Core
 where
 
