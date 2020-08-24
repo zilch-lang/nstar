@@ -1,0 +1,25 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           nsc-core
+version:        0.0.0
+build-type:     Simple
+
+library
+  exposed-modules:
+      Data.Located
+      Language.NStar.Syntax.Core
+  other-modules:
+      Paths_nsc_core
+  hs-source-dirs:
+      src
+  default-extensions: BlockArguments LambdaCase BinaryLiterals
+  build-depends:
+      base >=4.7 && <5
+    , containers >=0.6
+    , diagnose
+    , text >=1.2 && <1.4
+  default-language: Haskell2010

@@ -1,0 +1,12 @@
+name: nsc-core
+
+library:
+  source-dirs: src
+
+default-extensions: !include "../../default-extensions.txt"
+
+dependencies:
+- base >=4.7 && <5
+- diagnose
+- text >=1.2 && <1.4
+- containers >=0.6
