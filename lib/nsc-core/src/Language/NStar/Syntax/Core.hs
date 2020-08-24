@@ -97,3 +97,32 @@ data Immediate v where
                                     --
                                     -- \- Hexadecimal: @0(x|X)(0..9|A..F|a..f)⁺@
   C :: Char -> Immediate Char       -- ^ A character (which can be an escape sequence)
+
+
+------------------------------------------------------------------------------------------------
+
+data Token v where
+  Literal :: l -> Token l                             -- ^ Any literal value like integer or characters
+  -- Registers
+  Rax, Rbx, Rcx, Rdx, Rdi, Rsi, Rsp, Rbp :: Token ()  -- ^ Registers reserved words
+  -- Instructions
+  Mov :: Token ()                                     -- ^ The @mov@ instruction
+
+  -- TODO: add more instructions
+  -- Symbols
+  LParen, LBrace, LBracket, LAngle :: Token ()        -- ^ Opening symbols @(@, @[@, @{@ and @\<@
+  RParen, RBrace, RBracket, RAngle :: Token ()        -- ^ Closing symbols @)@, @]@, @}@ and @\>@
+  Star :: Token ()                                    -- ^ Pointer quantifier "@*@"
+  Dollar :: Token ()                                  -- ^ Literal quantifier "@$@"
+  Percent :: Token ()                                 -- ^ Register quantifier "@%@"
+  Comma :: Token ()                                   -- ^ Separator "@,@"
+  Colon :: Token ()                                   -- ^ Separator "@:@"
+  Dot :: Token ()                                     -- ^ Separator "@.@"
+  -- Keywords
+  Forall :: Token ()                                  -- ^ \"Forall\" type variable binder in type
+  Sptr :: Token ()                                    -- ^ \"sptr\" stack pointer quantifier
+  -- Comments
+  InlineComment :: Text -> Token ()                   -- ^ A comment starting with "@#@" and spanning until the end of the current line
+  MultilineComment :: Text -> Token ()                -- ^ A comment starting with "@/\*@" and ending with "@\*/@".
+
+type LToken l = Located (Token l)
