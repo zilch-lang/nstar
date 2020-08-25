@@ -1,4 +1,4 @@
-fact: forall (s: Ts). { %rsp: sptr { %rax: u64, %rsp: sptr s }::s, %rdi: u64 }
+fact: forall (s: Ts). { %rsp: sptr *{ %rax: u64, %rsp: sptr s }::s, %rdi: u64 }
     jz %rdi, fact_if_0<s>   # Jump to "fact_if_0" if %rdi is 0
 
     mov %rbx, %rdi
@@ -7,9 +7,9 @@ fact: forall (s: Ts). { %rsp: sptr { %rax: u64, %rsp: sptr s }::s, %rdi: u64 }
     mul %rax, %rbx          # And we perform the multiplication
     jmp fact_end<s>
 
-  fact_if_0: forall (s: Ts). { %rsp: sptr { %rax: u64, %rsp: sptr s }::s }
+  fact_if_0: forall (s: Ts). { %rsp: sptr *{ %rax: u64, %rsp: sptr s }::s }
     mov %rax, 1
     jmp fact_end<s>
 
-  fact_end: forall (s: Ts). { %rax: u64, %rsp: sptr { %rax: u64, %rsp: sptr s }::s }
+  fact_end: forall (s: Ts). { %rax: u64, %rsp: sptr *{ %rax: u64, %rsp: sptr s }::s }
     ret
