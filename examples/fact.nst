@@ -5,11 +5,11 @@ fact: forall (s: Ts). { %rsp: sptr { %rax: u64, %rsp: sptr s }::s, %rdi: u64 }
     dec %rdi                # We decrement the argument in the recursive call
     call fact<s>
     mul %rax, %rbx          # And we perform the multiplication
-    j fact_end<s>
+    jmp fact_end<s>
 
   fact_if_0: forall (s: Ts). { %rsp: sptr { %rax: u64, %rsp: sptr s }::s }
     mov %rax, 1
-    j fact_end<s>
+    jmp fact_end<s>
 
   fact_end: forall (s: Ts). { %rax: u64, %rsp: sptr { %rax: u64, %rsp: sptr s }::s }
     ret
