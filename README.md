@@ -6,7 +6,7 @@
 
 ## Description
 
-N* is a linearly typed assembly language (LTAL for short) used as a compilation target for the [https://github.com/nihil-lang/](nihil programming language). It features automatic memory management, an easy to understand type system as well as zero-cost abstractions like structures and unions.
+N* is a typed assembly language (TAL for short) used as a compilation target for the [nihil programming language](https://github.com/nihil-lang). It features automatic memory management, an easy to understand type system as well as zero-cost abstractions like structures and unions.
 
 ## Examples
 
