@@ -134,6 +134,8 @@ data Token v where
   -- | Any literal value like integers or characters
   Literal :: l             -- ^ The value of the literal
           -> Token l
+  -- | An identifier (also called name)
+  Id :: Text -> Token Text
   -- Registers
   -- | Registers reserved words
   Rax, Rbx, Rcx, Rdx, Rdi, Rsi, Rsp, Rbp :: Token ()
