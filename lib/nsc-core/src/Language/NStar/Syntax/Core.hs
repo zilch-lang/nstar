@@ -174,5 +174,7 @@ data Token v where
                    -> Token ()
   -- | End Of Line
   EOL :: Token ()
+  -- | End Of File
+  EOF :: Token ()
 
 type LToken l = Located (Token l)
