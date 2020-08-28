@@ -147,6 +147,8 @@ data Token where
   Colon :: Token
   -- | Separator "@.@"
   Dot :: Token
+  -- | Negation "@-@"
+  Minus :: Token
   -- Keywords
   -- | \"@forall@\" type variable binder in type
   Forall :: Token
