@@ -22,7 +22,7 @@ import Data.Located
 import Data.Text (Text)
 import Data.Map (Map)
 import Numeric.Natural (Natural)
-
+import Data.Some (Some)
 
 newtype Program
   = Program [Located Statement]  -- ^ A program is a possibily empty list of statements
@@ -178,3 +178,5 @@ data Token v where
   EOF :: Token ()
 
 type LToken l = Located (Token l)
+
+type SomeLToken = Located (Some Token)
