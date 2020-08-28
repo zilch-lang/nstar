@@ -10,4 +10,3 @@ dependencies:
 - diagnose
 - text >=1.2 && <1.4
 - containers >=0.6
-- some ==1.0.1

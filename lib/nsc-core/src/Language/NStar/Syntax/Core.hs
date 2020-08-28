@@ -1,8 +1,4 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ExplicitForAll #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE TypeApplications #-}
 
 {-|
   Module: Language.NStar.Syntax.Core
@@ -22,7 +18,6 @@ import Data.Located
 import Data.Text (Text)
 import Data.Map (Map)
 import Numeric.Natural (Natural)
-import Data.Some (Some)
 
 newtype Program
   = Program [Located Statement]  -- ^ A program is a possibily empty list of statements
@@ -31,49 +26,44 @@ newtype Program
 data Statement where
   -- | A typed label
   Label :: Located Text           -- ^ The label's name. It may not be empty
-        -> Located (Type 'N)      -- ^ The "label's type", describing the minimal type expected when jumping to this label
+        -> Located Type           -- ^ The "label's type", describing the minimal type expected when jumping to this label
         -> Statement
   -- | An instruction call
   Instr :: Instruction -> Statement
 
-data Type :: RType -> * where
+data Type where
   -- | Signed integer
   Signed :: Natural                                        -- ^ The size of the integer (a multiple of 2 greater than 4)
-         -> Type 'N
+         -> Type
   -- | Unsigned integer
   Unsigned :: Natural                                      -- ^ The size of the integer (a multiple of 2 greater than 4)
-           -> Type 'N
+           -> Type
   -- | Stack constructor
-  Cons :: Located (Type t1)                                -- ^ Stack head
-       -> Located (Type 'S)                                -- ^ Stack tail
-       -> Type 'S
+  Cons :: Located Type                                     -- ^ Stack head
+       -> Located Type                                     -- ^ Stack tail
+       -> Type
   -- | Type variable
   Var :: Located Text                                      -- ^ The name of the type variable
-      -> Type t
+      -> Type
   -- | Record type
-  Record :: Map (Located (Register r)) (Located (Type t))  -- ^ A mapping from 'Register's to their expected 'Type's
-         -> Type 'N
+  Record :: Map (Located Register) (Located Type)          -- ^ A mapping from 'Register's to their expected 'Type's
+         -> Type
   -- | Pointer to a normal type
-  Ptr :: Located (Type 'N)
-      -> Type 'N
+  Ptr :: Located Type
+      -> Type
   -- | Pointer to a stack type
   --
   -- We separate stack pointers from normal pointers
   -- because they are used as a different construct
   -- in the source code (@*ty@ vs @sptr sty@)
-  SPtr :: Located (Type 'S)
-       -> Type 'S
+  SPtr :: Located Type
+       -> Type
 
--- | Register type
-data RType
-  = S -- ^ The register is a stack. It can be indexed, @push@ed and @pop@ped
-  | N -- ^ the register is normal. It only permits reading and writing
-
-data Register :: RType -> * where
+data Register where
   -- | 64 bits single-value registers
-  RAX, RBX, RCX, RDX, RDI, RSI, RBP :: Register 'N
+  RAX, RBX, RCX, RDX, RDI, RSI, RBP :: Register
   -- | 64 bits stack registers
-  RSP :: Register 'S
+  RSP :: Register
   {- We do not permit using registers like %rip, %flags, etc.
      Those are used internally by some instructions.
   -}
@@ -81,40 +71,35 @@ data Register :: RType -> * where
 -- | N*'s instruction set
 data Instruction where
   -- | @mov a, v@ is the same as @a <- v@
-  MOV :: Located (Expr 'A)    -- ^ The destination of the move. It must be addressable
-      -> Located (Expr 'V)    -- ^ The source value moved into the destination
+  MOV :: Located Expr         -- ^ The destination of the move. It must be addressable
+      -> Located Expr         -- ^ The source value moved into the destination
       -> Instruction
 
   -- TODO: add more instructions
 
--- | Expression type
-data EType
-  = V -- ^ The expression is a value. It can neither be offset, indexed, nor set
-  | A -- ^ The expression is addressable. It can be offset, indexed, and set
-
-data Expr :: EType -> * where
+data Expr where
   -- | An immediate value (@$⟨val⟩@)
-  Imm :: Located (Immediate i)      -- ^ \- @⟨val⟩@
-      -> Expr 'V
+  Imm :: Located Immediate          -- ^ \- @⟨val⟩@
+      -> Expr
   -- | A label name
   Name :: Located Text
-       -> Expr e
+       -> Expr
   -- | An address (@⟨addr⟩@)
   Address :: Located Integer        -- ^ \- @⟨addr⟩@
-          -> Expr e
+          -> Expr
   -- | An indexed expression (@⟨idx⟩[⟨expr⟩]@)
   Indexed :: Located Integer        -- ^ \- @⟨idx⟩@
-          -> Located (Expr 'A)      -- ^ \- @⟨expr⟩@
-          -> Expr e
+          -> Located Expr           -- ^ \- @⟨expr⟩@
+          -> Expr
   -- | A register (one of the available 'Register's)
-  Reg :: Located (Register r)
-      -> Expr e
+  Reg :: Located Register
+      -> Expr
   -- | Type specialization (used on a @call@) (@⟨expr⟩\<⟨type⟩\>@)
-  Spec :: Located (Expr e)          -- ^ \- @⟨expr⟩@
-       -> Located (Type t)          -- ^ \- @⟨type⟩@
-       -> Expr e
+  Spec :: Located Expr             -- ^ \- @⟨expr⟩@
+       -> Located Type             -- ^ \- @⟨type⟩@
+       -> Expr
 
-data Immediate v where
+data Immediate where
   -- | An integer, either in decimal, hexadecimal, octal or binary format
   --
   -- Grammars are:
@@ -123,60 +108,61 @@ data Immediate v where
   -- * Octal: @0(o|O)(0..7)⁺@
   -- * Decimal: @(0..9)⁺@
   -- * Hexadecimal: @0(x|X)(0..9|A..F|a..f)⁺@
-  I :: Integer -> Immediate Integer
+  I :: Integer -> Immediate
   -- | A character (which can be an escape sequence)
-  C :: Char -> Immediate Char
+  C :: Char -> Immediate
 
 
 ------------------------------------------------------------------------------------------------
 
-data Token v where
-  -- | Any literal value like integers or characters
-  Literal :: l             -- ^ The value of the literal
-          -> Token l
+data Token where
+  -- Literals
+  -- | A literal integer
+  Integer :: Integer -> Token
+  -- | A literal character
+  Char :: Char -> Token
   -- | An identifier (also called name)
-  Id :: Text -> Token Text
+  Id :: Text -> Token
   -- Registers
   -- | Registers reserved words
-  Rax, Rbx, Rcx, Rdx, Rdi, Rsi, Rsp, Rbp :: Token ()
+  Rax, Rbx, Rcx, Rdx, Rdi, Rsi, Rsp, Rbp :: Token
   -- Instructions
   -- | The @mov@ instruction
-  Mov :: Token ()
+  Mov :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@
-  LParen, LBrace, LBracket, LAngle :: Token ()
+  LParen, LBrace, LBracket, LAngle :: Token
   -- | Closing symbols @)@, @]@, @}@ and @\>@
-  RParen, RBrace, RBracket, RAngle :: Token ()
+  RParen, RBrace, RBracket, RAngle :: Token
   -- | Pointer quantifier "@*@"
-  Star :: Token ()
+  Star :: Token
   -- | Literal quantifier "@$@"
-  Dollar :: Token ()
+  Dollar :: Token
   -- | Register quantifier "@%@"
-  Percent :: Token ()
+  Percent :: Token
   -- | Separator "@,@"
-  Comma :: Token ()
+  Comma :: Token
   -- | Separator "@:@"
-  Colon :: Token ()
+  Colon :: Token
   -- | Separator "@.@"
-  Dot :: Token ()
+  Dot :: Token
   -- Keywords
   -- | \"@forall@\" type variable binder in type
-  Forall :: Token ()
+  Forall :: Token
   -- | \"@sptr@\" stack pointer quantifier
-  Sptr :: Token ()
+  Sptr :: Token
   -- Comments
   -- | A comment starting with "@#@" and spanning until the end of the current line
   InlineComment :: Text        -- ^ The content of the comment
-                -> Token ()
+                -> Token
   -- | A comment starting with "@/\*@" and ending with "@\*/@"
   MultilineComment :: Text     -- ^ The content of the comment
-                   -> Token ()
+                   -> Token
   -- | End Of Line
-  EOL :: Token ()
+  EOL :: Token
   -- | End Of File
-  EOF :: Token ()
+  EOF :: Token
 
-type LToken l = Located (Token l)
-
-type SomeLToken = Located (Some Token)
+-- | A token with some location information attached
+type LToken = Located Token
