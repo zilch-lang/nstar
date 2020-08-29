@@ -40,7 +40,8 @@ instance MP.ShowErrorComponent LexicalError where
   showErrorComponent = show
 
 instance Hintable LexicalError String where
-  hints UnrecognizedEscapeSequence = [hint "Valid escape sequences are all documented at <https://github.com/nihil-lang/nsc/docs/escape-sequences.md>."]
+  hints UnrecognizedEscapeSequence =
+    [hint "Valid escape sequences are all documented at <https://github.com/nihil-lang/nsc/blob/develop/docs/escape-sequences.md>."]
 
 
 -- | @space@ only parses any whitespace (not accounting for newlines and vertical tabs) and discards them.
