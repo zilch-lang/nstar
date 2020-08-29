@@ -10,7 +10,8 @@ build-type:     Simple
 
 library
   exposed-modules:
-      Language.NStar.Syntax.Common
+      Language.NStar.Syntax.Hints
+      Language.NStar.Syntax.Internal
       Language.NStar.Syntax.Lexer
   other-modules:
       Paths_nsc_parser
