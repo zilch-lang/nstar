@@ -3,13 +3,16 @@
 
 {-|
   Module: Language.NStar.Syntax.Core
-  Description: NStar's core language
+  Description: NStar's syntactic core language
   Copyright: (c) Mesabloo, 2020
   License: BSD3
   Stability: experimental
 
   This module contains all the definitions of all AST nodes and Tokens that will be
   used across the whole compiler.
+
+  The translation from the source code to the syntactic core should be almost a 1:1 conversion,
+  so a program can be printed back as it was. Both lexing and parsing steps must be reversible steps.
 -}
 
 module Language.NStar.Syntax.Core
