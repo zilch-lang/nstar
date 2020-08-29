@@ -169,7 +169,9 @@ data Token where
   EOL :: Token
   -- | End Of File
   EOF :: Token
+
 deriving instance Show Token
+deriving instance Eq Token
 
 -- | A token with some location information attached
 type LToken = Located Token
