@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 {-|
   Module: Language.NStar.Syntax.Core
@@ -165,6 +166,7 @@ data Token where
   EOL :: Token
   -- | End Of File
   EOF :: Token
+deriving instance Show Token
 
 -- | A token with some location information attached
 type LToken = Located Token
