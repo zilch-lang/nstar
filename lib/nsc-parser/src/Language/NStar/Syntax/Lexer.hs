@@ -159,5 +159,6 @@ literal = lexeme . located $ MP.choice
      , '\\'   <$ MPC.char '\\'  -- Backslash
      , '\''   <$ MPC.char '\''  -- Apostrophe
      , '"'    <$ MPC.char '"'   -- Double quotation mark
+     , '\0'   <$ MPC.char '0'   -- Null character
        -- TODO: add support for unicode escape sequences "\uHHHH" and "\uHHHHHHHH"
      ]

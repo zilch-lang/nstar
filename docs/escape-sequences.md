@@ -17,7 +17,6 @@ Escape sequences in N* follow closely those available in C:
 | `\\`            | Backslash                                                                                                    |
 | `\'`            | Apostrophe, useful in a character construct `'c'`                                                            |
 | `\"`            | Double quotation mark, useful in a string construct `"..."`<br>Strings are, however, not yet available in N* |
+| `\0`            | Null character                                                                                               |
 
 > TODO: support unicode escape sequences `\uHHHH` and `\uHHHHHHHH`
-
-> TODO: support null characters `\0`
