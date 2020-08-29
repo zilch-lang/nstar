@@ -139,10 +139,10 @@ identifierOrKeyword = lexeme $ located do
 -- | Parses a literal value (integer or character).
 literal :: Lexer LToken
 literal = lexeme . located $ MP.choice
-  [ Integer <$> (symbol' "0b" *> MPL.binary @_ @_ @_ @Integer)
-  , Integer <$> (symbol' "0x" *> MPL.hexadecimal @_ @_ @_ @Integer)
-  , Integer <$> (symbol' "0o" *> MPL.octal @_ @_ @_ @Integer)
-  , Integer <$> MPL.decimal @_ @_ @_ @Integer
+  [ Integer <$> (symbol' "0b" *> MPL.binary)
+  , Integer <$> (symbol' "0x" *> MPL.hexadecimal)
+  , Integer <$> (symbol' "0o" *> MPL.octal)
+  , Integer <$> MPL.decimal
   , Char <$> MP.between (MPC.char '\'') (MPC.char '\'') charLiteral ]
  where
    charLiteral = escapeChar MP.<|> MP.anySingle
