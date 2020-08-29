@@ -3,6 +3,7 @@ resolver: lts-16.10
 packages:
 - .
 - ./lib/nsc-core
+- ./lib/nsc-parser
 
 extra-deps:
 - git: https://github.com/mesabloo/diagnose.git
