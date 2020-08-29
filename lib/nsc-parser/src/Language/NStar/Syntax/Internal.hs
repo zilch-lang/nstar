@@ -2,6 +2,10 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Language.NStar.Syntax.Internal
 ( located
@@ -14,6 +18,8 @@ import Text.Diagnose (Diagnostic, diagnostic, reportError, Marker(This, Where), 
 import Data.Bifunctor (second)
 import Language.NStar.Syntax.Hints
 import qualified Data.Set as Set (toList)
+import Language.NStar.Syntax.Core as Core (LToken, Token(EOL))
+import qualified Data.List.NonEmpty as NonEmpty (toList)
 
 -- | Wraps the result of a parser with its starting and ending positions.
 located :: (MP.MonadParsec e s m) => m a -> m (Located a)
@@ -64,3 +70,57 @@ megaparsecBundleToDiagnostic msg MP.ParseErrorBundle{..} =
        errorHints (MP.FancyError _ errs) = Set.toList errs >>= \case
          MP.ErrorCustom e -> hints e
          _                -> mempty
+
+----------------------------------------------------------------------------------------------------
+
+instance MP.Stream [LToken] where
+  type Token [LToken] = LToken
+  type Tokens [LToken] = [LToken]
+
+  tokenToChunk _ = pure
+
+  tokensToChunk _ = id
+
+  chunkToTokens _ = id
+
+  chunkLength _ = length
+
+  chunkEmpty _ = null
+
+  take1_ []       = Nothing
+  take1_ (t : ts) = Just (t, ts)
+
+  takeN_ n s
+    | n <= 0    = Just ([], s)
+    | null s    = Nothing
+    | otherwise = Just (splitAt n s)
+
+  takeWhile_ = span
+
+  showTokens _ = show . NonEmpty.toList
+
+  reachOffset o MP.PosState{..} =
+    let (before, after) = splitAt (o - pstateOffset) pstateInput
+
+        actualisePos pos Nothing                               = pos
+        actualisePos _ (Just (Position (bLine, bCol) _ file))  = MP.SourcePos
+            { MP.sourceName   = file
+            , MP.sourceColumn = MP.mkPos (fromIntegral bCol)
+            , MP.sourceLine   = MP.mkPos (fromIntegral bLine)
+            }
+
+        tokenPos = case after of
+            []           -> Nothing
+            (_ :@ p) : _ -> Just p
+
+        newPos = MP.PosState
+            { MP.pstateInput      = after
+            , MP.pstateOffset     = max pstateOffset o
+            , MP.pstateSourcePos  = actualisePos pstateSourcePos tokenPos
+            , MP.pstateTabWidth   = pstateTabWidth
+            , MP.pstateLinePrefix = pstateLinePrefix}
+
+        notEOL (t :@ _) = t /= Core.EOL
+
+        fetchedLine = show $ reverse (takeWhile notEOL (reverse before)) <> takeWhile notEOL after
+    in (fetchedLine, newPos)
