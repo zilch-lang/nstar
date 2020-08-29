@@ -73,7 +73,7 @@ lexFile = first (megaparsecBundleToDiagnostic "Lexical error on input") .: MP.ru
 
 -- | Transforms a source code into a non-empty list of tokens (accounting for 'EOF').
 lexProgram :: Lexer [LToken]
-lexProgram = (<>) <$> tokens <*> ((: []) <$> eof)
+lexProgram = lexeme (pure ()) *> ((<>) <$> tokens <*> ((: []) <$> eof))
   where
     tokens = lexeme . MP.many $ MP.choice
       [ comment, anySymbol, identifierOrKeyword, literal, eol ]
