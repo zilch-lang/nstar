@@ -15,7 +15,7 @@ import qualified Text.Megaparsec.Char.Lexer as MPL
 import Language.NStar.Syntax.Core
 import Language.NStar.Syntax.Internal
 import Language.NStar.Syntax.Hints (Hintable(..))
-import Text.Diagnose (Diagnostic)
+import Text.Diagnose (Diagnostic, hint)
 import Data.Bifunctor (first)
 import Data.Data (Data)
 import Data.Typeable (Typeable)
@@ -27,6 +27,7 @@ import qualified Data.Map as Map (fromList)
 type Parser a = MP.Parsec SemanticError [LToken] a
 
 data SemanticError
+  = NoSuchRegister
   deriving (Eq, Ord, Data, Typeable)
 
 instance Show SemanticError where
@@ -36,7 +37,8 @@ instance MP.ShowErrorComponent SemanticError where
   showErrorComponent = show
 
 instance Hintable SemanticError String where
-  hints _ = []
+  hints NoSuchRegister = [hint "Registers are fixed depending on the target architecture."
+                         ,hint "Registers in different architectures are documented here: <https://github.com/nihil-lang/nsc/blob/develop/docs/registers.md>."]
 
 lexeme :: Parser a -> Parser a
 lexeme = MPL.lexeme (MPL.space MP.empty inlineComment multilineComment)
@@ -93,7 +95,8 @@ parseRegister = parseSymbol Percent *> reg
           , RSI <$ parseSymbol Rsi
           , RDI <$ parseSymbol Rdi
           , RSP <$ parseSymbol Rsp
-          , RBP <$ parseSymbol Rbp ]
+          , RBP <$ parseSymbol Rbp
+          , MP.customFailure NoSuchRegister ]
 
 parseInteger :: Parser (Located Integer)
 parseInteger = lexeme do
