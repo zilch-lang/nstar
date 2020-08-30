@@ -63,6 +63,14 @@ data Type where
   SPtr :: Located Type
        -> Type
 
+data Kind where
+  -- | Kind of 8-bytes big types
+  T8 :: Kind
+  -- | Kind of stack types
+  Ts :: Kind
+  -- | Kind of unsized types
+  Ta :: Kind
+
 data Register where
   -- | 64 bits single-value registers
   RAX, RBX, RCX, RDX, RDI, RSI, RBP :: Register
