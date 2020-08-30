@@ -98,17 +98,17 @@ comment = lexeme $ located (inline MP.<|> multiline)
 -- | Parses any symbol like @[@ or @,@.
 anySymbol :: Lexer LToken
 anySymbol = lexeme . located . MP.choice $ sat <$>
-  [ (LParen, '('), (LBrace, '{'), (LBracket, '['), (LAngle, '<')
-  , (RParen, ')'), (RBrace, '}'), (RBracket, ']'), (RAngle, '>')
-  , (Star, '*')
-  , (Dollar, '$')
-  , (Percent, '%')
-  , (Comma, ',')
-  , (Colon, ':')
-  , (Dot, '.')
-  , (Minus, '-') ]
+  [ (LParen, "("), (LBrace, "{"), (LBracket, "["), (LAngle, "<")
+  , (RParen, ")"), (RBrace, "}"), (RBracket, "]"), (RAngle, ">")
+  , (Star, "*")
+  , (Dollar, "$")
+  , (Percent, "%")
+  , (Comma, ",")
+  , (DoubleColon, "::"), (Colon, ":")
+  , (Dot, ".")
+  , (Minus, "-") ]
  where
-   sat (ret, char) = ret <$ MP.satisfy (== char)
+   sat (ret, sym) = ret <$ MPC.string sym
 
 -- | Tries to parse an identifier. If the result appears to be a keyword, it instead returns a keyword.
 identifierOrKeyword :: Lexer LToken

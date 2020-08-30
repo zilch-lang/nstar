@@ -161,6 +161,8 @@ data Token where
   Comma :: Token
   -- | Separator "@:@"
   Colon :: Token
+  -- | Separator "@::@"
+  DoubleColon :: Token
   -- | Separator "@.@"
   Dot :: Token
   -- | Negation "@-@"
