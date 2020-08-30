@@ -75,7 +75,7 @@ lexFile = first (megaparsecBundleToDiagnostic "Lexical error on input") .: MP.ru
 lexProgram :: Lexer [LToken]
 lexProgram = lexeme (pure ()) *> ((<>) <$> tokens <*> ((: []) <$> eof))
   where
-    tokens = lexeme . MP.many $ MP.choice
+    tokens = MP.many . lexeme $ MP.choice
       [ comment, anySymbol, identifierOrKeyword, literal, eol ]
 
 -- | Parses an end of line and returns 'EOL'.
