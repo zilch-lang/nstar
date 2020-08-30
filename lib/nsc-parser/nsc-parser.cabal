@@ -13,6 +13,7 @@ library
       Language.NStar.Syntax.Hints
       Language.NStar.Syntax.Internal
       Language.NStar.Syntax.Lexer
+      Language.NStar.Syntax.Parser
   other-modules:
       Paths_nsc_parser
   hs-source-dirs:
