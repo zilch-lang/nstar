@@ -18,8 +18,10 @@ import Text.Diagnose (Diagnostic, diagnostic, reportError, Marker(This, Where), 
 import Data.Bifunctor (second)
 import Language.NStar.Syntax.Hints
 import qualified Data.Set as Set (toList)
-import Language.NStar.Syntax.Core as Core (LToken, Token(EOL))
+import Language.NStar.Syntax.Core as Core (LToken, Token(..))
 import qualified Data.List.NonEmpty as NonEmpty (toList)
+import qualified Data.Text as Text (unpack)
+import Data.List (intercalate)
 
 -- | Wraps the result of a parser with its starting and ending positions.
 located :: (MP.MonadParsec e s m) => m a -> m (Located a)
@@ -97,7 +99,8 @@ instance MP.Stream [LToken] where
 
   takeWhile_ = span
 
-  showTokens _ = show . NonEmpty.toList
+  showTokens _ = commaSeparated . fmap (showToken . unLocate) . NonEmpty.toList
+    where unLocate (t :@ _) = t
 
   reachOffset o MP.PosState{..} =
     let (before, after) = splitAt (o - pstateOffset) pstateInput
@@ -124,3 +127,41 @@ instance MP.Stream [LToken] where
 
         fetchedLine = show $ reverse (takeWhile notEOL (reverse before)) <> takeWhile notEOL after
     in (fetchedLine, newPos)
+
+commaSeparated :: [String] -> String
+commaSeparated l = intercalate ", " $ filter (/= "") l
+
+showToken :: Token -> String
+showToken (Integer i)          = "integer '" <> show i <> "'"
+showToken (Char c)             = "character '" <> show c <> "'"
+showToken (Id i)               = "identifier '" <> Text.unpack i <> "'"
+showToken Rax                  = "register 'rax'"
+showToken Rbx                  = "register 'rbx'"
+showToken Rcx                  = "register 'rcx'"
+showToken Rdx                  = "register 'rdx'"
+showToken Rdi                  = "register 'rdi'"
+showToken Rsi                  = "register 'rsi'"
+showToken Rsp                  = "register 'rsp'"
+showToken Rbp                  = "register 'rbp'"
+showToken Mov                  = "instruction 'mov'"
+showToken LParen               = "'('"
+showToken LBrace               = "'{'"
+showToken LBracket             = "'['"
+showToken LAngle               = "'<'"
+showToken RParen               = "')'"
+showToken RBrace               = "'}'"
+showToken RBracket             = "']'"
+showToken RAngle               = "'>'"
+showToken Star                 = "'*'"
+showToken Dollar               = "'$'"
+showToken Percent              = "'%'"
+showToken Comma                = "','"
+showToken Colon                = "':'"
+showToken Dot                  = "'.'"
+showToken Minus                = "'-'"
+showToken Forall               = "'forall'"
+showToken Sptr                 = "'sptr'"
+showToken (InlineComment _)    = ""
+showToken (MultilineComment _) = ""
+showToken EOL                  = "<eol>"
+showToken EOF                  = "<eof>"
