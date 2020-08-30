@@ -31,7 +31,7 @@ data SemanticError
   deriving (Eq, Ord, Data, Typeable)
 
 instance Show SemanticError where
-  show _ = ""
+  show NoSuchRegister = "unrecognized register"
 
 instance MP.ShowErrorComponent SemanticError where
   showErrorComponent = show
