@@ -20,6 +20,9 @@ description:         Please see the README on GitHub at <https://github.com/mesa
 dependencies:
 - base >= 4.7 && < 5
 - diagnose
+- nsc-core
+- nsc-parser
+- text
 
 library:
   source-dirs: src

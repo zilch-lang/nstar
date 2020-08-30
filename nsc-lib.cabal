@@ -24,6 +24,7 @@ source-repository head
 
 library
   exposed-modules:
+      Language.NStar.Syntax
       Lib
   other-modules:
       Paths_nsc_lib
@@ -33,6 +34,9 @@ library
   build-depends:
       base >=4.7 && <5
     , diagnose
+    , nsc-core
+    , nsc-parser
+    , text
   default-language: Haskell2010
 
 executable nsc
@@ -46,7 +50,10 @@ executable nsc
   build-depends:
       base >=4.7 && <5
     , diagnose
+    , nsc-core
     , nsc-lib
+    , nsc-parser
+    , text
   default-language: Haskell2010
 
 test-suite n-star-test
@@ -62,4 +69,7 @@ test-suite n-star-test
       base >=4.7 && <5
     , diagnose
     , n-star
+    , nsc-core
+    , nsc-parser
+    , text
   default-language: Haskell2010
