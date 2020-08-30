@@ -34,7 +34,7 @@ data LexicalError
   deriving (Ord, Eq, Typeable, Data, Read)
 
 instance Show LexicalError where
-  show UnrecognizedEscapeSequence = "Unrecognized character escape sequence"
+  show UnrecognizedEscapeSequence = "unrecognized character escape sequence"
 
 instance MP.ShowErrorComponent LexicalError where
   showErrorComponent = show
