@@ -62,6 +62,10 @@ data Type where
   -- in the source code (@*ty@ vs @sptr sty@)
   SPtr :: Located Type
        -> Type
+  -- | Forall type variable binder
+  ForAll :: [(Located Type, Located Kind)]                  -- ^ Variables along with their 'Kind's
+         -> Located Type
+         -> Type
 
 data Kind where
   -- | Kind of 8-bytes big types
