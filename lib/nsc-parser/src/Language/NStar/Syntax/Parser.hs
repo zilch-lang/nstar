@@ -38,7 +38,7 @@ instance MP.ShowErrorComponent SemanticError where
 
 instance Hintable SemanticError String where
   hints NoSuchRegister = [hint "Registers are fixed depending on the target architecture."
-                         ,hint "Registers in different architectures are documented here: <https://github.com/nihil-lang/nsc/blob/develop/docs/registers.md>."]
+                         ,hint "Registers available in different architectures are documented here: <https://github.com/nihil-lang/nsc/blob/develop/docs/registers.md>."]
 
 lexeme :: Parser a -> Parser a
 lexeme = MPL.lexeme (MPL.space MP.empty inlineComment multilineComment)
