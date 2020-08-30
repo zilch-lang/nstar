@@ -10,6 +10,7 @@
 module Language.NStar.Syntax.Internal
 ( located
 , megaparsecBundleToDiagnostic
+, showToken
 ) where
 
 import Data.Located
@@ -131,19 +132,20 @@ instance MP.Stream [LToken] where
 commaSeparated :: [String] -> String
 commaSeparated l = intercalate ", " $ filter (/= "") l
 
+-- | A prettier output for 'Token's than its 'Show' instance.
 showToken :: Token -> String
-showToken (Integer i)          = "integer '" <> show i <> "'"
-showToken (Char c)             = "character '" <> show c <> "'"
-showToken (Id i)               = "identifier '" <> Text.unpack i <> "'"
-showToken Rax                  = "register 'rax'"
-showToken Rbx                  = "register 'rbx'"
-showToken Rcx                  = "register 'rcx'"
-showToken Rdx                  = "register 'rdx'"
-showToken Rdi                  = "register 'rdi'"
-showToken Rsi                  = "register 'rsi'"
-showToken Rsp                  = "register 'rsp'"
-showToken Rbp                  = "register 'rbp'"
-showToken Mov                  = "instruction 'mov'"
+showToken (Integer i)          = "'" <> show i <> "'"
+showToken (Char c)             = "''" <> show c <> "''"
+showToken (Id i)               = "'" <> Text.unpack i <> "'"
+showToken Rax                  = "'rax'"
+showToken Rbx                  = "'rbx'"
+showToken Rcx                  = "'rcx'"
+showToken Rdx                  = "'rdx'"
+showToken Rdi                  = "'rdi'"
+showToken Rsi                  = "'rsi'"
+showToken Rsp                  = "'rsp'"
+showToken Rbp                  = "'rbp'"
+showToken Mov                  = "'mov'"
 showToken LParen               = "'('"
 showToken LBrace               = "'{'"
 showToken LBracket             = "'['"
