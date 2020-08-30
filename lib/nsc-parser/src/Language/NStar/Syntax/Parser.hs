@@ -27,18 +27,19 @@ import qualified Data.Map as Map (fromList)
 type Parser a = MP.Parsec SemanticError [LToken] a
 
 data SemanticError
-  = NoSuchRegister
+  = NoSuchRegister Token
   deriving (Eq, Ord, Data, Typeable)
 
 instance Show SemanticError where
-  show NoSuchRegister = "unrecognized register"
+  show (NoSuchRegister t) = "unrecognized register " <> showToken t
 
 instance MP.ShowErrorComponent SemanticError where
   showErrorComponent = show
 
 instance Hintable SemanticError String where
-  hints NoSuchRegister = [hint "Registers are fixed depending on the target architecture."
-                         ,hint "Registers available in different architectures are documented here: <https://github.com/nihil-lang/nsc/blob/develop/docs/registers.md>."]
+  hints (NoSuchRegister _) =
+    [ hint "Registers are fixed depending on the target architecture."
+    , hint "Registers available in different architectures are documented here: <https://github.com/nihil-lang/nsc/blob/develop/docs/registers.md>." ]
 
 lexeme :: Parser a -> Parser a
 lexeme = MPL.lexeme (MPL.space MP.empty inlineComment multilineComment)
@@ -96,7 +97,7 @@ parseRegister = parseSymbol Percent *> reg
           , RDI <$ parseSymbol Rdi
           , RSP <$ parseSymbol Rsp
           , RBP <$ parseSymbol Rbp
-          , MP.customFailure NoSuchRegister ]
+          , MP.lookAhead MP.anySingle >>= MP.customFailure . NoSuchRegister . unLoc ]
 
 parseInteger :: Parser (Located Integer)
 parseInteger = lexeme do
