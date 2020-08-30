@@ -144,6 +144,12 @@ literal = lexeme . located $ MP.choice
   , Integer <$> (symbol' "0o" *> MPL.octal)
   , Integer <$> MPL.decimal
   , Char <$> MP.between (MPC.char '\'') (MPC.char '\'') charLiteral ]
+  -- FIXME: There is a way to break integer tokens:
+  -- When you have a decimal integer beginning with a "0", the "0"
+  -- will be stripped off because 'Integer's do not show leading "0"
+  -- in its Haskell's 'Show' instance.
+  -- The 'Integer' should better take a 'Text', while the 'Read'ing part should
+  -- be implemented in the parser.
  where
    charLiteral = escapeChar MP.<|> MP.anySingle
    escapeChar = MPC.char '\\' *> (codes MP.<|> MP.customFailure UnrecognizedEscapeSequence)
