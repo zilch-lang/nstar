@@ -1,5 +1,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 {-|
   Module: Language.NStar.Syntax.Core
@@ -22,6 +23,8 @@ import Data.Located
 import Data.Text (Text)
 import Data.Map (Map)
 import Numeric.Natural (Natural)
+import Data.Data (Data)
+import Data.Typeable (Typeable)
 
 newtype Program
   = Program [Located Statement]  -- ^ A program is a possibily empty list of statements
@@ -183,6 +186,9 @@ data Token where
 
 deriving instance Show Token
 deriving instance Eq Token
+deriving instance Ord Token
+deriving instance Data Token
+deriving instance Typeable Token
 
 -- | A token with some location information attached
 type LToken = Located Token
