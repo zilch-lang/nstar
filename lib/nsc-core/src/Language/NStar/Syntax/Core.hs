@@ -100,9 +100,6 @@ data Expr where
   -- | A label name
   Name :: Located Text
        -> Expr
-  -- | An address (@⟨addr⟩@)
-  Address :: Located Integer        -- ^ \- @⟨addr⟩@
-          -> Expr
   -- | An indexed expression (@⟨idx⟩[⟨expr⟩]@)
   Indexed :: Located Integer        -- ^ \- @⟨idx⟩@
           -> Located Expr           -- ^ \- @⟨expr⟩@
