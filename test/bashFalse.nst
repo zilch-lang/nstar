@@ -1,0 +1,3 @@
+main: forall (s: Ts). { %rsp: sptr *{ %rax: s64 }::s }
+  mov %rax, 1
+  ret
