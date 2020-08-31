@@ -89,10 +89,12 @@ data Register where
 
 -- | N*'s instruction set
 data Instruction where
-  -- | @mov a, v@ is the same as @a <- v@
+  -- | @mov a, v@ is the same as @a <- v@.
   MOV :: Located Expr         -- ^ The destination of the move. It must be addressable
       -> Located Expr         -- ^ The source value moved into the destination
       -> Instruction
+  -- | @ret@ returns the value in @'RAX'@ to the caller.
+  RET :: Instruction
 
   -- TODO: add more instructions
 
@@ -145,6 +147,8 @@ data Token where
   -- Instructions
   -- | The @mov@ instruction
   Mov :: Token
+  -- | The @ret@ instruction
+  Ret :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@
