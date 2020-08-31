@@ -153,7 +153,8 @@ parseTypedLabel = lexeme $
 -- | Parses an instruction call from the N*'s instruction set.
 parseInstructionCall :: Parser Statement
 parseInstructionCall = MP.choice $ fmap Instr <$>
-  [ parseMov ]
+  [ parseMov
+  , parseRet ]
 
 ------------------------------------------------------------------------------------------------------------
 
@@ -267,9 +268,13 @@ unLoc (i :@ _) = i
 
 ----------------------------------------------------------------------------------------------------------------
 
--- | Parses a mov instruction.
+-- | Parses a @mov@ instruction.
 parseMov :: Parser Instruction
 parseMov =
   parseSymbol Mov *>
     (MOV <$> located parseAddressExpr
          <*> (parseSymbol Comma *> located parseExpr))
+
+-- | Parses a @ret@ instruction.
+parseRet :: Parser Instruction
+parseRet = RET <$ parseSymbol Ret

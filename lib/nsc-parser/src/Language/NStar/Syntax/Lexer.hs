@@ -121,6 +121,7 @@ identifierOrKeyword = lexeme $ located do
     transform w@(Text.toLower -> rw) = case rw of
       -- Instructions
       "mov"    -> Mov
+      "ret"    -> Ret
       -- Registers
       "rax"    -> Rax
       "rbx"    -> Rbx
