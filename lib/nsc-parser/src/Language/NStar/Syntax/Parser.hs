@@ -75,7 +75,7 @@ parseEOL = () <$ parseSymbol EOL
 
 -- | Parses an identifier and returns its textual representation.
 parseIdentifier :: Parser (Located Text)
-parseIdentifier = lexeme do
+parseIdentifier = MP.label "an identifier" $ lexeme do
   Id i :@ p <- MP.satisfy isIdentifier
   pure (i :@ p)
  where
@@ -84,10 +84,10 @@ parseIdentifier = lexeme do
 
 -- | Parses a symbol and returns it.
 parseSymbol :: Token -> Parser LToken
-parseSymbol t1 = lexeme $ MP.satisfy \ (t2 :@ _) -> t2 == t1
+parseSymbol t1 = MP.label (showToken t1) . lexeme $ MP.satisfy \ (t2 :@ _) -> t2 == t1
 
 parseRegister :: Parser Register
-parseRegister = parseSymbol Percent *> reg
+parseRegister = MP.label "a register" $ parseSymbol Percent *> reg
   where reg = MP.choice
           [ RAX <$ parseSymbol Rax
           , RBX <$ parseSymbol Rbx
@@ -100,7 +100,7 @@ parseRegister = parseSymbol Percent *> reg
           , MP.lookAhead MP.anySingle >>= MP.customFailure . NoSuchRegister . unLoc ]
 
 parseInteger :: Parser (Located Integer)
-parseInteger = lexeme do
+parseInteger = MP.label "an integer" $ lexeme do
   Integer i :@ p <- MP.satisfy isInteger
   pure (i :@ p)
  where
@@ -108,7 +108,7 @@ parseInteger = lexeme do
    isInteger _                = False
 
 parseCharacter :: Parser (Located Char)
-parseCharacter = lexeme do
+parseCharacter = MP.label "a character" $ lexeme do
   Char c :@ p <- MP.satisfy isCharacter
   pure (c :@ p)
  where
@@ -252,7 +252,7 @@ parseLabel = Name <$> parseIdentifier
 
 -- | Parses an indexed addressable expression.
 parseIndexedExpr :: Parser Expr
-parseIndexedExpr =
+parseIndexedExpr = MP.label "an indexed expression" $
   Indexed <$> located parseSignedInteger
           <*> betweenParens (located parseAddressExpr)
 
