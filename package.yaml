@@ -1,5 +1,5 @@
 name:                nsc-lib
-version:             0.1.0.0
+version:             !include "version.yaml"
 github:              "mesabloo/n-star"
 license:             BSD3
 author:              "Mesabloo"
@@ -27,7 +27,7 @@ dependencies:
 library:
   source-dirs: src
 
-default-extensions: !include "default-extensions.txt"
+default-extensions: !include "default-extensions.yaml"
 
 executables:
   nsc:
