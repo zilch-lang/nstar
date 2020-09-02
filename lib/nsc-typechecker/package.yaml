@@ -1,0 +1,16 @@
+name: nsc-typechecker
+version: !include "../../version.yaml"
+
+library:
+  source-dirs: src
+
+dependencies:
+- base >=4.7 && <5
+- diagnose
+- nsc-core
+
+default-extensions: !include "../../default-extensions.yaml"
+
+ghc-options:
+- -Wall
+- -Wno-name-shadowing

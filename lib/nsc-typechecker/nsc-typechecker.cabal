@@ -1,0 +1,22 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           nsc-typechecker
+version:        0.0.1.0
+build-type:     Simple
+
+library
+  other-modules:
+      Paths_nsc_typechecker
+  hs-source-dirs:
+      src
+  default-extensions: BlockArguments LambdaCase BinaryLiterals
+  ghc-options: -Wall -Wno-name-shadowing
+  build-depends:
+      base >=4.7 && <5
+    , diagnose
+    , nsc-core
+  default-language: Haskell2010

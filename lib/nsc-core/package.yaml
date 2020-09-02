@@ -1,0 +1,13 @@
+name: nsc-core
+version: !include "../../version.yaml"
+
+library:
+  source-dirs: src
+
+default-extensions: !include "../../default-extensions.yaml"
+
+dependencies:
+- base >=4.7 && <5
+- diagnose
+- text >=1.2 && <1.4
+- containers >=0.6

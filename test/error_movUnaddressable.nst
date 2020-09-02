@@ -1,0 +1,21 @@
+/*
+
+Error reported:
+
+
+ [error]: Parse error on input
+      In: test/error_movUnaddressable.nst
+
+  1| mov 0, %rax # 0 <- %rax
+          ^ unexpected ','
+          - expecting '('
+
+
+This is because `0` is a valid index to address an expression.
+The syntax being `(-?)<index>(<expr>)`, this fails because `,` is not `(`.
+
+This error may not be quite clear.
+
+*/
+
+mov 0, %rax # 0 <- %rax
