@@ -7,6 +7,14 @@
 
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 
+{-|
+  Module: Language.NStar.Syntax.Parser
+  Description: NStar's parser for a x64 syntax
+  Copyright: (c) Mesabloo, 2020
+  License: BSD3
+  Stability: experimental
+-}
+
 module Language.NStar.Syntax.Parser
 (parseFile) where
 

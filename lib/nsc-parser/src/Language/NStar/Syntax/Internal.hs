@@ -7,6 +7,13 @@
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+{-|
+  Module: Language.NStar.Syntax.Internal
+  Copyright: (c) Mesabloo, 2020
+  License: BSD3
+  Stability: experimental
+-}
+
 module Language.NStar.Syntax.Internal
 ( located
 , megaparsecBundleToDiagnostic

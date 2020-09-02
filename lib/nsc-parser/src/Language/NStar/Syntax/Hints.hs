@@ -1,6 +1,13 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
 
+{-|
+  Module: Language.NStar.Syntax.Hints
+  Copyright: (c) Mesabloo, 2020
+  License: BSD3
+  Stability: experimental
+-}
+
 module Language.NStar.Syntax.Hints where
 
 import Text.Diagnose (Hint)

@@ -8,6 +8,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
+{-|
+  Module: Language.NStar.Syntax.Lexer
+  Description: NStar's lexer
+  Copyright: (c) Mesabloo, 2020
+  License: BSD3
+  Stability: experimental
+-}
+
 module Language.NStar.Syntax.Lexer
 ( lexFile ) where
 
