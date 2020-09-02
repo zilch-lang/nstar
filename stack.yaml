@@ -4,6 +4,7 @@ packages:
 - .
 - ./lib/nsc-core
 - ./lib/nsc-parser
+- ./lib/nsc-typechecker
 
 extra-deps:
 - git: https://github.com/mesabloo/diagnose.git
