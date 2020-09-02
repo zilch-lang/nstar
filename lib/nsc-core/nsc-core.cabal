@@ -12,6 +12,7 @@ library
   exposed-modules:
       Data.Located
       Language.NStar.Syntax.Core
+      Language.NStar.Typechecker.Core
   other-modules:
       Paths_nsc_core
   hs-source-dirs:
