@@ -13,11 +13,11 @@ data Located a
 
 infix 3 :@
 
-instance Eq (Located a) where
-  (_ :@ p1) == (_ :@ p2) = p1 == p2
+instance Eq a => Eq (Located a) where
+  (v1 :@ _) == (v2 :@ _) = v1 == v2
 
-instance Ord (Located a) where
-  (_ :@ p1) <= (_ :@ p2) = p1 <= p2
+instance Ord a => Ord (Located a) where
+  (v1 :@ _) <= (v2 :@ _) = v1 <= v2
 
 -- | Removes extra position information bundled with a value.
 unLoc :: Located a -> a
