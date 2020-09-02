@@ -22,3 +22,10 @@ instance Ord (Located a) where
 -- | Removes extra position information bundled with a value.
 unLoc :: Located a -> a
 unLoc ~(x :@ _) = x
+
+instance Functor Located where
+  fmap f (a :@ p) = f a :@ p
+
+instance Applicative Located where
+  pure x = x :@ Position (1, 1) (1, 1) "<unknown>"
+  (f :@ _) <*> (x :@ p) = f x :@ p
