@@ -87,6 +87,9 @@ data Register where
      Those are used internally by some instructions.
   -}
 
+deriving instance Eq Register
+deriving instance Ord Register
+
 -- | N*'s instruction set
 data Instruction where
   -- | @mov a, v@ is the same as @a <- v@.
