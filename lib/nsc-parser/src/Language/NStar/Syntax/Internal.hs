@@ -107,8 +107,7 @@ instance MP.Stream [LToken] where
 
   takeWhile_ = span
 
-  showTokens _ = commaSeparated . fmap (showToken . unLocate) . NonEmpty.toList
-    where unLocate (t :@ _) = t
+  showTokens _ = commaSeparated . fmap (showToken . unLoc) . NonEmpty.toList
 
   reachOffset o MP.PosState{..} =
     let (before, after) = splitAt (o - pstateOffset) pstateInput

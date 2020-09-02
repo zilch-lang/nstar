@@ -29,7 +29,7 @@ import Data.Data (Data)
 import Data.Typeable (Typeable)
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Data.Located (Located(..))
+import Data.Located (Located(..), unLoc)
 import qualified Data.Map as Map (fromList)
 
 type Parser a = MP.Parsec SemanticError [LToken] a
@@ -269,10 +269,6 @@ parseSignedInteger :: Parser Integer
 parseSignedInteger = (*) <$> sign <*> (unLoc <$> parseInteger)
  where
    sign = MP.choice [ -1 <$ parseSymbol Minus, 1 <$ pure () ]
-
--- | Unlocates a located node.
-unLoc :: Located a -> a
-unLoc (i :@ _) = i
 
 ----------------------------------------------------------------------------------------------------------------
 

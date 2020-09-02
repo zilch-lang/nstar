@@ -1,6 +1,7 @@
 module Data.Located
 ( module Text.Diagnose.Position
 , Located(..)
+, unLoc
 ) where
 
 import Text.Diagnose.Position
@@ -17,3 +18,7 @@ instance Eq (Located a) where
 
 instance Ord (Located a) where
   (_ :@ p1) <= (_ :@ p2) = p1 <= p2
+
+-- | Removes extra position information bundled with a value.
+unLoc :: Located a -> a
+unLoc ~(x :@ _) = x
