@@ -140,7 +140,7 @@ commaSeparated l = intercalate ", " $ filter (/= "") l
 
 -- | A prettier output for 'Token's than its 'Show' instance.
 showToken :: Token -> String
-showToken (Integer i)          = "'" <> show i <> "'"
+showToken (Integer i)          = "'" <> Text.unpack i <> "'"
 showToken (Char c)             = "''" <> show c <> "''"
 showToken (Id i)               = "'" <> Text.unpack i <> "'"
 showToken Rax                  = "'rax'"

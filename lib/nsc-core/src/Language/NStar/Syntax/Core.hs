@@ -136,7 +136,7 @@ data Immediate where
 data Token where
   -- Literals
   -- | A literal integer
-  Integer :: Integer -> Token
+  Integer :: Text -> Token
   -- | A literal character
   Char :: Char -> Token
   -- | An identifier (also called name)

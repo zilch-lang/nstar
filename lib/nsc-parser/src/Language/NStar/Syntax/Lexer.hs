@@ -148,10 +148,10 @@ identifierOrKeyword = lexeme $ located do
 -- | Parses a literal value (integer or character).
 literal :: Lexer LToken
 literal = lexeme . located $ MP.choice
-  [ Integer <$> (symbol' "0b" *> MPL.binary)
-  , Integer <$> (symbol' "0x" *> MPL.hexadecimal)
-  , Integer <$> (symbol' "0o" *> MPL.octal)
-  , Integer <$> MPL.decimal
+  [ Integer <$> prefixed "0b" (Text.pack <$> MP.some binary)
+  , Integer <$> prefixed "0x" (Text.pack <$> MP.some hexadecimal)
+  , Integer <$> prefixed "0o" (Text.pack <$> MP.some octal)
+  , Integer . Text.pack <$> MP.some decimal
   , Char <$> MP.between (MPC.char '\'') (MPC.char '\'') charLiteral ]
   -- FIXME: There is a way to break integer tokens:
   -- When you have a decimal integer beginning with a "0", the "0"
@@ -177,3 +177,17 @@ literal = lexeme . located $ MP.choice
      , '\0'   <$ MPC.char '0'   -- Null character
        -- TODO: add support for unicode escape sequences "\uHHHH" and "\uHHHHHHHH"
      ]
+
+   binary, octal, decimal, hexadecimal :: Lexer Char
+   binary      = MP.choice $ MPC.char <$> [ '0', '1' ]
+   octal       = MP.choice $ binary : (MPC.char <$> [ '2', '3', '4', '5', '6', '7' ])
+   decimal     = MP.choice $ octal : (MPC.char <$> [ '8', '9' ])
+   hexadecimal = MP.choice $ decimal : (MPC.char' <$> [ 'a', 'b', 'c', 'd', 'e', 'f' ])
+   {-# INLINE binary #-}
+   {-# INLINE octal #-}
+   {-# INLINE decimal #-}
+   {-# INLINE hexadecimal #-}
+
+   prefixed :: (c ~ MP.Tokens Text) => c -> Lexer c -> Lexer c
+   prefixed prefix p = (<>) <$> MPC.string' prefix <*> p
+   {-# INLINE prefixed #-}

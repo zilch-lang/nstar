@@ -110,7 +110,7 @@ parseRegister = MP.label "a register" $ parseSymbol Percent *> reg
 parseInteger :: Parser (Located Integer)
 parseInteger = MP.label "an integer" $ lexeme do
   Integer i :@ p <- MP.satisfy isInteger
-  pure (i :@ p)
+  pure (read (Text.unpack i) :@ p)
  where
    isInteger (Integer _ :@ _) = True
    isInteger _                = False
