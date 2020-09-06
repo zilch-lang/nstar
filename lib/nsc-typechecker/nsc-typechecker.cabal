@@ -11,6 +11,8 @@ version:        0.0.1.0
 build-type:     Simple
 
 library
+  exposed-modules:
+      Language.NStar.Typechecker.Env
   other-modules:
       Paths_nsc_typechecker
   hs-source-dirs:
