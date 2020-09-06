@@ -1,8 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: 1118b25c2dadde7dac72ff74a29bc61e968ff7636024bb03c5e289aea9fb5b0d
 
 name:           nsc-parser
 version:        0.0.1.0
