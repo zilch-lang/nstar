@@ -13,6 +13,7 @@ build-type:     Simple
 library
   exposed-modules:
       Language.NStar.Typechecker.Env
+      Language.NStar.Typechecker.Free
   other-modules:
       Paths_nsc_typechecker
   hs-source-dirs:
