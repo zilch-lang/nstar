@@ -8,6 +8,9 @@ dependencies:
 - base >=4.7 && <5
 - diagnose
 - nsc-core
+- containers
+- mtl
+- text
 
 default-extensions: !include "../../default-extensions.yaml"
 

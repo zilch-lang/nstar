@@ -1,8 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: 2412598f92fb45200540c1ca87aaf3cf601922cb79df9ee80331b4e69bd17012
 
 name:           nsc-typechecker
 version:        0.0.1.0
@@ -17,6 +19,9 @@ library
   ghc-options: -Wall -Wno-name-shadowing
   build-depends:
       base >=4.7 && <5
+    , containers
     , diagnose
+    , mtl
     , nsc-core
+    , text
   default-language: Haskell2010
