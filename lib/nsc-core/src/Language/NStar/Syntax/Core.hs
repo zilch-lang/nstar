@@ -38,6 +38,8 @@ data Statement where
   -- | An instruction call
   Instr :: Instruction -> Statement
 
+deriving instance Show Statement
+
 data Type where
   -- | Signed integer
   Signed :: Natural                                        -- ^ The size of the integer (a multiple of 2 greater than 4)
@@ -70,6 +72,8 @@ data Type where
          -> Located Type
          -> Type
 
+deriving instance Show Type
+
 data Kind where
   -- | Kind of 8-bytes big types
   T8 :: Kind
@@ -77,6 +81,8 @@ data Kind where
   Ts :: Kind
   -- | Kind of unsized types
   Ta :: Kind
+
+deriving instance Show Kind
 
 data Register where
   -- | 64 bits single-value registers
@@ -87,6 +93,7 @@ data Register where
      Those are used internally by some instructions.
   -}
 
+deriving instance Show Register
 deriving instance Eq Register
 deriving instance Ord Register
 
@@ -100,6 +107,8 @@ data Instruction where
   RET :: Instruction
 
   -- TODO: add more instructions
+
+deriving instance Show Instruction
 
 data Expr where
   -- | An immediate value (@$⟨val⟩@)
@@ -120,6 +129,8 @@ data Expr where
        -> Located Type             -- ^ \- @⟨type⟩@
        -> Expr
 
+deriving instance Show Expr
+
 data Immediate where
   -- | An integer, either in decimal, hexadecimal, octal or binary format
   --
@@ -132,6 +143,8 @@ data Immediate where
   I :: Integer -> Immediate
   -- | A character (which can be an escape sequence)
   C :: Char -> Immediate
+
+deriving instance Show Immediate
 
 
 ------------------------------------------------------------------------------------------------
