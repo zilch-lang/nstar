@@ -47,4 +47,4 @@ instance Free Type where
   -- Yes, it's because I forget to add new types in there everytime.
 
 
--- No -XPolyKinds, so no need to make an instance for @Free Kind@.
+-- No -XPolyKinds in N*, so no need to make an instance for @Free Kind@.
