@@ -22,6 +22,7 @@ dependencies:
 - diagnose
 - nsc-core
 - nsc-parser
+- nsc-typechecker
 
 library:
   source-dirs: src

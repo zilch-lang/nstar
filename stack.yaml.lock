@@ -5,6 +5,9 @@
 
 packages:
 - completed:
+    cabal-file:
+      size: 996
+      sha256: 05e54858ea529cee8a7d66dd48a7b8afa070a72efd7bd5c5942a61e0e8f5ed95
     name: diagnose
     version: 1.0.0
     git: https://github.com/mesabloo/diagnose.git
