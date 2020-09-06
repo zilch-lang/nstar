@@ -14,6 +14,7 @@ library
   exposed-modules:
       Language.NStar.Typechecker.Env
       Language.NStar.Typechecker.Free
+      Language.NStar.Typechecker.Subst
   other-modules:
       Paths_nsc_typechecker
   hs-source-dirs:
