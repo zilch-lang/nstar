@@ -76,6 +76,7 @@ data Type where
          -> Type
 
 deriving instance Show Type
+deriving instance Eq Type
 
 data Kind where
   -- | Kind of 8-bytes big types
@@ -86,6 +87,7 @@ data Kind where
   Ta :: Kind
 
 deriving instance Show Kind
+deriving instance Eq Kind
 
 data Register where
   -- | 64 bits single-value registers
