@@ -52,8 +52,9 @@ instance Substitutable a => Substitutable (Located a) where
 instance Substitutable Type where
   apply _ t@(Signed _)              = t
   apply _ t@(Unsigned _)            = t
+  apply _ t@(Var _)                 = t
   apply s (Cons t1 t2)              = Cons (apply s t1) (apply s t2)
-  apply (Subst s) t@(Var v)         = fromMaybe t (unLoc <$> Map.lookup v s)
+  apply (Subst s) t@(FVar v)        = fromMaybe t (unLoc <$> Map.lookup v s)
   apply s (Record rts)              = Record (apply s <$> rts)
   apply s (Ptr t)                   = Ptr (apply s t)
   apply s (SPtr t)                  = SPtr (apply s t)

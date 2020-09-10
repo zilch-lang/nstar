@@ -54,6 +54,9 @@ data Type where
   -- | Type variable
   Var :: Located Text                                      -- ^ The name of the type variable
       -> Type
+  -- | Free type variable
+  FVar :: Located Text                                     -- ^ The name of the type variable
+       -> Type
   -- | Record type
   Record :: Map (Located Register) (Located Type)          -- ^ A mapping from 'Register's to their expected 'Type's
          -> Type

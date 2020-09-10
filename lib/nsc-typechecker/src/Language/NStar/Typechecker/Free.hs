@@ -34,15 +34,16 @@ instance Free (Located Type) where
 
 instance Free Type where
   freeVars (Cons t1 t2)      = freeVars t1 <> freeVars t2
-  freeVars (Var v1)          = Set.singleton v1
+  freeVars (FVar v)          = Set.singleton v
   freeVars (Ptr t1)          = freeVars t1
   freeVars (SPtr t1)         = freeVars t1
   freeVars (ForAll binds ty) = freeVars ty Set.\\ freeVars (fst <$> binds)
   freeVars (Record fields)   = Map.foldr ((<>) . freeVars) mempty fields
+  freeVars (Var _)           = mempty
   freeVars (Signed _)        = mempty
   freeVars (Unsigned _)      = mempty
-  -- Please refrain yourself from putting the two above cases under the same pattern "_".
-  -- Those two are separated in order to keep GHC's warning about incomplete pattern matchings.
+  -- Please refrain yourself from putting the three above cases under the same pattern "_".
+  -- Those three are separated in order to keep GHC's warning about incomplete pattern matchings.
   --
   -- Yes, it's because I forget to add new types in there everytime.
 
