@@ -10,11 +10,11 @@ packages:
     git: https://github.com/mesabloo/diagnose.git
     pantry-tree:
       size: 737
-      sha256: 580dffa77d8d0964efd74c48089ac66fe5bafa835f7c88334f8470e3aa569bf0
-    commit: a5d5c25d8b563dfa03cc1424fe30b0d5517c18ac
+      sha256: 4eb01fc0dbb4c3308c84fa22e68e57d1a9544a83e664e4af3c2da72643fb3fb1
+    commit: e977c7ba6aa8709a0658daec53dd6b08dadeba8b
   original:
     git: https://github.com/mesabloo/diagnose.git
-    commit: a5d5c25d8b563dfa03cc1424fe30b0d5517c18ac
+    commit: e977c7ba6aa8709a0658daec53dd6b08dadeba8b
 snapshots:
 - completed:
     size: 532383
