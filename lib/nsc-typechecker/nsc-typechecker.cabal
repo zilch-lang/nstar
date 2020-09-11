@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2412598f92fb45200540c1ca87aaf3cf601922cb79df9ee80331b4e69bd17012
+-- hash: 0f4d5188c5fe8f6f2fca577c68bebf12d7fe56535969d4a4664d24f8902eeeaa
 
 name:           nsc-typechecker
 version:        0.0.1.0
@@ -14,6 +14,7 @@ library
   exposed-modules:
       Language.NStar.Typechecker.Env
       Language.NStar.Typechecker.Free
+      Language.NStar.Typechecker.Pretty
       Language.NStar.Typechecker.Subst
   other-modules:
       Paths_nsc_typechecker
@@ -22,7 +23,8 @@ library
   default-extensions: BlockArguments LambdaCase BinaryLiterals
   ghc-options: -Wall -Wno-name-shadowing
   build-depends:
-      base >=4.7 && <5
+      ansi-wl-pprint
+    , base >=4.7 && <5
     , containers
     , diagnose
     , mtl

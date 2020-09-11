@@ -11,6 +11,7 @@ dependencies:
 - containers
 - mtl
 - text
+- ansi-wl-pprint
 
 default-extensions: !include "../../default-extensions.yaml"
 
