@@ -19,13 +19,14 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as Text
+import Data.List (intercalate)
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
 uncoercibleTypes (t1, p1) (t2, p2) =
   reportError ("Type '" <> show (prettyText t1) <> "' cannot be coerced to '" <> show (prettyText t2) <> "'.")
     [ (p1, This "") ]
-    [ hint "See <https://github.com/nihil-lang/nsc/blob/develop/docs/type-coercion.md> for more information about type coercion." ]
+    [ hint "Visit <https://github.com/nihil-lang/nsc/blob/develop/docs/type-coercion.md> to learn about type coercion in N*." ]
 
 -- | Happens when the stack infered on a @ret@ call does not have a pointer to some code on the top.
 retWithoutReturnAddress :: Position -> Map (Located Register) (Located Type) -> Report String
