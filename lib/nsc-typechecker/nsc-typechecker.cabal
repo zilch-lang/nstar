@@ -21,7 +21,7 @@ library
   hs-source-dirs:
       src
   default-extensions: BlockArguments LambdaCase BinaryLiterals
-  ghc-options: -Wall -Wno-name-shadowing
+  ghc-options: -Wall -Wno-name-shadowing -Wno-unused-matches
   build-depends:
       ansi-wl-pprint
     , base >=4.7 && <5

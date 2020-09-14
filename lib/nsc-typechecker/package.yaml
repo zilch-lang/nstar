@@ -18,3 +18,4 @@ default-extensions: !include "../../default-extensions.yaml"
 ghc-options:
 - -Wall
 - -Wno-name-shadowing
+- -Wno-unused-matches
