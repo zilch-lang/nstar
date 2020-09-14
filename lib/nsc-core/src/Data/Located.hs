@@ -1,7 +1,7 @@
 module Data.Located
 ( module Text.Diagnose.Position
 , Located(..)
-, unLoc
+, unLoc, getPos
 ) where
 
 import Text.Diagnose.Position
@@ -22,6 +22,10 @@ instance Ord a => Ord (Located a) where
 -- | Removes extra position information bundled with a value.
 unLoc :: Located a -> a
 unLoc ~(x :@ _) = x
+
+-- | Retrieves the position from some 'Located' data.
+getPos :: Located a -> Position
+getPos ~(_ :@ p) = p
 
 instance Functor Located where
   fmap f (a :@ p) = f a :@ p
