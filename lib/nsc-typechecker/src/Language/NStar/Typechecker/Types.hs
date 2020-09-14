@@ -30,12 +30,14 @@ import Language.NStar.Typechecker.Errors
 import Control.Monad.Writer
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Data.Set (Set)
 import Language.NStar.Typechecker.Free
 import Control.Applicative ((<|>))
 import Control.Monad (guard)
 import Data.List (union)
 import Data.Foldable (fold)
 import Debug.Trace (trace)
+import Data.Maybe (fromJust)
 
 type Typechecker a = StateT (Integer, Context) (WriterT [TypecheckError] (Except TypecheckError)) a
 
@@ -46,6 +48,7 @@ data TypecheckError
   | DomainsDoNotSubtype (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
   | RecordUnify TypecheckError (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
   | ToplevelReturn Position
+  | ContextIsMissingOnReturn Position Position (Set (Located Register))
 
 -- | The data type of contexts in typechecking.
 data Context
@@ -104,6 +107,7 @@ fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))     = fromTypecheckEr
                                                                                    --      ^^^^^^^^^^^^^^^^^^^^^^^^
                                                                                    -- This is just to insert a newline between error
 fromTypecheckError (ToplevelReturn p)                          = returnAtTopLevel p
+fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)       = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
 
 --------------------------------------------------------
 

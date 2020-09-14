@@ -67,3 +67,10 @@ returnAtTopLevel p =
   reportError ("Attempting to `ret` when no label has been crossed so far.")
     [ (p, This "") ]
     []
+
+contextIsMissingOnReturnAt :: [Located Register] -> Position -> Position -> Report String
+contextIsMissingOnReturnAt regs p1 p2 =
+  reportError "Current context is missing some registers in order to return safely."
+    [ (p1, This ("Unset (missing) register" <> (if length regs /= 1 then "s" else "") <> ": " <> intercalate ", " (show . prettyText <$> regs)))
+    , (p2, Where "The expected return context was found here") ]
+    []
