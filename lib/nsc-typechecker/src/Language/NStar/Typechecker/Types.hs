@@ -209,3 +209,63 @@ typecheckInstruction i p = case i of
   _ -> pure ()
 
 --------------------------------------------------------------------------------
+
+-- | Generates a fresh free type variable based on a given prefix, for the current source position.
+freshVar :: Text -> Position -> Typechecker (Located Type)
+freshVar prefix pos = do
+  n <- gets fst
+  incrementCounter
+  pure (FVar ((prefix <> Text.pack (show n)) :@ pos) :@ pos)
+
+-- | Unifies two types, and returns the substitution from the first to the second.
+unify :: (t ~ Located Type) => t -> t -> Typechecker (Subst t)
+unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
+  _ | t1 == t2 -> pure mempty
+  -- Signed types are all coercible.
+  (Signed _, Signed _) -> pure mempty
+  -- Unsigned types are all coercible.
+  (Unsigned _, Unsigned _) -> pure mempty
+  -- Two pointers are coercible if their pointed types are coercible.
+  (Ptr t1, Ptr t2) -> unify t1 t2
+  (SPtr t1, SPtr t2) -> unify t1 t2
+  -- Free type variables can be bound to anything as long as it does not create an infinite type.
+  (FVar v, t) -> bind (v, p1) (t, p2)
+  (t, FVar v) -> bind (v, p2) (t, p1)
+  -- FIXME: Handle records properly
+  (Record m1, Record m2) -> do
+    -- @m2@ should contain at least all the keys in @m1@:
+    let k1 = Map.keysSet m1
+        k2 = Map.keysSet m2
+    if not (k1 `Set.isSubsetOf` k2)
+    then throwError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2))
+    else do
+      -- All the values from the keys of @m1@ in @m2@ should be 'unify'able with the values in @m1@:
+      let doUnify k v = catchError (unify v (m2 Map.! k)) (\ e -> throwError $ RecordUnify e (m1 :@ p1) (m2 :@ p2))
+      subs <- fold <$> Map.traverseWithKey doUnify m1
+      pure subs
+  -- A stack constructor can be unified to another stack constructor if
+  -- both stack head and stack tail of each stack can be unified.
+  (Cons t1 t3, Cons t2 t4) -> unifyMany [t1, t3] [t2, t4]
+  -- Any other combination is not possible
+  _ -> throwError (Uncoercible (t1 :@ p1) (t2 :@ p2))
+
+-- | Unifies many types, yielding the composition of all the substitutions created.
+unifyMany :: (t ~ Located Type) => [t] -> [t] -> Typechecker (Subst t)
+unifyMany [] []         = pure mempty
+unifyMany (x:xs) (y:ys) = do
+  sub1 <- unify x y
+  sub2 <- unifyMany (apply sub1 xs) (apply sub1 ys)
+  pure (sub1 <> sub2)
+unifyMany l r           =
+  error ("Could not unify " <> show l <> " and " <> show r <> " because they aren't of the same size.")
+
+-- | Tries to bind a free type variable to a type, yielding a substitution from the variable to the type if
+--   it succeeded.
+bind :: (Located Text, Position) -> (Type, Position) -> Typechecker (Subst (Located Type))
+bind (var, p1) (FVar v, p2)
+  | var == v              = pure mempty
+bind (var, p1) (ty, p2)
+  | occursCheck var ty    = throwError (InfiniteType (ty :@ p2) var)
+  | otherwise             = pure (Subst (Map.singleton var (ty :@ p2)))
+ where
+   occursCheck v t = v `Set.member` freeVars t
