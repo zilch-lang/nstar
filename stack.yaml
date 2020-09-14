@@ -8,7 +8,7 @@ packages:
 
 extra-deps:
 - git: https://github.com/mesabloo/diagnose.git
-  commit: e977c7ba6aa8709a0658daec53dd6b08dadeba8b
+  commit: 3937b074c9bfaca0b26cd63bc75f791895ee59a4
 
 
 nix:
