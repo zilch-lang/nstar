@@ -27,6 +27,7 @@ source-repository head
 library
   exposed-modules:
       Language.NStar.Syntax
+      Language.NStar.Typechecker
       Lib
   other-modules:
       Paths_nsc_lib
