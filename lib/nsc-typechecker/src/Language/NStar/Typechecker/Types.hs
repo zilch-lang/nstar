@@ -209,6 +209,7 @@ typecheckInstruction i p = case i of
       Nothing -> throwError (ToplevelReturn p)
       Just l  -> pure l
 
+
     stackVar <- freshVar "@" p
     let minimalCtx = Record (Map.singleton (RSP :@ p) (SPtr (Cons (Ptr (Record mempty :@ p) :@ p) stackVar :@ p) :@ p)) :@ p
     currentCtx <- gets (currentContext . snd)
@@ -216,6 +217,22 @@ typecheckInstruction i p = case i of
     catchError (unify minimalCtx (Record currentCtx :@ p))
                (const $ throwError (NoReturnAddress p currentCtx))
 
+
+    let removeStackTop (SPtr (Cons _ t :@ _) :@ p1) = SPtr t :@ p1
+        removeStackTop (t :@ _)                     = error $ "Cannot extract stack top of type '" <> show t <> "'"
+
+        getStackTop (SPtr (Cons t _ :@ _) :@ _) = t
+        getStackTop (t :@ _)                    = error $ "Cannot extract stack top of type '" <> show t <> "'"
+
+    let returnShouldBe = Ptr (Record (Map.adjust removeStackTop (RSP :@ p) currentCtx) :@ p) :@ p
+        returnCtx = getStackTop $ fromJust (Map.lookup (RSP :@ p) currentCtx)
+
+    let changeErrorIfMissingKey (DomainsDoNotSubtype (m1 :@ _) (m2 :@ _)) =
+          ContextIsMissingOnReturn p (getPos returnCtx) (Map.keysSet m1 Set.\\ Map.keysSet m2)
+        changeErrorIfMissingKey e                                         = e
+
+    catchError (unify returnCtx returnShouldBe)
+               (throwError . changeErrorIfMissingKey)
     pure ()
   _ -> pure ()
 
