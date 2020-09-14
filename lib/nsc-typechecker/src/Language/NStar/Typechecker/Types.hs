@@ -205,6 +205,13 @@ typecheckInstruction i p = case i of
       Nothing -> throwError (ToplevelReturn p)
       Just l  -> pure l
 
+    stackVar <- freshVar "@" p
+    let minimalCtx = Record (Map.singleton (RSP :@ p) (SPtr (Cons (Ptr (Record mempty :@ p) :@ p) stackVar :@ p) :@ p)) :@ p
+    currentCtx <- gets (currentContext . snd)
+
+    catchError (unify minimalCtx (Record currentCtx :@ p))
+               (const $ throwError (NoReturnAddress p currentCtx))
+
     pure ()
   _ -> pure ()
 
