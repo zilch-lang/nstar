@@ -96,7 +96,7 @@ fromTypecheckError (NoReturnAddress p ctx)                     = retWithoutRetur
 fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2)) = recordDomainsDoNotSubset (m1, p1) (m2, p2)
 fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))     = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
                                                                                    --      ^^^^^^^^^^^^^^^^^^^^^^^^
-                                                                                   -- This is just to insert a newline between error messages. (does not work at the moment)
+                                                                                   -- This is just to insert a newline between error messages.
 --------------------------------------------------------
 
 -- | Entry point of the typechecker.
