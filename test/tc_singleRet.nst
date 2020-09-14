@@ -1,2 +1,2 @@
-main: forall (s: Ts). { %rsp: sptr s64::s }
+main: forall (s: Ts). { %rsp: sptr *{}::s }
       ret
