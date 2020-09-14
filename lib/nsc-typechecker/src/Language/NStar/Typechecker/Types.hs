@@ -45,6 +45,7 @@ data TypecheckError
   | InfiniteType (Located Type) (Located Text)
   | DomainsDoNotSubtype (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
   | RecordUnify TypecheckError (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
+  | ToplevelReturn Position
 
 -- | The data type of contexts in typechecking.
 data Context
@@ -101,7 +102,9 @@ fromTypecheckError (NoReturnAddress p ctx)                     = retWithoutRetur
 fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2)) = recordDomainsDoNotSubset (m1, p1) (m2, p2)
 fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))     = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
                                                                                    --      ^^^^^^^^^^^^^^^^^^^^^^^^
-                                                                                   -- This is just to insert a newline between error messages.
+                                                                                   -- This is just to insert a newline between error
+fromTypecheckError (ToplevelReturn p)                          = returnAtTopLevel p
+
 --------------------------------------------------------
 
 -- | Entry point of the typechecker.
@@ -197,7 +200,11 @@ typecheckInstruction i p = case i of
     -- 1- we must have crossed a label at some point. We will take the last found
     -- 2- we must be able to extract a pointer to a context, on top of the stack
     -- 3- everything we want to return in the context must already be found in the current context
-   
+
+    funName <- gets (currentLabel . snd) >>= \case
+      Nothing -> throwError (ToplevelReturn p)
+      Just l  -> pure l
+
     pure ()
   _ -> pure ()
 

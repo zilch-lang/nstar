@@ -59,3 +59,10 @@ recordValuesDoNotUnify (m1, p1) (m2, p2) =
   reportError ("Record types cannot be coerced because at least one of their common fields cannot be coerced to each other.")
     [ (p1, Where ("'" <> show (prettyText (Record m1)) <> "' cannot be coerced to '" <> show (prettyText (Record m2)) <> "'")) ]
     [ hint "Visit <https://github.com/nihil-lang/nsc/blob/develop/docs/type-coercion.md> to learn about type coercion in N*." ]
+
+-- | Happens when a @ret@ instruction is not in a function. This also means that the instruction has no enclosing scope.
+returnAtTopLevel :: Position -> Report String
+returnAtTopLevel p =
+  reportError ("Attempting to `ret` when no label has been crossed so far.")
+    [ (p, This "") ]
+    []
