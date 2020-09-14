@@ -2,6 +2,14 @@
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
+{-|
+  Module: Language.NStar.Typechecker.Pretty
+  Copyright: (c) Mesabloo, 2020
+  License: BSD3
+  Stability: experimental
+-}
+
+
 module Language.NStar.Typechecker.Pretty where
 
 import Text.Diagnose (PrettyText(..))

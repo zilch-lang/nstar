@@ -1,6 +1,14 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TypeFamilies #-}
 
+{-|
+  Module: Language.NStar.Typechecker.Errors
+  Copyright: (c) Mesabloo, 2020
+  License: BSD3
+  Stability: experimental
+-}
+
+
 module Language.NStar.Typechecker.Errors where
 
 import Text.Diagnose (Report, Marker(..), hint, reportError, reportWarning, prettyText)
