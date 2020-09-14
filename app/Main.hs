@@ -3,6 +3,7 @@
 module Main where
 
 import Language.NStar.Syntax (lexFile, parseFile)
+import Language.NStar.Typechecker (typecheck)
 import Text.Diagnose (printDiagnostic, (<~<))
 import System.IO (stderr, stdout, hPrint, hPutStr)
 import GHC.ResponseFile (getArgsWithResponseFiles)
@@ -27,6 +28,12 @@ main = do
     Left diag -> do
       printDiagnostic stderr (diag <~< (file, lines $ Text.unpack content))
       error "Parser failed with exit code -1"
+    Right res -> pure res
+
+  ast <- case typecheck ast of
+    Left diag -> do
+      printDiagnostic stderr (diag <~< (file, lines $ Text.unpack content))
+      error "Typechecker failed with exit code -1"
     Right res -> pure res
 
   pure ()
