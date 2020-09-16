@@ -54,15 +54,9 @@ data TypecheckError
 data Context
   = Ctx
   { typeEnvironment :: Env Type                               -- ^ An 'Env'ironment containing labels associated to their expected contexts
-  , kindEnvironment :: Env Kind                               -- ^ An 'Env'ironment keeping tracks of kinds of type variables
   , currentContext  :: Map (Located Register) (Located Type)  -- ^ The current typechecking context
   , currentLabel    :: Maybe (Located Text)                   -- ^ The last crossed label
   }
-
--- | Adds a kind to the environment.
-addKind :: Located Text -> Located Kind -> Typechecker ()
-addKind k v = modify $ second modifyKindContext
-  where modifyKindContext ctx@Ctx{..} = ctx { kindEnvironment = Env.insert k v kindEnvironment }
 
 -- | Adds a type to the environment.
 addType :: Located Text -> Located Type -> Typechecker ()
@@ -77,10 +71,6 @@ setCurrentContext :: Map (Located Register) (Located Type) -> Typechecker ()
 setCurrentContext newCtx = modify $ second putContext
   where putContext ctx = ctx { currentContext = newCtx }
 
-setKindEnvironment :: Env Kind -> Typechecker ()
-setKindEnvironment newEnv = modify $ second setKindEnv
-  where setKindEnv ctx = ctx { kindEnvironment = newEnv }
-
 setTypeEnvironment :: Env Type -> Typechecker ()
 setTypeEnvironment newEnv = modify $ second setTypeEnv
   where setTypeEnv ctx = ctx { typeEnvironment = newEnv }
@@ -94,7 +84,7 @@ setLabel n = modify $ second setLbl
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
 typecheck :: Program -> Either (Diagnostic s String m) (Program, [Report String])
 typecheck p = second (second $ fmap fromTypecheckError) $
-              first toDiagnostic $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty mempty Nothing)))
+              first toDiagnostic $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty Nothing)))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
 
 -- | Transforms a typechcking error into a report.
@@ -163,18 +153,11 @@ registerAllLabels = mapM_ addLabelType . filter isLabel
 typecheckStatement :: Located Statement -> Typechecker (Located Statement)
 typecheckStatement s@(Label name ty :@ _) = do
   setCurrentContext (toRegisterMap (removeForallQuantifierIfAny ty))
-  setKindEnvironment (Env.fromList (forallBindersIfAny ty))
   setLabel name
   pure s
  where
    removeForallQuantifierIfAny (unLoc -> ForAll _ ty) = ty
    removeForallQuantifierIfAny ty                     = ty
-
-   forallBindersIfAny (unLoc -> ForAll binders _) = first getVarName <$> binders
-   forallBindersIfAny _                           = []
-
-   getVarName (unLoc -> Var v) = v
-   getVarName (unLoc -> t)     = error $ "Cannot get type variable name from type '" <> show t <> "'"
 
    toRegisterMap (unLoc -> Record m) = m
    toRegisterMap (unLoc -> t)        = error $ "Cannot retrieve register mappings from non-record type '" <> show t <> "'"
