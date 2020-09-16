@@ -105,5 +105,6 @@ kindIsUnsized k p1 p2 =
 unboundTypeVariable :: Text -> Position -> Report String
 unboundTypeVariable v p =
   reportError ("Type variable '" <> Text.unpack v <> "' was not found in scope.")
-    [ (p, This "Variable not in context") ]
+    [ (p, This "Variable not in context")
+    , (p, Maybe "Did you bind it in a `forall` quantifier?")]
     []
