@@ -67,8 +67,10 @@ kindcheckType ctx (Cons t1 t2 :@ p)        = do
   requireStackType =<< kindcheckType ctx t2
   pure (Ts :@ p)
 kindcheckType ctx (Record mappings :@ p)   =
-  (Ta :@ p) <$ traverse ((liftA2 (*>) requireDataType requireSized =<<) . kindcheckType ctx) mappings
+  (Ta :@ p) <$ Map.traverseWithKey handleTypeFromRegister mappings
        -- FIXME: Kind checking does not take into account the size of the types, so if they are sized, they all are 8-bytes big at the moment.
+ where handleTypeFromRegister (RSP :@ _) ty = requireStackType =<< kindcheckType ctx ty
+       handleTypeFromRegister _ ty          = liftA2 (*>) requireDataType requireSized =<< kindcheckType ctx ty
 
 --------------------------------------------------------------------------------------------
 
