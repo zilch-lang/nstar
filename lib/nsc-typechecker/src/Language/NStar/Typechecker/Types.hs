@@ -38,6 +38,7 @@ import Data.List (union)
 import Data.Foldable (fold)
 import Debug.Trace (trace)
 import Data.Maybe (fromJust)
+import Language.NStar.Typechecker.Kinds (kindcheck)
 
 type Typechecker a = StateT (Integer, Context) (WriterT [TypecheckError] (Except TypecheckError)) a
 
@@ -49,6 +50,7 @@ data TypecheckError
   | RecordUnify TypecheckError (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
   | ToplevelReturn Position
   | ContextIsMissingOnReturn Position Position (Set (Located Register))
+  | FromReport (Report String)
 
 -- | The data type of contexts in typechecking.
 data Context
@@ -98,6 +100,7 @@ fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))     = fromTypecheckEr
                                                                                    -- This is just to insert a newline between error
 fromTypecheckError (ToplevelReturn p)                          = returnAtTopLevel p
 fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)       = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
+fromTypecheckError (FromReport r)                              = r
 
 --------------------------------------------------------
 
@@ -141,7 +144,7 @@ registerAllLabels = mapM_ addLabelType . filter isLabel
   where isLabel (unLoc -> Label _ _) = True
         isLabel _                    = False
 
-        addLabelType (unLoc -> Label name ty) = addType name ty
+        addLabelType (unLoc -> Label name ty) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
         addLabelType (unLoc -> t)             = error ("Adding type of non-label '" <> show t <> "' is impossible.")
 
 -- | Typechecks a statement.
