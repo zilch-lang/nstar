@@ -42,9 +42,8 @@ data KindcheckError
 
 --------------------------------------------------------------------------------------------
 
-kindcheck :: Located Type -> Either (Diagnostic s String m) ()
-kindcheck = second (const ()) . first toDiagnostic . runExcept . kindcheckType mempty
- where toDiagnostic = (diagnostic <++>) . fromKindcheckError
+kindcheck :: Located Type -> Either (Report String) ()
+kindcheck = second (const ()) . first fromKindcheckError . runExcept . kindcheckType mempty
 
 fromKindcheckError :: KindcheckError -> Report String
 fromKindcheckError (NotAStackType (k :@ p))       = kindIsNotAStackKind k p
