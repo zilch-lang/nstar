@@ -55,6 +55,7 @@ recordDomainsDoNotSubset (m1, p1) (m2, p2) =
     [ (p1, This "") ]
     []
 
+-- | Happens when two records fields cannot be coerced to each other.
 recordValuesDoNotUnify :: (m ~ Map (Located Register) (Located Type)) => (m, Position) -> (m, Position) -> Report String
 recordValuesDoNotUnify (m1, p1) (m2, p2) =
   reportError ("Record types cannot be coerced because at least one of their common fields cannot be coerced to each other.")
@@ -68,6 +69,7 @@ returnAtTopLevel p =
     [ (p, This "") ]
     []
 
+-- | Happens when there are some unset registers on a @ret@ instruction.
 contextIsMissingOnReturnAt :: [Located Register] -> Position -> Position -> Report String
 contextIsMissingOnReturnAt regs p1 p2 =
   reportError "Current context is missing some registers in order to return safely."
