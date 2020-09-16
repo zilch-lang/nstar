@@ -78,24 +78,27 @@ contextIsMissingOnReturnAt regs p1 p2 =
     []
 
 -- | Happens when a kind was found where a @Ts@ was expected.
-kindIsNotAStackKind :: Kind -> Position -> Report String
-kindIsNotAStackKind k p =
+kindIsNotAStackKind :: Kind -> Position -> Position -> Report String
+kindIsNotAStackKind k p1 p2 =
   reportError ("Kind '" <> show (prettyText k) <> "' cannot be used in place of a stack kind.")
-    [ (p, This "Kind is infered from here") ]
+    [ (p2, This "Expected to be of kind `Ts`")
+    , (p1, Where "Kind is infered from here") ]
     []
 
 -- | Happens when a kind was found but it was expected to be either @Ta@ or @T8@.
-kindIsNotADataKind :: Kind -> Position -> Report String
-kindIsNotADataKind k p =
+kindIsNotADataKind :: Kind -> Position -> Position -> Report String
+kindIsNotADataKind k p1 p2 =
   reportError ("Kind '" <> show (prettyText k) <> "' was expected to be a data kind, but was found not to be one.")
-    [ (p, This "Kind is infered from here") ]
+    [ (p2, This "Expected to be of kind `Ta` or `T8`")
+    , (p1, Where "Kind is infered from here") ]
     []
 
 -- | Happens when a kind was found but wasn't @TN@ where @N@ is any positive natural number multiple of 2 lower than 16.
-kindIsUnsized :: Kind -> Position -> Report String
-kindIsUnsized k p =
+kindIsUnsized :: Kind -> Position -> Position -> Report String
+kindIsUnsized k p1 p2 =
   reportError ("Kind '" <> show (prettyText k) <> "' is unsized, but was expected to be sized.")
-    [ (p, This "Kind is infered from here") ]
+    [ (p2, This "Expected to be of a sized kind")
+    , (p1, Where "Kind is infered from here") ]
     []
 
 -- | Happens when a type variable has not been found in the current analysis scope.
