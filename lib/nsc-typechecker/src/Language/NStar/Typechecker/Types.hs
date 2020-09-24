@@ -224,6 +224,14 @@ typecheckInstruction i p = case i of
     pure ()
   _ -> pure ()
 
+typecheckExpr :: Expr -> Position -> Typechecker (Located Type)
+typecheckExpr (Imm (I _ :@ _)) p  = pure (Unsigned 64 :@ p)
+typecheckExpr (Imm (C _ :@ _)) p  = pure (Signed 8 :@ p)
+typecheckExpr (Reg r) p           = do
+  ctx <- gets (currentContext . snd)
+  maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) pure (Map.lookup r ctx)
+typecheckExpr e p                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
+
 --------------------------------------------------------------------------------
 
 -- | Generates a fresh free type variable based on a given prefix, for the current source position.
