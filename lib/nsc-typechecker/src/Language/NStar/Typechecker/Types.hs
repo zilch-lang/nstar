@@ -58,6 +58,7 @@ data Context
   = Ctx
   { typeEnvironment    :: Env Type                               -- ^ An 'Env'ironment containing labels associated to their expected contexts
   , currentTypeContext :: Map (Located Register) (Located Type)  -- ^ The current typechecking context
+  , currentKindContext :: Map (Located Text) (Located Kind)      -- ^ The current kindchecking context
   , currentLabel       :: Maybe (Located Text)                   -- ^ The last crossed label
   }
 
@@ -74,6 +75,10 @@ setCurrentTypeContext :: Map (Located Register) (Located Type) -> Typechecker ()
 setCurrentTypeContext newCtx = modify $ second putContext
   where putContext ctx = ctx { currentTypeContext = newCtx }
 
+setCurrentKindContext :: Map (Located Text) (Located Kind) -> Typechecker ()
+setCurrentKindContext newCtx = modify $ second putContext
+  where putContext ctx = ctx { currentKindContext = newCtx }
+
 setTypeEnvironment :: Env Type -> Typechecker ()
 setTypeEnvironment newEnv = modify $ second setTypeEnv
   where setTypeEnv ctx = ctx { typeEnvironment = newEnv }
@@ -87,7 +92,7 @@ setLabel n = modify $ second setLbl
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
 typecheck :: Program -> Either (Diagnostic s String m) (Program, [Report String])
 typecheck p = second (second $ fmap fromTypecheckError) $
-              first toDiagnostic $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty Nothing)))
+              first toDiagnostic $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty mempty Nothing)))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
 
 -- | Transforms a typechcking error into a report.
@@ -157,15 +162,20 @@ registerAllLabels = mapM_ addLabelType . filter isLabel
 --   When it's an instruction, just typecheck the instruction accordingly.
 typecheckStatement :: Located Statement -> Typechecker (Located Statement)
 typecheckStatement s@(Label name ty :@ _) = do
-  setCurrentTypeContext (toRegisterMap (removeForallQuantifierIfAny ty))
+  let (binders, record) = removeForallQuantifierIfAny ty
+  setCurrentTypeContext (toRegisterMap record)
+  setCurrentKindContext (Map.fromList $ first toVarName <$> binders)
   setLabel name
   pure s
  where
-   removeForallQuantifierIfAny (unLoc -> ForAll _ ty) = ty
-   removeForallQuantifierIfAny ty                     = ty
+   removeForallQuantifierIfAny (unLoc -> ForAll b ty) = (b, ty)
+   removeForallQuantifierIfAny ty                     = (mempty, ty)
 
    toRegisterMap (unLoc -> Record m) = m
    toRegisterMap (unLoc -> t)        = error $ "Cannot retrieve register mappings from non-record type '" <> show t <> "'"
+
+   toVarName (Var v :@ _) = v
+   toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
 typecheckStatement s@(Instr i :@ p)       = do
   typecheckInstruction i p
   pure s
