@@ -241,6 +241,9 @@ unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
   (Signed _, Signed _) -> pure mempty
   -- Unsigned types are all coercible.
   (Unsigned _, Unsigned _) -> pure mempty
+  -- Signed and unsigned integers can also be coerced to each other.
+  (Signed _, Unsigned _) -> pure mempty
+  (Unsigned _, Signed _) -> pure mempty
   -- Two pointers are coercible if their pointed types are coercible.
   (Ptr t1, Ptr t2) -> unify t1 t2
   (SPtr t1, SPtr t2) -> unify t1 t2
