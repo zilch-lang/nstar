@@ -18,21 +18,23 @@ main = do
   (file : _) <- getArgsWithResponseFiles
   content <- Text.readFile file
 
+  let withColor = True
+
   tokens <- case lexFile file content of
     Left diag -> do
-      printDiagnostic stderr (diag <~< (file, lines $ Text.unpack content))
+      printDiagnostic withColor stderr (diag <~< (file, lines $ Text.unpack content))
       error "Lexer failed with exit code -1"
     Right res -> pure res
 
   ast <- case parseFile file tokens of
     Left diag -> do
-      printDiagnostic stderr (diag <~< (file, lines $ Text.unpack content))
+      printDiagnostic withColor stderr (diag <~< (file, lines $ Text.unpack content))
       error "Parser failed with exit code -1"
     Right res -> pure res
 
   ast <- case typecheck ast of
     Left diag -> do
-      printDiagnostic stderr (diag <~< (file, lines $ Text.unpack content))
+      printDiagnostic withColor stderr (diag <~< (file, lines $ Text.unpack content))
       error "Typechecker failed with exit code -1"
     Right res -> pure res
 
