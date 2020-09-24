@@ -112,8 +112,8 @@ unboundTypeVariable v p =
 -- | Happens when trying to read from a register that has not yet been set.
 registerNotFoundInContext :: Register -> Position -> [Located Register] -> Report String
 registerNotFoundInContext r p ctx =
-  reportError ("Register '" <> show (prettyText r) <> "' was not found in the current context.")
+  reportError ("Register '" <> show (prettyText r) <> "' was not found in the current context, or is not set.")
     [ (p, This "")
-    , (p, Where $ "The available register" <> (if length ctx /= 1 then "s" else "") <> " to read from are: " <> intercalate ", " (show . prettyText <$> ctx))
+    , (p, Where $ "Bound register" <> (if length ctx /= 1 then "s" else "") <> " at this point: " <> intercalate ", " (show . prettyText <$> ctx))
     , (p, Maybe "Try to set this register with a `mov`, or add it to the context of the nearest label.") ]
     []
