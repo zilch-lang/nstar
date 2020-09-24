@@ -108,3 +108,12 @@ unboundTypeVariable v p =
     [ (p, This "Variable not in context")
     , (p, Maybe "Did you bind it in a `forall` quantifier?")]
     []
+
+-- | Happens when trying to read from a register that has not yet been set.
+registerNotFoundInContext :: Register -> Position -> [Located Register] -> Report String
+registerNotFoundInContext r p ctx =
+  reportError ("Register '" <> show (prettyText r) <> "' was not found in the current context.")
+    [ (p, This "")
+    , (p, Where $ "The available register" <> (if length ctx /= 1 then "s" else "") <> " to read from are: " <> intercalate ", " (show . prettyText <$> ctx))
+    , (p, Maybe "Try to set this register with a `mov`, or add it to the context of the nearest label.") ]
+    []

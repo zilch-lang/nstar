@@ -51,6 +51,7 @@ data TypecheckError
   | ToplevelReturn Position
   | ContextIsMissingOnReturn Position Position (Set (Located Register))
   | FromReport (Report String)
+  | RegisterNotFoundInContext Register Position (Set (Located Register))
 
 -- | The data type of contexts in typechecking.
 data Context
@@ -101,6 +102,7 @@ fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))     = fromTypecheckEr
 fromTypecheckError (ToplevelReturn p)                          = returnAtTopLevel p
 fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)       = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
 fromTypecheckError (FromReport r)                              = r
+fromTypecheckError (RegisterNotFoundInContext r p ctx)         = registerNotFoundInContext r p (Set.toList ctx)
 
 --------------------------------------------------------
 
