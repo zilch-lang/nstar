@@ -19,3 +19,4 @@ ghc-options:
 - -Wall
 - -Wno-name-shadowing
 - -Wno-unused-matches
+- -Wno-unused-do-bind

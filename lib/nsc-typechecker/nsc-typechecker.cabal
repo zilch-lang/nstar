@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0f4d5188c5fe8f6f2fca577c68bebf12d7fe56535969d4a4664d24f8902eeeaa
+-- hash: 9a70ab838c4fb20017c5e1a78d4a669ab4d37b126857ce575432866c5a34ceb6
 
 name:           nsc-typechecker
 version:        0.0.1.0
@@ -24,7 +24,7 @@ library
   hs-source-dirs:
       src
   default-extensions: BlockArguments LambdaCase BinaryLiterals
-  ghc-options: -Wall -Wno-name-shadowing -Wno-unused-matches
+  ghc-options: -Wall -Wno-name-shadowing -Wno-unused-matches -Wno-unused-do-bind
   build-depends:
       ansi-wl-pprint
     , base >=4.7 && <5
