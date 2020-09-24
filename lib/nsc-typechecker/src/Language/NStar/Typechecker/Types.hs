@@ -56,9 +56,9 @@ data TypecheckError
 -- | The data type of contexts in typechecking.
 data Context
   = Ctx
-  { typeEnvironment :: Env Type                               -- ^ An 'Env'ironment containing labels associated to their expected contexts
-  , currentContext  :: Map (Located Register) (Located Type)  -- ^ The current typechecking context
-  , currentLabel    :: Maybe (Located Text)                   -- ^ The last crossed label
+  { typeEnvironment    :: Env Type                               -- ^ An 'Env'ironment containing labels associated to their expected contexts
+  , currentTypeContext :: Map (Located Register) (Located Type)  -- ^ The current typechecking context
+  , currentLabel       :: Maybe (Located Text)                   -- ^ The last crossed label
   }
 
 -- | Adds a type to the environment.
@@ -70,9 +70,9 @@ addType k v = modify $ second modifyTypeContext
 incrementCounter :: Typechecker ()
 incrementCounter = modify $ first (+ 1)
 
-setCurrentContext :: Map (Located Register) (Located Type) -> Typechecker ()
-setCurrentContext newCtx = modify $ second putContext
-  where putContext ctx = ctx { currentContext = newCtx }
+setCurrentTypeContext :: Map (Located Register) (Located Type) -> Typechecker ()
+setCurrentTypeContext newCtx = modify $ second putContext
+  where putContext ctx = ctx { currentTypeContext = newCtx }
 
 setTypeEnvironment :: Env Type -> Typechecker ()
 setTypeEnvironment newEnv = modify $ second setTypeEnv
@@ -157,7 +157,7 @@ registerAllLabels = mapM_ addLabelType . filter isLabel
 --   When it's an instruction, just typecheck the instruction accordingly.
 typecheckStatement :: Located Statement -> Typechecker (Located Statement)
 typecheckStatement s@(Label name ty :@ _) = do
-  setCurrentContext (toRegisterMap (removeForallQuantifierIfAny ty))
+  setCurrentTypeContext (toRegisterMap (removeForallQuantifierIfAny ty))
   setLabel name
   pure s
  where
@@ -200,7 +200,7 @@ typecheckInstruction i p = case i of
 
     stackVar <- freshVar "@" p
     let minimalCtx = Record (Map.singleton (RSP :@ p) (SPtr (Cons (Ptr (Record mempty :@ p) :@ p) stackVar :@ p) :@ p)) :@ p
-    currentCtx <- gets (currentContext . snd)
+    currentCtx <- gets (currentTypeContext . snd)
 
     catchError (unify minimalCtx (Record currentCtx :@ p))
                (const $ throwError (NoReturnAddress p currentCtx))
@@ -246,7 +246,7 @@ typecheckInstruction i p = case i of
       (Imm i, Reg r) -> do
         ty <- typecheckExpr src p1
         -- TODO: size check
-        gets (currentContext . snd) >>= setCurrentContext . Map.insert r ty
+        gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r ty
         pure ()
       _ -> error $ "Missing `mov` typechecking implementation for '" <> show src <> "' and '" <> show dest <> "'."
   _ -> pure ()
@@ -255,8 +255,9 @@ typecheckExpr :: Expr -> Position -> Typechecker (Located Type)
 typecheckExpr (Imm (I _ :@ _)) p  = pure (Unsigned 64 :@ p)
 typecheckExpr (Imm (C _ :@ _)) p  = pure (Signed 8 :@ p)
 typecheckExpr (Reg r) p           = do
-  ctx <- gets (currentContext . snd)
+  ctx <- gets (currentTypeContext . snd)
   maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) pure (Map.lookup r ctx)
+typecheckExpr (Indexed _ e) p     = typecheckExpr (unLoc e) p
 typecheckExpr e p                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
 
 --------------------------------------------------------------------------------
