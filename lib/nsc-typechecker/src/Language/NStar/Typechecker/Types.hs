@@ -259,7 +259,11 @@ typecheckInstruction i p = case i of
         -- At the moment, this isn't a problem: we only handle immediates that are actually
         -- smaller than the max size (8 bytes) possible.
         gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r ty
-        pure ()
+      (Reg r1, Reg r2) -> do
+        ty1 <- typecheckExpr src p1
+        -- TODO: size check
+        -- No need at the moment, we only have 8-bytes big registers.
+        gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r2 ty1
       _ -> error $ "Missing `mov` typechecking implementation for '" <> show src <> "' and '" <> show dest <> "'."
   _ -> pure ()
 
