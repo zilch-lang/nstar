@@ -256,6 +256,8 @@ typecheckInstruction i p = case i of
       (Imm i, Reg r) -> do
         ty <- typecheckExpr src p1
         -- TODO: size check
+        -- At the moment, this isn't a problem: we only handle immediates that are actually
+        -- smaller than the max size (8 bytes) possible.
         gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r ty
         pure ()
       _ -> error $ "Missing `mov` typechecking implementation for '" <> show src <> "' and '" <> show dest <> "'."
