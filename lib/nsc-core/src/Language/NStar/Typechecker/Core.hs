@@ -11,4 +11,4 @@ module Language.NStar.Typechecker.Core
   module Language.NStar.Syntax.Core
 ) where
 
-import Language.NStar.Syntax.Core (Type(..), Kind(..))
+import Language.NStar.Syntax.Core (Type(..), Kind(..), Register(..))

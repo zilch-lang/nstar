@@ -3,6 +3,8 @@ cabal-version: 1.12
 -- This file has been generated from package.yaml by hpack version 0.34.2.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: eb4d2a8efbfba470f1afbfbce49dd2d098ce0b473fdb51199d55976a1a0960fe
 
 name:           nsc-lib
 version:        0.0.1.0
@@ -25,6 +27,7 @@ source-repository head
 library
   exposed-modules:
       Language.NStar.Syntax
+      Language.NStar.Typechecker
       Lib
   other-modules:
       Paths_nsc_lib
@@ -36,7 +39,7 @@ library
     , diagnose
     , nsc-core
     , nsc-parser
-    , text
+    , nsc-typechecker
   default-language: Haskell2010
 
 executable nsc
@@ -53,6 +56,7 @@ executable nsc
     , nsc-core
     , nsc-lib
     , nsc-parser
+    , nsc-typechecker
     , text
   default-language: Haskell2010
 
@@ -71,5 +75,5 @@ test-suite n-star-test
     , n-star
     , nsc-core
     , nsc-parser
-    , text
+    , nsc-typechecker
   default-language: Haskell2010

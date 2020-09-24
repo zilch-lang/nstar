@@ -1,7 +1,7 @@
 module Data.Located
 ( module Text.Diagnose.Position
 , Located(..)
-, unLoc
+, unLoc, getPos
 ) where
 
 import Text.Diagnose.Position
@@ -13,12 +13,23 @@ data Located a
 
 infix 3 :@
 
-instance Eq (Located a) where
-  (_ :@ p1) == (_ :@ p2) = p1 == p2
+instance Eq a => Eq (Located a) where
+  (v1 :@ _) == (v2 :@ _) = v1 == v2
 
-instance Ord (Located a) where
-  (_ :@ p1) <= (_ :@ p2) = p1 <= p2
+instance Ord a => Ord (Located a) where
+  (v1 :@ _) <= (v2 :@ _) = v1 <= v2
 
 -- | Removes extra position information bundled with a value.
 unLoc :: Located a -> a
 unLoc ~(x :@ _) = x
+
+-- | Retrieves the position from some 'Located' data.
+getPos :: Located a -> Position
+getPos ~(_ :@ p) = p
+
+instance Functor Located where
+  fmap f (a :@ p) = f a :@ p
+
+instance Applicative Located where
+  pure x = x :@ Position (1, 1) (1, 1) "<unknown>"
+  (f :@ _) <*> (x :@ p) = f x :@ p

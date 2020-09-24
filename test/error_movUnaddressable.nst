@@ -18,4 +18,4 @@ This error may not be quite clear.
 
 */
 
-mov 0, %rax # 0 <- %rax
+mov %rax, 0 # %rax -> 0

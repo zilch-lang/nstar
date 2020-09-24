@@ -3,6 +3,8 @@ cabal-version: 1.12
 -- This file has been generated from package.yaml by hpack version 0.34.2.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: 0e520d30ae6713c3b2f789c1efca93f1b08b50c82a2b4f17d455cea910276cde
 
 name:           nsc-core
 version:        0.0.1.0

@@ -38,6 +38,8 @@ data Statement where
   -- | An instruction call
   Instr :: Instruction -> Statement
 
+deriving instance Show Statement
+
 data Type where
   -- | Signed integer
   Signed :: Natural                                        -- ^ The size of the integer (a multiple of 2 greater than 4)
@@ -52,6 +54,9 @@ data Type where
   -- | Type variable
   Var :: Located Text                                      -- ^ The name of the type variable
       -> Type
+  -- | Free type variable
+  FVar :: Located Text                                     -- ^ The name of the type variable
+       -> Type
   -- | Record type
   Record :: Map (Located Register) (Located Type)          -- ^ A mapping from 'Register's to their expected 'Type's
          -> Type
@@ -70,6 +75,9 @@ data Type where
          -> Located Type
          -> Type
 
+deriving instance Show Type
+deriving instance Eq Type
+
 data Kind where
   -- | Kind of 8-bytes big types
   T8 :: Kind
@@ -77,6 +85,9 @@ data Kind where
   Ts :: Kind
   -- | Kind of unsized types
   Ta :: Kind
+
+deriving instance Show Kind
+deriving instance Eq Kind
 
 data Register where
   -- | 64 bits single-value registers
@@ -86,6 +97,10 @@ data Register where
   {- We do not permit using registers like %rip, %flags, etc.
      Those are used internally by some instructions.
   -}
+
+deriving instance Show Register
+deriving instance Eq Register
+deriving instance Ord Register
 
 -- | N*'s instruction set
 data Instruction where
@@ -97,6 +112,8 @@ data Instruction where
   RET :: Instruction
 
   -- TODO: add more instructions
+
+deriving instance Show Instruction
 
 data Expr where
   -- | An immediate value (@$⟨val⟩@)
@@ -117,6 +134,8 @@ data Expr where
        -> Located Type             -- ^ \- @⟨type⟩@
        -> Expr
 
+deriving instance Show Expr
+
 data Immediate where
   -- | An integer, either in decimal, hexadecimal, octal or binary format
   --
@@ -129,6 +148,8 @@ data Immediate where
   I :: Integer -> Immediate
   -- | A character (which can be an escape sequence)
   C :: Char -> Immediate
+
+deriving instance Show Immediate
 
 
 ------------------------------------------------------------------------------------------------

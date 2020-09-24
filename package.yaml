@@ -22,7 +22,7 @@ dependencies:
 - diagnose
 - nsc-core
 - nsc-parser
-- text
+- nsc-typechecker
 
 library:
   source-dirs: src
@@ -39,6 +39,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - nsc-lib
+    - text
 
 tests:
   n-star-test:

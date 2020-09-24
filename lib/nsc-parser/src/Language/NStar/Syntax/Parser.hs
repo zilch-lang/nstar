@@ -276,8 +276,8 @@ parseSignedInteger = (*) <$> sign <*> (unLoc <$> parseInteger)
 parseMov :: Parser Instruction
 parseMov =
   parseSymbol Mov *>
-    (MOV <$> located parseAddressExpr
-         <*> (parseSymbol Comma *> located parseExpr))
+    (MOV <$> located parseExpr
+         <*> (parseSymbol Comma *> located parseAddressExpr))
 
 -- | Parses a @ret@ instruction.
 parseRet :: Parser Instruction

@@ -1,0 +1,2 @@
+main: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s }::s }
+      ret
