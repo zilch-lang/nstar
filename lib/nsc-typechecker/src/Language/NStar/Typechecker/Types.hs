@@ -222,6 +222,33 @@ typecheckInstruction i p = case i of
     catchError (unify returnCtx returnShouldBe)
                (throwError . changeErrorIfMissingKey)
     pure ()
+  MOV (src :@ p1) (dest :@ p2) -> do
+    -- There are many ways of handling `mov`s, and it all depends on what arguments are given.
+    --
+    -- > mov <immediate>, <register>
+    -- sets "<register>: typeof (<immediate>)" in the current context
+    -- > mov <register2>, <register1>
+    -- sets "<register1>: typeof (<register2>)" in the current context
+    -- > mov <immediate>, (<address:type>)
+    -- TODO: UNSAFE ???
+    -- > mov (<address:type>), <register>
+    -- UNSAFE sets "<register>: <type>" in the current context
+    -- > mov (<address2:type2>), (<address1:type1>)
+    -- TODO: UNSAFE ???
+    -- > mov <immediate>, <offset>(<register>)
+    -- UNSAFE assert that `<register>: *typeof (<immediate>)` and leave the context untouched
+    -- > mov <register2>, <offset>(<register1>)
+    -- UNSAFE assert that `<register1>: *typeof (<register2>)` and leave the context untouched
+    --
+    --
+    -- For all those assertions, we also have to check that type sizes do match.
+    case (src, dest) of
+      (Imm i, Reg r) -> do
+        ty <- typecheckExpr src p1
+        -- TODO: size check
+        gets (currentContext . snd) >>= setCurrentContext . Map.insert r ty
+        pure ()
+      _ -> error $ "Missing `mov` typechecking implementation for '" <> show src <> "' and '" <> show dest <> "'."
   _ -> pure ()
 
 typecheckExpr :: Expr -> Position -> Typechecker (Located Type)
