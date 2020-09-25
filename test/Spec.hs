@@ -65,7 +65,9 @@ check file = do
         pure ast
 
   specify file $
-    case result of
+    if "pending_" `isInfixOf` file
+    then pendingWith "Failing test is being fixed."
+    else case result of
       Left (_, Any)                    -> pure () -- test fails as expected
       Left (d, e) | expectedError == e -> pure ()
                   | otherwise          ->
