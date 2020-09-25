@@ -42,7 +42,7 @@ executables:
     - text
 
 tests:
-  n-star-test:
+  nsc-tests:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -50,4 +50,7 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - n-star
+    - nsc-lib
+    - hspec
+    - text
+    - Glob
