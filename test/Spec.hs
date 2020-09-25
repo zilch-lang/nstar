@@ -32,6 +32,7 @@ instance Show Error where
 
 main :: IO ()
 main = glob "./test/**/*.nst" >>= hspec . tests
+  -- Assuming that we run `stack test` in the root of the project.
 
 -----------------------
 
@@ -42,12 +43,13 @@ check :: FilePath -> Spec
 check file = do
   content <- runIO $ Text.readFile file
 
-  -- We have five cases at the moment:
+  -- We have six cases at the moment:
   -- - a lexing error (error_lx_*)
   -- - a parsing error (error_ps_*)
   -- - a typechecking error (error_tc_*)
   -- - any error (error_*)
   -- - no error (*)
+  -- - pending test (pending_*)
   --
   -- We have to handle those
 
