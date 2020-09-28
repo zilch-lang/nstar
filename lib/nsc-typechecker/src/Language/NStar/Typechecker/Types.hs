@@ -48,20 +48,6 @@ typecheck p = second (second $ fmap fromTypecheckError) $
               first toDiagnostic $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty mempty Nothing)))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
 
--- | Transforms a typechcking error into a report.
-fromTypecheckError :: TypecheckError -> Report String
-fromTypecheckError (Uncoercible (t1 :@ p1) (t2 :@ p2))         = uncoercibleTypes (t1, p1) (t2, p2)
-fromTypecheckError (InfiniteType (t :@ p1) (v :@ p2))          = infiniteType (t, p1) (v, p2)
-fromTypecheckError (NoReturnAddress p ctx)                     = retWithoutReturnAddress p ctx
-fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2)) = recordDomainsDoNotSubset (m1, p1) (m2, p2)
-fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))     = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
-                                                                                   --      ^^^^^^^^^^^^^^^^^^^^^^^^
-                                                                                   -- This is just to insert a newline between error
-fromTypecheckError (ToplevelReturn p)                          = returnAtTopLevel p
-fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)       = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
-fromTypecheckError (FromReport r)                              = r
-fromTypecheckError (RegisterNotFoundInContext r p ctx)         = registerNotFoundInContext r p (Set.toList ctx)
-
 --------------------------------------------------------
 
 -- | Entry point of the typechecker.
