@@ -1,0 +1,39 @@
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    
+name: nsc PR integrity CI
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Check PR integrity
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+          
+   #############################################################################
+      
+      - name: Install Stack
+        run: stack --version
+          
+      - name: Install GHC
+        run: stack setup --install-ghc
+          
+      - name: Build Haskell dependencies
+        run: stack build --test --no-run-tests --only-dependencies --no-terminal
+      
+      - name: Build NSC
+        id: build-nsc
+        run: stack build --test --no-run-tests --ghc-options=-fforce-recomp --ghc-options=-split-sections --ghc-options=-fdiagnostics-color=always
+          # --ghc-options=-fdefer-diagnostics
+          
+      - name: Run tests
+        run: stack test
+          
+      - name: Test doc generation
+        continue-on-error: true
+        if: steps.build-nsc.outcome == 'success'    # it's useless to test doc generation if the code doesn't compile
+        run: stack build --haddock --no-haddock-deps --no-haddock-hyperlink-source --haddock-arguments="--no-print-missing-docs"
