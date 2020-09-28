@@ -74,6 +74,9 @@ data Type where
   ForAll :: [(Located Type, Located Kind)]                  -- ^ Variables along with their 'Kind's
          -> Located Type
          -> Type
+  -- | Register type
+  Register :: Natural                                       -- ^ Register size
+           -> Type
 
 deriving instance Show Type
 deriving instance Eq Type

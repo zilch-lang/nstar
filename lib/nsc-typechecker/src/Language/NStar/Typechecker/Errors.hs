@@ -20,6 +20,33 @@ import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.List (intercalate)
+import Data.Set (Set)
+import qualified Data.Set as Set
+
+data TypecheckError
+  = Uncoercible (Located Type) (Located Type)
+  | NoReturnAddress Position (Map (Located Register) (Located Type))
+  | InfiniteType (Located Type) (Located Text)
+  | DomainsDoNotSubtype (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
+  | RecordUnify TypecheckError (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
+  | ToplevelReturn Position
+  | ContextIsMissingOnReturn Position Position (Set (Located Register))
+  | FromReport (Report String)
+  | RegisterNotFoundInContext Register Position (Set (Located Register))
+
+-- | Transforms a typechcking error into a report.
+fromTypecheckError :: TypecheckError -> Report String
+fromTypecheckError (Uncoercible (t1 :@ p1) (t2 :@ p2))         = uncoercibleTypes (t1, p1) (t2, p2)
+fromTypecheckError (InfiniteType (t :@ p1) (v :@ p2))          = infiniteType (t, p1) (v, p2)
+fromTypecheckError (NoReturnAddress p ctx)                     = retWithoutReturnAddress p ctx
+fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2)) = recordDomainsDoNotSubset (m1, p1) (m2, p2)
+fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))     = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
+                                                                                   --      ^^^^^^^^^^^^^^^^^^^^^^^^
+                                                                                   -- This is just to insert a newline between error
+fromTypecheckError (ToplevelReturn p)                          = returnAtTopLevel p
+fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)       = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
+fromTypecheckError (FromReport r)                              = r
+fromTypecheckError (RegisterNotFoundInContext r p ctx)         = registerNotFoundInContext r p (Set.toList ctx)
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String

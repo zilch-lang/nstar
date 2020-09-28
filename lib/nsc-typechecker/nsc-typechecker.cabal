@@ -3,8 +3,6 @@ cabal-version: 1.12
 -- This file has been generated from package.yaml by hpack version 0.34.2.
 --
 -- see: https://github.com/sol/hpack
---
--- hash: 9a70ab838c4fb20017c5e1a78d4a669ab4d37b126857ce575432866c5a34ceb6
 
 name:           nsc-typechecker
 version:        0.0.1.0
@@ -15,9 +13,11 @@ library
       Language.NStar.Typechecker.Env
       Language.NStar.Typechecker.Errors
       Language.NStar.Typechecker.Free
+      Language.NStar.Typechecker.Instructions
       Language.NStar.Typechecker.Kinds
       Language.NStar.Typechecker.Pretty
       Language.NStar.Typechecker.Subst
+      Language.NStar.Typechecker.TC
       Language.NStar.Typechecker.Types
   other-modules:
       Paths_nsc_typechecker

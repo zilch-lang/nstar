@@ -53,6 +53,7 @@ instance Substitutable Type where
   apply _ t@(Signed _)              = t
   apply _ t@(Unsigned _)            = t
   apply _ t@(Var _)                 = t
+  apply _ t@(Register _)            = t
   apply s (Cons t1 t2)              = Cons (apply s t1) (apply s t2)
   apply (Subst s) t@(FVar v)        = fromMaybe t (unLoc <$> Map.lookup v s)
   apply s (Record rts)              = Record (apply s <$> rts)
