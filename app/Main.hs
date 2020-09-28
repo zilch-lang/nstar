@@ -32,10 +32,11 @@ main = do
       error "Parser failed with exit code -1"
     Right res -> pure res
 
-  ast <- case typecheck ast of
+  (tast, warnings) <- case typecheck ast of
     Left diag -> do
       printDiagnostic withColor stderr (diag <~< (file, lines $ Text.unpack content))
       error "Typechecker failed with exit code -1"
     Right res -> pure res
+  printDiagnostic withColor stderr (warnings <~< (file, lines $ Text.unpack content))
 
   pure ()
