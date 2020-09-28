@@ -1,0 +1,19 @@
+name: nsc-pretty
+version: !include "../../version.yaml"
+
+library:
+  source-dirs: src
+
+dependencies:
+- base >=4.7 && <5
+- nsc-core
+- containers
+- text
+- ansi-wl-pprint
+- diagnose
+
+default-extensions: !include "../../default-extensions.yaml"
+
+ghc-options:
+- -Wall
+- -Wno-unused-matches
