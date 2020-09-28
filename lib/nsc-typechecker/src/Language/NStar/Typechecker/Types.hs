@@ -39,11 +39,12 @@ import Data.Foldable (fold)
 import Debug.Trace (trace)
 import Data.Maybe (fromJust)
 import Language.NStar.Typechecker.Kinds (kindcheck)
+import Language.NStar.Typechecker.Instructions
 import Language.NStar.Typechecker.TC
 
 
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
-typecheck :: Program -> Either (Diagnostic s String m) (Program, [Report String])
+typecheck :: Program -> Either (Diagnostic s String m) (TypedProgram, [Report String])
 typecheck p = second (second $ fmap fromTypecheckError) $
               first toDiagnostic $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty mempty Nothing)))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
@@ -53,11 +54,11 @@ typecheck p = second (second $ fmap fromTypecheckError) $
 -- | Entry point of the typechecker.
 --
 --   Typechecks a program, and return an elaborated form of it.
-typecheckProgram :: Program -> Typechecker Program
-typecheckProgram p@(Program []) = pure p
+typecheckProgram :: Program -> Typechecker TypedProgram
+typecheckProgram p@(Program []) = pure (TProgram [])
 typecheckProgram (Program stts) = do
   registerAllLabels stts
-  res <- Program <$> mapM typecheckStatement stts
+  res <- TProgram <$> mapM typecheckStatement stts
 
   -- Check that the type of `main` is actually usable, and that states
   -- can be guaranteed at compile time.
@@ -99,13 +100,13 @@ registerAllLabels = mapM_ addLabelType . filter isLabel
 --   and add kind bindings of the @forall@ if there is one.
 --
 --   When it's an instruction, just typecheck the instruction accordingly.
-typecheckStatement :: Located Statement -> Typechecker (Located Statement)
-typecheckStatement s@(Label name ty :@ _) = do
+typecheckStatement :: Located Statement -> Typechecker (Located TypedStatement)
+typecheckStatement (Label name ty :@ p) = do
   let (binders, record) = removeForallQuantifierIfAny ty
   setCurrentTypeContext (toRegisterMap record)
   setCurrentKindContext (Map.fromList $ first toVarName <$> binders)
   setLabel name
-  pure s
+  pure (TLabel name :@ p)
  where
    removeForallQuantifierIfAny (unLoc -> ForAll b ty) = (b, ty)
    removeForallQuantifierIfAny ty                     = (mempty, ty)
@@ -115,167 +116,13 @@ typecheckStatement s@(Label name ty :@ _) = do
 
    toVarName (Var v :@ _) = v
    toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
-typecheckStatement s@(Instr i :@ p)       = do
-  typecheckInstruction i p
-  pure s
+typecheckStatement (Instr i :@ p)       = do
+  (:@ p) <$> typecheckInstruction i p
 
-typecheckInstruction :: Instruction -> Position -> Typechecker ()
-typecheckInstruction i p = case i of
-  RET -> do
-    -- `reŧ` needs the return address on top of the stack.
-    -- Any remainding register values are left to the developer to choose.
-    --
-    -- So when a `reŧ` comes, the stack (so `%rsp` on x64) needs to be
-    -- `sptr *r0::s0` where `r0` is a record.
-    --
-    --
-    -- According to the x86 docs, we could also make `ret` take one parameter:
-    -- a number of bytes to pop off the stack, after popping the return address off.
-    -- While this may be useful, I won't handle this because it won't probably
-    -- be useful in N*, as a language backend.
-
-    -- if the unification suceeded, we know that there is a pointer to some sort of context
-    -- on top of the stack, which we may pop and compare to the current context.
-
-    -- TODO: check that when can return
-    -- 1- we must have crossed a label at some point. We will take the last found
-    -- 2- we must be able to extract a pointer to a context, on top of the stack
-    -- 3- everything we want to return in the context must already be found in the current context
-
-    funName <- gets (currentLabel . snd) >>= \case
-      Nothing -> throwError (ToplevelReturn p)
-      Just l  -> pure l
-
-
-    stackVar <- freshVar "@" p
-    let minimalCtx = Record (Map.singleton (RSP :@ p) (SPtr (Cons (Ptr (Record mempty :@ p) :@ p) stackVar :@ p) :@ p)) :@ p
-    currentCtx <- gets (currentTypeContext . snd)
-
-    catchError (unify minimalCtx (Record currentCtx :@ p))
-               (const $ throwError (NoReturnAddress p currentCtx))
-
-
-    let removeStackTop (SPtr (Cons _ t :@ _) :@ p1) = SPtr t :@ p1
-        removeStackTop (t :@ _)                     = error $ "Cannot extract stack top of type '" <> show t <> "'"
-
-        getStackTop (SPtr (Cons t _ :@ _) :@ _) = t
-        getStackTop (t :@ _)                    = error $ "Cannot extract stack top of type '" <> show t <> "'"
-
-    let returnShouldBe = Ptr (Record (Map.adjust removeStackTop (RSP :@ p) currentCtx) :@ p) :@ p
-        returnCtx = getStackTop $ fromJust (Map.lookup (RSP :@ p) currentCtx)
-
-    let changeErrorIfMissingKey (DomainsDoNotSubtype (m1 :@ _) (m2 :@ _)) =
-          ContextIsMissingOnReturn p (getPos returnCtx) (Map.keysSet m1 Set.\\ Map.keysSet m2)
-        changeErrorIfMissingKey e                                         = e
-
-    catchError (unify returnCtx returnShouldBe)
-               (throwError . changeErrorIfMissingKey)
-    pure ()
-  MOV (src :@ p1) (dest :@ p2) -> do
-    -- There are many ways of handling `mov`s, and it all depends on what arguments are given.
-    --
-    -- > mov <immediate>, <register>
-    -- sets "<register>: typeof (<immediate>)" in the current context
-    -- > mov <register2>, <register1>
-    -- sets "<register1>: typeof (<register2>)" in the current context
-    -- > mov <immediate>, (<address:type>)
-    -- TODO: UNSAFE ???
-    -- > mov (<address:type>), <register>
-    -- UNSAFE sets "<register>: <type>" in the current context
-    -- > mov (<address2:type2>), (<address1:type1>)
-    -- TODO: UNSAFE ???
-    -- > mov <immediate>, <offset>(<register>)
-    -- UNSAFE assert that `<register>: *typeof (<immediate>)` and leave the context untouched
-    -- > mov <register2>, <offset>(<register1>)
-    -- UNSAFE assert that `<register1>: *typeof (<register2>)` and leave the context untouched
-    --
-    --
-    -- For all those assertions, we also have to check that type sizes do match.
-    case (src, dest) of
-      (Imm i, Reg r) -> do
-        ty <- typecheckExpr src p1
-        -- TODO: size check
-        -- At the moment, this isn't a problem: we only handle immediates that are actually
-        -- smaller than the max size (8 bytes) possible.
-        gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r ty
-      (Reg r1, Reg r2) -> do
-        ty1 <- typecheckExpr src p1
-        -- TODO: size check
-        -- No need at the moment, we only have 8-bytes big registers.
-        gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r2 ty1
-      _ -> error $ "Missing `mov` typechecking implementation for '" <> show src <> "' and '" <> show dest <> "'."
-  _ -> pure ()
-
-typecheckExpr :: Expr -> Position -> Typechecker (Located Type)
-typecheckExpr (Imm (I _ :@ _)) p  = pure (Unsigned 64 :@ p)
-typecheckExpr (Imm (C _ :@ _)) p  = pure (Signed 8 :@ p)
-typecheckExpr (Reg r) p           = do
-  ctx <- gets (currentTypeContext . snd)
-  maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) pure (Map.lookup r ctx)
-typecheckExpr (Indexed _ e) p     = typecheckExpr (unLoc e) p
-typecheckExpr e p                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
-
---------------------------------------------------------------------------------
-
--- | Generates a fresh free type variable based on a given prefix, for the current source position.
-freshVar :: Text -> Position -> Typechecker (Located Type)
-freshVar prefix pos = do
-  n <- gets fst
-  incrementCounter
-  pure (FVar ((prefix <> Text.pack (show n)) :@ pos) :@ pos)
-
--- | Unifies two types, and returns the substitution from the first to the second.
-unify :: (t ~ Located Type) => t -> t -> Typechecker (Subst t)
-unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
-  _ | t1 == t2 -> pure mempty
-  -- Signed types are all coercible.
-  (Signed _, Signed _) -> pure mempty
-  -- Unsigned types are all coercible.
-  (Unsigned _, Unsigned _) -> pure mempty
-  -- Signed and unsigned integers can also be coerced to each other.
-  (Signed _, Unsigned _) -> pure mempty
-  (Unsigned _, Signed _) -> pure mempty
-  -- Two pointers are coercible if their pointed types are coercible.
-  (Ptr t1, Ptr t2) -> unify t1 t2
-  (SPtr t1, SPtr t2) -> unify t1 t2
-  -- Free type variables can be bound to anything as long as it does not create an infinite type.
-  (FVar v, t) -> bind (v, p1) (t, p2)
-  (t, FVar v) -> bind (v, p2) (t, p1)
-  -- FIXME: Handle records properly
-  (Record m1, Record m2) -> do
-    -- @m2@ should contain at least all the keys in @m1@:
-    let k1 = Map.keysSet m1
-        k2 = Map.keysSet m2
-    if not (k1 `Set.isSubsetOf` k2)
-    then throwError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2))
-    else do
-      -- All the values from the keys of @m1@ in @m2@ should be 'unify'able with the values in @m1@:
-      let doUnify k v = catchError (unify v (m2 Map.! k)) (\ e -> throwError $ RecordUnify e (m1 :@ p1) (m2 :@ p2))
-      subs <- fold <$> Map.traverseWithKey doUnify m1
-      pure subs
-  -- A stack constructor can be unified to another stack constructor if
-  -- both stack head and stack tail of each stack can be unified.
-  (Cons t1 t3, Cons t2 t4) -> unifyMany [t1, t3] [t2, t4]
-  -- Any other combination is not possible
-  _ -> throwError (Uncoercible (t1 :@ p1) (t2 :@ p2))
-
--- | Unifies many types, yielding the composition of all the substitutions created.
-unifyMany :: (t ~ Located Type) => [t] -> [t] -> Typechecker (Subst t)
-unifyMany [] []         = pure mempty
-unifyMany (x:xs) (y:ys) = do
-  sub1 <- unify x y
-  sub2 <- unifyMany (apply sub1 xs) (apply sub1 ys)
-  pure (sub1 <> sub2)
-unifyMany l r           =
-  error ("Could not unify " <> show l <> " and " <> show r <> " because they aren't of the same size.")
-
--- | Tries to bind a free type variable to a type, yielding a substitution from the variable to the type if
---   it succeeded.
-bind :: (Located Text, Position) -> (Type, Position) -> Typechecker (Subst (Located Type))
-bind (var, p1) (FVar v, p2)
-  | var == v              = pure mempty
-bind (var, p1) (ty, p2)
-  | occursCheck var ty    = throwError (InfiniteType (ty :@ p2) var)
-  | otherwise             = pure (Subst (Map.singleton var (ty :@ p2)))
- where
-   occursCheck v t = v `Set.member` freeVars t
+typecheckInstruction :: Instruction -> Position -> Typechecker TypedStatement
+typecheckInstruction i p = do
+  uncurry TInstr . (i :@ p ,) <$>
+    case i of
+      RET         -> tc_ret p
+      MOV src dst -> tc_mov src dst p
+      _           -> error $ "Unrecognized instruction '" <> show i <> "'."

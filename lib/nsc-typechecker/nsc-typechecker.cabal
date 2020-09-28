@@ -13,6 +13,7 @@ library
       Language.NStar.Typechecker.Env
       Language.NStar.Typechecker.Errors
       Language.NStar.Typechecker.Free
+      Language.NStar.Typechecker.Instructions
       Language.NStar.Typechecker.Kinds
       Language.NStar.Typechecker.Pretty
       Language.NStar.Typechecker.Subst
