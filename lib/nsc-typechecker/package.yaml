@@ -12,6 +12,7 @@ dependencies:
 - mtl
 - text
 - ansi-wl-pprint
+- nsc-pretty
 
 default-extensions: !include "../../default-extensions.yaml"
 

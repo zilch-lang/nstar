@@ -15,7 +15,6 @@ library
       Language.NStar.Typechecker.Free
       Language.NStar.Typechecker.Instructions
       Language.NStar.Typechecker.Kinds
-      Language.NStar.Typechecker.Pretty
       Language.NStar.Typechecker.Subst
       Language.NStar.Typechecker.TC
       Language.NStar.Typechecker.Types
@@ -32,5 +31,6 @@ library
     , diagnose
     , mtl
     , nsc-core
+    , nsc-pretty
     , text
   default-language: Haskell2010
