@@ -57,15 +57,14 @@ jobs:
         run: stack setup --install-ghc
           
       - name: Build Haskell dependencies
-        run: stack build --only-dependencies --no-terminal
+        run: stack build --test --no-run-tests --only-dependencies --no-terminal
       
       - name: Build NSC
         id: build-nsc
-        run: stack build --test --no-run-tests --ghc-options=-fforce-recomp --ghc-options=-split-sections
+        run: stack build --test --no-run-tests --ghc-options=-fforce-recomp --ghc-options=-split-sections --ghc-options=-fdefer-diagnostics --ghc-options=-fdiagnostics-color=always
           
       - name: Run tests
         run: stack test
-           # This rebuilds the package, but it is okay, it's not too long in fact.
           
       - name: Test doc generation
         continue-on-error: true
