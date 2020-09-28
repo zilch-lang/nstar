@@ -2,6 +2,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TupleSections #-}
 
 {-|
   Module: Language.NStar.Typechecker.Types
@@ -16,28 +17,13 @@ module Language.NStar.Typechecker.Types
 import Control.Monad.State
 import Language.NStar.Typechecker.Core
 import Language.NStar.Syntax.Core hiding (Token(..))
-import Language.NStar.Typechecker.Env (Env)
-import qualified Language.NStar.Typechecker.Env as Env
 import Data.Located
 import Data.Bifunctor (first, second)
-import Data.Text (Text)
-import qualified Data.Text as Text
-import Data.Map (Map)
 import Control.Monad.Except
 import Text.Diagnose hiding (Kind)
-import Language.NStar.Typechecker.Subst
 import Language.NStar.Typechecker.Errors
 import Control.Monad.Writer
 import qualified Data.Map as Map
-import qualified Data.Set as Set
-import Data.Set (Set)
-import Language.NStar.Typechecker.Free
-import Control.Applicative ((<|>))
-import Control.Monad (guard)
-import Data.List (union)
-import Data.Foldable (fold)
-import Debug.Trace (trace)
-import Data.Maybe (fromJust)
 import Language.NStar.Typechecker.Kinds (kindcheck)
 import Language.NStar.Typechecker.Instructions
 import Language.NStar.Typechecker.TC
