@@ -39,55 +39,8 @@ import Data.Foldable (fold)
 import Debug.Trace (trace)
 import Data.Maybe (fromJust)
 import Language.NStar.Typechecker.Kinds (kindcheck)
+import Language.NStar.Typechecker.TC
 
-type Typechecker a = StateT (Integer, Context) (WriterT [TypecheckError] (Except TypecheckError)) a
-
-data TypecheckError
-  = Uncoercible (Located Type) (Located Type)
-  | NoReturnAddress Position (Map (Located Register) (Located Type))
-  | InfiniteType (Located Type) (Located Text)
-  | DomainsDoNotSubtype (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
-  | RecordUnify TypecheckError (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
-  | ToplevelReturn Position
-  | ContextIsMissingOnReturn Position Position (Set (Located Register))
-  | FromReport (Report String)
-  | RegisterNotFoundInContext Register Position (Set (Located Register))
-
--- | The data type of contexts in typechecking.
-data Context
-  = Ctx
-  { typeEnvironment    :: Env Type                               -- ^ An 'Env'ironment containing labels associated to their expected contexts
-  , currentTypeContext :: Map (Located Register) (Located Type)  -- ^ The current typechecking context
-  , currentKindContext :: Map (Located Text) (Located Kind)      -- ^ The current kindchecking context
-  , currentLabel       :: Maybe (Located Text)                   -- ^ The last crossed label
-  }
-
--- | Adds a type to the environment.
-addType :: Located Text -> Located Type -> Typechecker ()
-addType k v = modify $ second modifyTypeContext
-  where modifyTypeContext ctx@Ctx{..} = ctx { typeEnvironment = Env.insert k v typeEnvironment }
-
--- | Increments the counter in the 'State' by one, effectively simulating a @counter++@ operation.
-incrementCounter :: Typechecker ()
-incrementCounter = modify $ first (+ 1)
-
-setCurrentTypeContext :: Map (Located Register) (Located Type) -> Typechecker ()
-setCurrentTypeContext newCtx = modify $ second putContext
-  where putContext ctx = ctx { currentTypeContext = newCtx }
-
-setCurrentKindContext :: Map (Located Text) (Located Kind) -> Typechecker ()
-setCurrentKindContext newCtx = modify $ second putContext
-  where putContext ctx = ctx { currentKindContext = newCtx }
-
-setTypeEnvironment :: Env Type -> Typechecker ()
-setTypeEnvironment newEnv = modify $ second setTypeEnv
-  where setTypeEnv ctx = ctx { typeEnvironment = newEnv }
-
-setLabel :: Located Text -> Typechecker ()
-setLabel n = modify $ second setLbl
-  where setLbl ctx = ctx { currentLabel = Just n }
-
---------------------------------------------------------
 
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
 typecheck :: Program -> Either (Diagnostic s String m) (Program, [Report String])
