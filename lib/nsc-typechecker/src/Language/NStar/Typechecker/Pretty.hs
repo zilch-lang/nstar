@@ -30,6 +30,7 @@ instance PrettyText t => PrettyText (Located t) where
 instance PrettyText Type where
   prettyText (Var v) = text (Text.unpack (unLoc v))
   prettyText (FVar v) = text (Text.unpack (unLoc v))
+  prettyText (Register n) = text "r" <> text (show n)
   prettyText (Signed n) = text "s" <> text (show n)
   prettyText (Unsigned n) = text "u" <> text (show n)
   prettyText (Cons t1 t2) = prettyText t1 <> colon <> colon <> prettyText t2

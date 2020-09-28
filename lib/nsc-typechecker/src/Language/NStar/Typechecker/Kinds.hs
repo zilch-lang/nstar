@@ -71,6 +71,8 @@ kindcheckType ctx (Record mappings :@ p)                 =
        -- FIXME: Kind checking does not take into account the size of the types, so if they are sized, they all are 8-bytes big at the moment.
  where handleTypeFromRegister (RSP :@ _) ty@(_ :@ p) = requireStackType p =<< kindcheckType ctx ty
        handleTypeFromRegister _ ty@(_ :@ p)          = liftA2 (*>) (requireDataType p) (requireSized p) =<< kindcheckType ctx ty
+kindcheckType _ (Register _ :@ p)                        = pure (T8 :@ p)
+     -- NOTE: just a kind placeholder. rN types never appear after parsing.
 
 --------------------------------------------------------------------------------------------
 
