@@ -61,7 +61,8 @@ jobs:
       
       - name: Build NSC
         id: build-nsc
-        run: stack build --test --no-run-tests --ghc-options=-fforce-recomp --ghc-options=-split-sections --ghc-options=-fdefer-diagnostics --ghc-options=-fdiagnostics-color=always
+        run: stack build --test --no-run-tests --ghc-options=-fforce-recomp --ghc-options=-split-sections --ghc-options=-fdiagnostics-color=always
+          # --ghc-options=-fdefer-diagnostics
           
       - name: Run tests
         run: stack test
