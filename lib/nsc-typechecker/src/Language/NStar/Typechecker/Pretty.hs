@@ -13,7 +13,7 @@
 module Language.NStar.Typechecker.Pretty where
 
 import Text.Diagnose (PrettyText(..))
-import Text.PrettyPrint.ANSI.Leijen (text, (<+>), encloseSep, lbrace, rbrace, comma, colon, dot, hsep)
+import Text.PrettyPrint.ANSI.Leijen (text, (<+>), encloseSep, lbrace, rbrace, comma, colon, dot, hsep, vsep)
 import Language.NStar.Typechecker.Core
 import qualified Data.Text as Text
 import Data.Located (unLoc, Located)
@@ -52,3 +52,12 @@ instance PrettyText Register where
       f RDI = "rdi"
       f RBP = "rbp"
       f RSP = "rsp"
+
+instance PrettyText TypedProgram where
+  prettyText (TProgram stts) = vsep (fmap prettyText stts)
+
+instance PrettyText TypedStatement where
+  prettyText (TLabel l)    = text (Text.unpack (unLoc l)) <> colon
+  prettyText (TInstr i ts) = text "_" <+> hsep (fmap pprint ts)
+                       --         ^^^ waiting to implement `PrettyText` for `Instruction`
+    where pprint ty = text "@" <> prettyText ty
