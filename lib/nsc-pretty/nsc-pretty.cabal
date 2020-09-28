@@ -1,0 +1,27 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           nsc-pretty
+version:        0.0.1.0
+build-type:     Simple
+
+library
+  exposed-modules:
+      Language.NStar.Typechecker.Pretty
+  other-modules:
+      Paths_nsc_pretty
+  hs-source-dirs:
+      src
+  default-extensions: BlockArguments LambdaCase BinaryLiterals
+  ghc-options: -Wall -Wno-unused-matches
+  build-depends:
+      ansi-wl-pprint
+    , base >=4.7 && <5
+    , containers
+    , diagnose
+    , nsc-core
+    , text
+  default-language: Haskell2010
