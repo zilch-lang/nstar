@@ -33,6 +33,7 @@ import Text.Diagnose (Diagnostic, hint)
 import Data.Bifunctor (first)
 import Data.Data (Data)
 import Data.Typeable (Typeable)
+import Control.Applicative (liftA2)
 
 type Lexer a = MP.Parsec LexicalError Text a
 
@@ -154,7 +155,7 @@ literal = lexeme . located $ MP.choice
   , Integer . Text.pack <$> MP.some decimal
   , Char <$> MP.between (MPC.char '\'') (MPC.char '\'') charLiteral ]
  where
-   charLiteral = escapeChar MP.<|> MP.anySingle
+   charLiteral = escapeChar MP.<|> MP.satisfy (liftA2 (&&) (/= '\n') (/= '\r'))
    escapeChar = MPC.char '\\' *> (codes MP.<|> MP.customFailure UnrecognizedEscapeSequence)
    codes = MP.choice
      [ '\a'   <$ MPC.char 'a'   -- Bell
