@@ -10,13 +10,14 @@ build-type:     Simple
 
 library
   exposed-modules:
+      Language.NStar.Syntax.Pretty
       Language.NStar.Typechecker.Pretty
   other-modules:
       Paths_nsc_pretty
   hs-source-dirs:
       src
   default-extensions: BlockArguments LambdaCase BinaryLiterals
-  ghc-options: -Wall -Wno-unused-matches
+  ghc-options: -Wall -Wno-unused-matches -Wno-orphans
   build-depends:
       ansi-wl-pprint
     , base >=4.7 && <5
