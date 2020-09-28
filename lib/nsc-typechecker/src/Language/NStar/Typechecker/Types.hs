@@ -30,10 +30,11 @@ import Language.NStar.Typechecker.TC
 
 
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
-typecheck :: Program -> Either (Diagnostic s String m) (TypedProgram, [Report String])
-typecheck p = second (second $ fmap fromTypecheckError) $
+typecheck :: Program -> Either (Diagnostic s String m) (TypedProgram, Diagnostic s String m)
+typecheck p = second (second toDiag) $
               first toDiagnostic $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty mempty Nothing)))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
+        toDiag = foldl ((. fromTypecheckError) . (<++>)) diagnostic
 
 --------------------------------------------------------
 
