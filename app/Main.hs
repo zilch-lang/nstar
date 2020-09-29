@@ -1,8 +1,10 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE BlockArguments #-}
+{-# LANGUAGE ImplicitParams #-}
 
 {-# OPTIONS_GHC -Wno-unused-imports #-}
+{-# OPTIONS_GHC -Wno-unused-do-bind #-}
 
 module Main where
 

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: db8432dc46705ecd0c9a23ff3138b17f26272044df3a3423b0f50f4b60fc7e11
+-- hash: 1c190a028397dbb46848f78cd47ea1734f553890db5fb7bfe82e48d9bf18d781
 
 name:           nsc-lib
 version:        0.0.1.0
@@ -33,7 +33,7 @@ library
       Paths_nsc_lib
   hs-source-dirs:
       src
-  default-extensions: BlockArguments LambdaCase BinaryLiterals
+  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams
   build-depends:
       base >=4.7 && <5
     , diagnose
@@ -48,7 +48,7 @@ executable nsc
       Paths_nsc_lib
   hs-source-dirs:
       app
-  default-extensions: BlockArguments LambdaCase BinaryLiterals
+  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -69,7 +69,7 @@ test-suite nsc-tests
       Paths_nsc_lib
   hs-source-dirs:
       test
-  default-extensions: BlockArguments LambdaCase BinaryLiterals
+  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Glob

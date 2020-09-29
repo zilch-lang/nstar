@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1118b25c2dadde7dac72ff74a29bc61e968ff7636024bb03c5e289aea9fb5b0d
+-- hash: 2a028fa61a4936ef5fc24090cc648233c9b172542e2720823f5306331994eab4
 
 name:           nsc-parser
 version:        0.0.1.0
@@ -20,7 +20,7 @@ library
       Paths_nsc_parser
   hs-source-dirs:
       src
-  default-extensions: BlockArguments LambdaCase BinaryLiterals
+  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams
   ghc-options: -Wno-name-shadowing -Wall
   build-depends:
       base >=4.7 && <5
