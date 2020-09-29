@@ -60,6 +60,10 @@ tryCompile flags file = do
 
   -- TODO: proper error handling
 
+  let ?lexerFlags  = LexerFlags {}
+  let ?parserFlags = ParserFlags {}
+  let ?tcFlags     = TypecheckerFlags {}
+
   tokens <- case lexFile file content of
     Left diag -> do
       printDiagnostic withColor stderr (diag <~< (file, lines $ Text.unpack content))
