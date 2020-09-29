@@ -4,9 +4,10 @@ module Console.NStar.Flags
 ( extractFlags
 ,  -- * Re-exports
   CompilerFlags(..)
+, lookupFlag
 ) where
 
-import Console.NStar.Flags.Internal (Flags(..), CompilerFlags(..))
+import Console.NStar.Flags.Internal (Flags(..), CompilerFlags(..), lookupFlag)
 import Console.NStar.Flags.Process
 import System.Console.CmdArgs
 
