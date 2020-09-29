@@ -2,10 +2,7 @@
 {-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Console.NStar.Flags.Internal
-( Flags(..), CompilerFlags(..)
-, lookupFlag
-) where
+module Console.NStar.Flags.Internal where
 
 import Data.Data (Data)
 import Data.Typeable (Typeable)
