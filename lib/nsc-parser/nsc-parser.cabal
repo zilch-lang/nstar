@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2a028fa61a4936ef5fc24090cc648233c9b172542e2720823f5306331994eab4
+-- hash: 1077d794d335e1721ff96fb1b792634ec46cf31561fa921edf5d80a1f6b778e4
 
 name:           nsc-parser
 version:        0.0.1.0
@@ -28,5 +28,6 @@ library
     , diagnose
     , megaparsec >=8.0
     , nsc-core
+    , nsc-flags
     , text >=1.2 && <1.4
   default-language: Haskell2010
