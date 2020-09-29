@@ -1,13 +1,16 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Console.NStar.Flags.Internal
 ( Flags(..), CompilerFlags(..)
+, lookupFlag
 ) where
 
 import Data.Data (Data)
 import Data.Typeable (Typeable)
 import Data.Map (Map)
+import qualified Data.Map as Map
 
 data CompilerFlags
   = CFlags
@@ -16,6 +19,8 @@ data CompilerFlags
   }
  deriving (Show)
 
+lookupFlag :: String -> CompilerFlags -> Maybe String
+lookupFlag name CFlags{flags} = Map.lookup name flags
 
 
 data Flags
