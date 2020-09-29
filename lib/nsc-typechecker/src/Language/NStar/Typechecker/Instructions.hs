@@ -18,8 +18,9 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Maybe (fromJust)
 import Data.Foldable (fold)
+import Console.NStar.Flags (TypecheckerFlags(..))
 
-tc_ret :: Position -> Typechecker [Located Type]
+tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker [Located Type]
 tc_ret p = do
   -- `reŧ` needs the return address on top of the stack.
   -- Any remainding register values are left to the developer to choose.
@@ -72,7 +73,7 @@ tc_ret p = do
   pure []
 
 
-tc_mov :: Located Expr -> Located Expr -> Position -> Typechecker [Located Type]
+tc_mov :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Position -> Typechecker [Located Type]
 tc_mov (src :@ p1) (dest :@ p2) p = do
   -- There are many ways of handling `mov`s, and it all depends on what arguments are given.
   --
@@ -113,7 +114,7 @@ tc_mov (src :@ p1) (dest :@ p2) p = do
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 
-typecheckExpr :: Expr -> Position -> Typechecker (Located Type)
+typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Typechecker (Located Type)
 typecheckExpr (Imm (I _ :@ _)) p  = pure (Unsigned 64 :@ p)
 typecheckExpr (Imm (C _ :@ _)) p  = pure (Signed 8 :@ p)
 typecheckExpr (Reg r) p           = do
@@ -125,14 +126,14 @@ typecheckExpr e p                 = error $ "Unimplemented `typecheckExpr` for '
 --------------------------------------------------------------------------------
 
 -- | Generates a fresh free type variable based on a given prefix, for the current source position.
-freshVar :: Text -> Position -> Typechecker (Located Type)
+freshVar :: (?tcFlags :: TypecheckerFlags) => Text -> Position -> Typechecker (Located Type)
 freshVar prefix pos = do
   n <- gets fst
   incrementCounter
   pure (FVar ((prefix <> Text.pack (show n)) :@ pos) :@ pos)
 
 -- | Unifies two types, and returns the substitution from the first to the second.
-unify :: (t ~ Located Type) => t -> t -> Typechecker (Subst t)
+unify :: (?tcFlags :: TypecheckerFlags) => (t ~ Located Type) => t -> t -> Typechecker (Subst t)
 unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
   _ | t1 == t2 -> pure mempty
   -- Signed types are all coercible.
@@ -167,7 +168,7 @@ unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
   _ -> throwError (Uncoercible (t1 :@ p1) (t2 :@ p2))
 
 -- | Unifies many types, yielding the composition of all the substitutions created.
-unifyMany :: (t ~ Located Type) => [t] -> [t] -> Typechecker (Subst t)
+unifyMany :: (?tcFlags :: TypecheckerFlags) => (t ~ Located Type) => [t] -> [t] -> Typechecker (Subst t)
 unifyMany [] []         = pure mempty
 unifyMany (x:xs) (y:ys) = do
   sub1 <- unify x y
@@ -178,7 +179,7 @@ unifyMany l r           =
 
 -- | Tries to bind a free type variable to a type, yielding a substitution from the variable to the type if
 --   it succeeded.
-bind :: (Located Text, Position) -> (Type, Position) -> Typechecker (Subst (Located Type))
+bind :: (?tcFlags :: TypecheckerFlags) => (Located Text, Position) -> (Type, Position) -> Typechecker (Subst (Located Type))
 bind (var, p1) (FVar v, p2)
   | var == v              = pure mempty
 bind (var, p1) (ty, p2)

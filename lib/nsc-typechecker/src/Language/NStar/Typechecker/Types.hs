@@ -27,10 +27,11 @@ import qualified Data.Map as Map
 import Language.NStar.Typechecker.Kinds (kindcheck)
 import Language.NStar.Typechecker.Instructions
 import Language.NStar.Typechecker.TC
+import Console.NStar.Flags (TypecheckerFlags(..))
 
 
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
-typecheck :: Program -> Either (Diagnostic s String m) (TypedProgram, Diagnostic s String m)
+typecheck :: (?tcFlags :: TypecheckerFlags) => Program -> Either (Diagnostic s String m) (TypedProgram, Diagnostic s String m)
 typecheck p = second (second toDiag) $
               first toDiagnostic $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty mempty Nothing)))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
@@ -41,7 +42,7 @@ typecheck p = second (second toDiag) $
 -- | Entry point of the typechecker.
 --
 --   Typechecks a program, and return an elaborated form of it.
-typecheckProgram :: Program -> Typechecker TypedProgram
+typecheckProgram :: (?tcFlags :: TypecheckerFlags) => Program -> Typechecker TypedProgram
 typecheckProgram p@(Program []) = pure (TProgram [])
 typecheckProgram (Program stts) = do
   registerAllLabels stts
@@ -73,7 +74,7 @@ typecheckProgram (Program stts) = do
 --
 --   This unfortunately has to perform a complete lookup into the program before-hand,
 --   worsening the overall complexity of the typechecking.
-registerAllLabels :: [Located Statement] -> Typechecker ()
+registerAllLabels :: (?tcFlags :: TypecheckerFlags) => [Located Statement] -> Typechecker ()
 registerAllLabels = mapM_ addLabelType . filter isLabel
   where isLabel (unLoc -> Label _ _) = True
         isLabel _                    = False
@@ -87,7 +88,7 @@ registerAllLabels = mapM_ addLabelType . filter isLabel
 --   and add kind bindings of the @forall@ if there is one.
 --
 --   When it's an instruction, just typecheck the instruction accordingly.
-typecheckStatement :: Located Statement -> Typechecker (Located TypedStatement)
+typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> Typechecker (Located TypedStatement)
 typecheckStatement (Label name ty :@ p) = do
   let (binders, record) = removeForallQuantifierIfAny ty
   setCurrentTypeContext (toRegisterMap record)
@@ -106,7 +107,7 @@ typecheckStatement (Label name ty :@ p) = do
 typecheckStatement (Instr i :@ p)       = do
   (:@ p) <$> typecheckInstruction i p
 
-typecheckInstruction :: Instruction -> Position -> Typechecker TypedStatement
+typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Position -> Typechecker TypedStatement
 typecheckInstruction i p = do
   uncurry TInstr . (i :@ p ,) <$>
     case i of
