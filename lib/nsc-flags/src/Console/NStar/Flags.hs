@@ -5,9 +5,10 @@ module Console.NStar.Flags
 ,  -- * Re-exports
   CompilerFlags(..)
 , lookupFlag
+, LexerFlags(..), ParserFlags(..), TypecheckerFlags(..)
 ) where
 
-import Console.NStar.Flags.Internal (Flags(..), CompilerFlags(..), lookupFlag)
+import Console.NStar.Flags.Internal
 import Console.NStar.Flags.Process
 import System.Console.CmdArgs
 
