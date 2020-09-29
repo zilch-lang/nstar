@@ -31,6 +31,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Applicative (liftA2)
 import Language.NStar.Typechecker.Errors
+import Console.NStar.Flags (TypecheckerFlags(..))
 
 type Kindchecker a = Except KindcheckError a
 
@@ -42,7 +43,7 @@ data KindcheckError
 
 --------------------------------------------------------------------------------------------
 
-kindcheck :: Located Type -> Either (Report String) ()
+kindcheck :: (?tcFlags :: TypecheckerFlags) => Located Type -> Either (Report String) ()
 kindcheck = second (const ()) . first fromKindcheckError . runExcept . kindcheckType mempty
 
 fromKindcheckError :: KindcheckError -> Report String
@@ -51,7 +52,7 @@ fromKindcheckError (NotADataType (k :@ p1) p2)    = kindIsNotADataKind k p1 p2
 fromKindcheckError (NotSized (k :@ p1) p2)        = kindIsUnsized k p1 p2
 fromKindcheckError (UnboundTypeVariable (v :@ p)) = unboundTypeVariable v p
 
-kindcheckType :: Map (Located Text) (Located Kind) -> Located Type -> Kindchecker (Located Kind)
+kindcheckType :: (?tcFlags :: TypecheckerFlags) => Map (Located Text) (Located Kind) -> Located Type -> Kindchecker (Located Kind)
 kindcheckType _ (Signed _ :@ p)                          = pure (T8 :@ p)
 kindcheckType _ (Unsigned _ :@ p)                        = pure (T8 :@ p)
     -- TODO: For now we ignore the size of both types, because there are no sized kinds other than @T8@.
@@ -95,20 +96,20 @@ isSized _         = False
 -- | Requires a kind to be indicating of a stack type.
 --
 --   Essentially a wrapper around 'isStackType', but in the 'Kindchecker' monad.
-requireStackType :: Position -> Located Kind -> Kindchecker ()
+requireStackType :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
 requireStackType p k | isStackType k = pure ()
                      | otherwise     = throwError (NotAStackType k p)
 
 -- | Requires a kind to be indicating of a data type.
 --
 --   Essentially a wrapper around 'isDataType', but in the 'Kindchecker' monad.
-requireDataType :: Position -> Located Kind -> Kindchecker ()
+requireDataType :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
 requireDataType p k | isDataType k = pure ()
                     | otherwise    = throwError (NotADataType k p)
 
 -- | Requires a kind to be sized.
 --
 --   Essentially a wrapper around 'isSized', but in the 'Kindchecker' monad.
-requireSized :: Position -> Located Kind -> Kindchecker ()
+requireSized :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
 requireSized p k | isSized k = pure ()
                  | otherwise = throwError (NotSized k p)
