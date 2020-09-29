@@ -24,7 +24,7 @@ import qualified Data.Map as Map
 main :: IO ()
 main = do
   flags <- extractFlags
-  print flags
+  -- print flags
 
   checkSanity flags
 
