@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ImplicitParams #-}
 
 module Main (main) where
 
@@ -12,6 +13,7 @@ import Language.NStar.Typechecker (typecheck)
 import Data.List (isInfixOf)
 import Text.Diagnose ((<~<), prettyText)
 import Data.Bifunctor (first)
+import Console.NStar.Flags (LexerFlags(..), ParserFlags(..), TypecheckerFlags(..))
 
 data Error
   = Lx
@@ -61,6 +63,10 @@ check file = do
            | otherwise                    -> No
 
   let result = do
+        let ?lexerFlags  = LexerFlags {}
+        let ?parserFlags = ParserFlags {}
+        let ?tcFlags     = TypecheckerFlags {}
+
         tokens <- first (, Lx) $ lexFile file content
         ast <- first (, Ps) $ parseFile file tokens
         ast <- first (, Tc) $ typecheck ast
