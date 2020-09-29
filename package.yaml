@@ -39,6 +39,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - nsc-lib
+    - nsc-flags
     - text
 
 tests:
