@@ -23,9 +23,6 @@ import qualified Data.Map as Map
 
 main :: IO ()
 main = do
-  -- TODO: proper error handling
-  -- TODO: handle command-line arguments correctly (flags, options, etc)
-
   flags <- extractFlags
   print flags
 
@@ -58,6 +55,10 @@ tryCompile flags file = do
   content <- Text.readFile file
 
   let withColor = maybe "yes" id (lookupFlag "color-diagnostics" flags) == "yes"
+
+  -- TODO: construct implicit structures for each compiler step
+
+  -- TODO: proper error handling
 
   tokens <- case lexFile file content of
     Left diag -> do
