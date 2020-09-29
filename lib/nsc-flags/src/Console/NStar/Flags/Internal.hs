@@ -26,3 +26,17 @@ data Flags
   , flags  :: [String]        -- ^ A set of compiler flags.
   }
  deriving (Data, Typeable, Show)
+
+-------------------------------------------------------------------------------
+
+data LexerFlags
+  = LexerFlags
+  {  }
+
+data ParserFlags
+  = ParserFlags
+  {  }
+
+data TypecheckerFlags
+  = TypecheckerFlags
+  {  }
