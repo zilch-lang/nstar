@@ -34,6 +34,7 @@ import Data.Bifunctor (first)
 import Data.Data (Data)
 import Data.Typeable (Typeable)
 import Control.Applicative (liftA2)
+import Console.NStar.Flags (LexerFlags(..))
 
 type Lexer a = MP.Parsec LexicalError Text a
 
@@ -54,26 +55,27 @@ instance Hintable LexicalError String where
 
 
 -- | @space@ only parses any whitespace (not accounting for newlines and vertical tabs) and discards them.
-space :: Lexer ()
+space :: (?lexerFlags :: LexerFlags) => Lexer ()
 space = MPL.space spc MP.empty MP.empty
   where spc = () <$ MP.satisfy (and . (<$> [isSpace, (/= '\n'), (/= '\r'), (/= '\v'), (/= '\f')]) . (&))
 
 -- | @lexeme p@ applies @p@ and ignores any space after, if @p@ succeeds. If @p@ fails, @lexeme p@ also fails.
-lexeme :: Lexer a -> Lexer a
+lexeme :: (?lexerFlags :: LexerFlags) => Lexer a -> Lexer a
 lexeme = MPL.lexeme space
 
 -- | @symbol str@ tries to parse @str@ exactly, and discards spaces after.
-symbol :: Text -> Lexer Text
+symbol :: (?lexerFlags :: LexerFlags) => Text -> Lexer Text
 symbol = MPL.symbol space
 
 -- | Case insensitive variant of 'symbol'.
-symbol' :: Text -> Lexer Text
+symbol' :: (?lexerFlags :: LexerFlags) => Text -> Lexer Text
 symbol' = MPL.symbol' space
 
 ---------------------------------------------------------------------------------------------------------------------------
 
 -- | Runs the program lexer on a given file, and returns either all the tokens identified in the source, or an error.
-lexFile :: FilePath                                     -- ^ File name
+lexFile :: (?lexerFlags :: LexerFlags)                  -- ^ Any command line flag the lexer needs
+        => FilePath                                     -- ^ File name
         -> Text                                         -- ^ File content
         -> Either (Diagnostic [] String Char) [LToken]
 lexFile = first (megaparsecBundleToDiagnostic "Lexical error on input") .: MP.runParser lexProgram
@@ -81,31 +83,31 @@ lexFile = first (megaparsecBundleToDiagnostic "Lexical error on input") .: MP.ru
 
 
 -- | Transforms a source code into a non-empty list of tokens (accounting for 'EOF').
-lexProgram :: Lexer [LToken]
+lexProgram :: (?lexerFlags :: LexerFlags) => Lexer [LToken]
 lexProgram = lexeme (pure ()) *> ((<>) <$> tokens <*> ((: []) <$> eof))
   where
     tokens = MP.many . lexeme $ MP.choice
       [ comment, anySymbol, identifierOrKeyword, literal, eol ]
 
 -- | Parses an end of line and returns 'EOL'.
-eol :: Lexer LToken
+eol :: (?lexerFlags :: LexerFlags) => Lexer LToken
 eol = located (EOL <$ MPC.eol)
 
 -- | Parses an end of file and returns 'EOF'.
 --
 --   Note that all files end with 'EOF'.
-eof :: Lexer LToken
+eof :: (?lexerFlags :: LexerFlags) => Lexer LToken
 eof = located (EOF <$ MP.eof)
 
 -- | Parses any kind of comment, inline or multiline.
-comment :: Lexer LToken
+comment :: (?lexerFlags :: LexerFlags) => Lexer LToken
 comment = lexeme $ located (inline MP.<|> multiline)
   where
     inline = InlineComment . Text.pack <$> (symbol "#" *> MP.manyTill MP.anySingle (MP.lookAhead (() <$ MPC.eol MP.<|> MP.eof)))
     multiline = MultilineComment . Text.pack <$> (symbol "/*" *> MP.manyTill MP.anySingle (symbol "*/"))
 
 -- | Parses any symbol like @[@ or @,@.
-anySymbol :: Lexer LToken
+anySymbol :: (?lexerFlags :: LexerFlags) => Lexer LToken
 anySymbol = lexeme . located . MP.choice $ sat <$>
   [ (LParen, "("), (LBrace, "{"), (LBracket, "["), (LAngle, "<")
   , (RParen, ")"), (RBrace, "}"), (RBracket, "]"), (RAngle, ">")
@@ -120,7 +122,7 @@ anySymbol = lexeme . located . MP.choice $ sat <$>
    sat (ret, sym) = ret <$ MPC.string sym
 
 -- | Tries to parse an identifier. If the result appears to be a keyword, it instead returns a keyword.
-identifierOrKeyword :: Lexer LToken
+identifierOrKeyword :: (?lexerFlags :: LexerFlags) => Lexer LToken
 identifierOrKeyword = lexeme $ located do
   transform . Text.pack
            <$> ((:) <$> MPC.letterChar
@@ -147,7 +149,7 @@ identifierOrKeyword = lexeme $ located do
       _        -> Id w
 
 -- | Parses a literal value (integer or character).
-literal :: Lexer LToken
+literal :: (?lexerFlags :: LexerFlags) => Lexer LToken
 literal = lexeme . located $ MP.choice
   [ Integer <$> prefixed "0b" (Text.pack <$> MP.some binary)
   , Integer <$> prefixed "0x" (Text.pack <$> MP.some hexadecimal)
