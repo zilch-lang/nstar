@@ -1,4 +1,4 @@
-name: nsc-parser
+name: nsc-flags
 version: !include "../../version.yaml"
 
 library:
@@ -8,13 +8,6 @@ default-extensions: !include "../../default-extensions.yaml"
 
 dependencies:
 - base >=4.7 && <5
-- diagnose
-- text >=1.2 && <1.4
-- containers >=0.6
-- nsc-core
-- megaparsec >=8.0
-- nsc-flags
-
-ghc-options:
-- -Wno-name-shadowing
-- -Wall
+- cmdargs
+- extra
+- containers

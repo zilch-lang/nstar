@@ -22,7 +22,7 @@ library
       Paths_nsc_typechecker
   hs-source-dirs:
       src
-  default-extensions: BlockArguments LambdaCase BinaryLiterals
+  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams
   ghc-options: -Wall -Wno-name-shadowing -Wno-unused-matches -Wno-unused-do-bind
   build-depends:
       ansi-wl-pprint
@@ -31,6 +31,7 @@ library
     , diagnose
     , mtl
     , nsc-core
+    , nsc-flags
     , nsc-pretty
     , text
   default-language: Haskell2010

@@ -39,7 +39,9 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - nsc-lib
+    - nsc-flags
     - text
+    - containers
 
 tests:
   nsc-tests:
@@ -51,6 +53,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - nsc-lib
+    - nsc-flags
     - hspec
     - text
     - Glob
