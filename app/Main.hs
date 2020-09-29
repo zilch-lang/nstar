@@ -55,7 +55,7 @@ tryCompile :: CompilerFlags -> String -> IO ()
 tryCompile flags file = do
   content <- Text.readFile file
 
-  let withColor = lookupFlag "color-diagnostics" flags == Just "yes"
+  let withColor = maybe "yes" id (lookupFlag "color-diagnostics" flags) == "yes"
 
   tokens <- case lexFile file content of
     Left diag -> do
