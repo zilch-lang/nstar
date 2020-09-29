@@ -56,8 +56,6 @@ tryCompile flags file = do
 
   let withColor = maybe "yes" id (lookupFlag "color-diagnostics" flags) == "yes"
 
-  -- TODO: construct implicit structures for each compiler step
-
   -- TODO: proper error handling
 
   let ?lexerFlags  = LexerFlags {}
