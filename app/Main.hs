@@ -17,7 +17,7 @@ import qualified Data.Text.IO as Text
 import Console.NStar.Flags
 import Control.Monad (forM_, guard)
 import Control.Applicative ((<|>))
-import System.Exit (exitFailure)
+import System.Exit (exitFailure, exitSuccess)
 import Data.Char (toLower)
 import qualified Data.Map as Map
 
@@ -56,29 +56,15 @@ tryCompile flags file = do
 
   let withColor = maybe "yes" id (lookupFlag "color-diagnostics" flags) == "yes"
 
-  -- TODO: proper error handling
-
   let ?lexerFlags  = LexerFlags {}
   let ?parserFlags = ParserFlags {}
   let ?tcFlags     = TypecheckerFlags {}
 
-  tokens <- case lexFile file content of
-    Left diag -> do
+  let result = lexFile file content >>= parseFile file >>= typecheck
+  case result of
+    Left diag    -> do
       printDiagnostic withColor stderr (diag <~< (file, lines $ Text.unpack content))
-      error "Lexer failed with exit code -1"
-    Right res -> pure res
-
-  ast <- case parseFile file tokens of
-    Left diag -> do
-      printDiagnostic withColor stderr (diag <~< (file, lines $ Text.unpack content))
-      error "Parser failed with exit code -1"
-    Right res -> pure res
-
-  (tast, warnings) <- case typecheck ast of
-    Left diag -> do
-      printDiagnostic withColor stderr (diag <~< (file, lines $ Text.unpack content))
-      error "Typechecker failed with exit code -1"
-    Right res -> pure res
-  printDiagnostic withColor stderr (warnings <~< (file, lines $ Text.unpack content))
-
-  pure ()
+      exitFailure
+    Right (_, w) -> do
+      printDiagnostic withColor stderr (w <~< (file, lines $ Text.unpack content))
+      exitSuccess
