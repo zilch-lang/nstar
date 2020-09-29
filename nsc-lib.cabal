@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 41188c059496c99f0b27fcb88ff8b1bfa9e08e348f340aa8781a84f1b1461bf4
+-- hash: db8432dc46705ecd0c9a23ff3138b17f26272044df3a3423b0f50f4b60fc7e11
 
 name:           nsc-lib
 version:        0.0.1.0
@@ -52,6 +52,7 @@ executable nsc
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , containers
     , diagnose
     , nsc-core
     , nsc-flags
