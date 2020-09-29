@@ -41,6 +41,7 @@ executables:
     - nsc-lib
     - nsc-flags
     - text
+    - containers
 
 tests:
   nsc-tests:
