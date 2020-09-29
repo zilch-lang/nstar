@@ -13,6 +13,7 @@ dependencies:
 - containers >=0.6
 - nsc-core
 - megaparsec >=8.0
+- nsc-flags
 
 ghc-options:
 - -Wno-name-shadowing
