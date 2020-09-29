@@ -53,6 +53,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - nsc-lib
+    - nsc-flags
     - hspec
     - text
     - Glob
