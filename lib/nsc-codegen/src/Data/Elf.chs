@@ -16,6 +16,16 @@ module Data.Elf
 , ei_mag0, ei_mag1, ei_mag2, ei_mag3
 , elfmag0, elfmag1, elfmag2, elfmag3
 , elfmag
+  -- *** ELF class
+, ei_class, elfclassnone, elfclass32, elfclass64, elfclassnum
+  -- *** Endianness
+, ei_data, elfdatanone, elfdata2lsb, elfdata2msb, elfdatanum
+  -- *** Version
+, ei_version
+  -- *** OS ABI identification
+, ei_osabi
+, elfosabi_none, elfosabi_sysv, elfosabi_hpux, elfosabi_netbsd, elfosabi_gnu, elfosabi_linux, elfosabi_solaris, elfosabi_aix
+, elfosabi_irix, elfosabi_freebsd, elfosabi_tru64, elfosabi_modesto, elfosabi_openbsd, elfosabi_arm_aeabi, elfosabi_arm, elfosabi_standalone
 
   ) where
 
@@ -96,3 +106,91 @@ elfmag3 = fromIntegral $ ord {#const ELFMAG3#}
 elfmag :: [UChar]
 elfmag = [elfmag0, elfmag1, elfmag2, elfmag3]
 
+-- | File class byte index
+ei_class :: Int
+ei_class = {#const EI_CLASS#}
+
+-- | Invalid class
+elfclassnone :: UChar
+elfclassnone = {#const ELFCLASSNONE#}
+-- | 32-bit objects
+elfclass32 :: UChar
+elfclass32 = {#const ELFCLASS32#}
+-- | 64-bit objects
+elfclass64 :: UChar
+elfclass64 = {#const ELFCLASS64#}
+-- |
+elfclassnum :: UChar
+elfclassnum = {#const ELFCLASSNUM#}
+
+-- | Data encoding byte index
+ei_data :: Int
+ei_data = {#const EI_DATA#}
+
+-- | Invalid data encoding
+elfdatanone :: UChar
+elfdatanone = {#const ELFDATANONE#}
+-- | 2's complement, little endian
+elfdata2lsb :: UChar
+elfdata2lsb = {#const ELFDATA2LSB#}
+-- | 2's complement, big endian
+elfdata2msb :: UChar
+elfdata2msb = {#const ELFDATA2MSB#}
+-- |
+elfdatanum :: UChar
+elfdatanum = {#const ELFDATANUM#}
+
+-- | File version byte index (value must be @'ev_current'@)
+ei_version :: Int
+ei_version = {#const EI_VERSION#}
+
+-- | OS ABI identification byte index
+ei_osabi :: Int
+ei_osabi = {#const EI_OSABI#}
+
+-- | UNIX System V ABI
+elfosabi_none, elfosabi_sysv :: UChar
+elfosabi_none = {#const ELFOSABI_NONE#}
+elfosabi_sysv = elfosabi_none
+-- | HP-UX
+elfosabi_hpux :: UChar
+elfosabi_hpux = {#const ELFOSABI_HPUX#}
+-- | NetBSD
+elfosabi_netbsd :: UChar
+elfosabi_netbsd = {#const ELFOSABI_NETBSD#}
+-- | Object uses GNU ELF extensions
+elfosabi_gnu :: UChar
+elfosabi_gnu = {#const ELFOSABI_GNU#}
+-- | Compatibility alias on @'elfosabi_gnu'@
+elfosabi_linux :: UChar
+elfosabi_linux = elfosabi_gnu
+-- | Sun Solaris
+elfosabi_solaris :: UChar
+elfosabi_solaris = {#const ELFOSABI_SOLARIS#}
+-- | IBM AIX
+elfosabi_aix :: UChar
+elfosabi_aix = {#const ELFOSABI_AIX#}
+-- | SGI Irix
+elfosabi_irix :: UChar
+elfosabi_irix = {#const ELFOSABI_IRIX#}
+-- | FreeBSD
+elfosabi_freebsd :: UChar
+elfosabi_freebsd = {#const ELFOSABI_FREEBSD#}
+-- | Compaq TRU64 UNIX
+elfosabi_tru64 :: UChar
+elfosabi_tru64 = {#const ELFOSABI_TRU64#}
+-- | Novell Modesto
+elfosabi_modesto :: UChar
+elfosabi_modesto = {#const ELFOSABI_MODESTO#}
+-- | OpenBSD
+elfosabi_openbsd :: UChar
+elfosabi_openbsd = {#const ELFOSABI_OPENBSD#}
+-- | ARM EABI
+elfosabi_arm_aeabi :: UChar
+elfosabi_arm_aeabi = {#const ELFOSABI_ARM_AEABI#}
+-- | ARM
+elfosabi_arm :: UChar
+elfosabi_arm = {#const ELFOSABI_ARM#}
+-- | Standalone (embedded) application
+elfosabi_standalone :: UChar
+elfosabi_standalone = {#const ELFOSABI_STANDALONE#}
