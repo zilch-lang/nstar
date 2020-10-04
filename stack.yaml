@@ -7,6 +7,7 @@ packages:
 - ./lib/nsc-typechecker
 - ./lib/nsc-pretty
 - ./lib/nsc-flags
+- ./lib/nsc-codegen
 
 extra-deps:
 - git: https://github.com/mesabloo/diagnose.git
