@@ -11,7 +11,13 @@ module Data.Elf
 
   -- * File header
 , Elf64_Ehdr(..)
-) where
+  -- ** @'e_ident'@ value
+  -- *** Magic number
+, ei_mag0, ei_mag1, ei_mag2, ei_mag3
+, elfmag0, elfmag1, elfmag2, elfmag3
+, elfmag
+
+  ) where
 
 #include <elf.h>
 
@@ -19,6 +25,7 @@ module Data.Elf
 
 import Data.Word (Word8, Word16, Word32, Word64)
 import Data.Int (Int32, Int64)
+import Data.Char (ord)
 
 
 
@@ -70,4 +77,22 @@ data Elf64_Ehdr
   , e_shnum     :: !Elf64_Half    -- ^ Section header table entry count
   , e_shstrndx  :: !Elf64_Half    -- ^ Section header string table index
   }
+
+-- | File identification byte indexes
+ei_mag0, ei_mag1, ei_mag2, ei_mag3 :: Int
+ei_mag0 = {#const EI_MAG0#}
+ei_mag1 = {#const EI_MAG1#}
+ei_mag2 = {#const EI_MAG2#}
+ei_mag3 = {#const EI_MAG3#}
+
+-- | Magic number bytes
+elfmag0, elfmag1, elfmag2, elfmag3 :: UChar
+elfmag0 = {#const ELFMAG0#}
+elfmag1 = fromIntegral $ ord {#const ELFMAG1#}
+elfmag2 = fromIntegral $ ord {#const ELFMAG2#}
+elfmag3 = fromIntegral $ ord {#const ELFMAG3#}
+
+-- | Conglomeration of the identification bytes
+elfmag :: [UChar]
+elfmag = [elfmag0, elfmag1, elfmag2, elfmag3]
 
