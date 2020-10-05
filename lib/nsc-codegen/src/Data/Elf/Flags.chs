@@ -16,7 +16,7 @@ module Data.Elf.Flags
 , ef_arm_maverick_float, ef_arm_abi_float_soft, ef_arm_abi_float_hard
 , ef_arm_symsaresorted, ef_arm_dynsymsusesegidx, ef_arm_mapsymsfirst
 , ef_arm_be8, ef_arm_le8
-, ef_arm_eabi_version, ef_arm_eabie_unknown, ef_arm_eabi_ver1, ef_arm_eabi_ver2, ef_arm_eabi_ver3, ef_arm_eabi_ver4, ef_arm_eabi_ver5
+, ef_arm_eabi_version, ef_arm_eabi_unknown, ef_arm_eabi_ver1, ef_arm_eabi_ver2, ef_arm_eabi_ver3, ef_arm_eabi_ver4, ef_arm_eabi_ver5
   -- * IA-64 specific flags
 , ef_ia_64_maskos, ef_ia_64_abi64, ef_ia_64_arch
   -- * C-SKY specific flags
@@ -189,7 +189,7 @@ ef_ia_64_abi64 :: Flag
 ef_ia_64_abi64 = Flag {#const EF_IA_64_ABI64#}
 
 -- | architecture version mask
-ef_ia_46_arch :: Flag
+ef_ia_64_arch :: Flag
 ef_ia_64_arch = Flag {#const EF_IA_64_ARCH#}
 
 
