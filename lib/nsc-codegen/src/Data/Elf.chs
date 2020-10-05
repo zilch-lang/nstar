@@ -39,7 +39,8 @@ import Data.Word (Word8)
 import Data.Bits (Bits)
 
 import Data.Elf.Types
-import Data.Elf.Flags
+import Data.Elf.FileHeader.Flags
+import Data.Elf.Section.Flags
 
 
 
@@ -100,9 +101,9 @@ data Arch
 -- | Section header
 data Elf64_Shdr
   = Elf64_Shdr
-  { sh_name      :: Elf64_Word   -- ^ Section name (string table index)
+  { sh_name      :: String       -- ^ Section name
   , sh_type      :: SectionType  -- ^ Section type
-  , sh_flags     :: Elf64_Xword  -- ^ Section flags
+  , sh_flags     :: SFlags       -- ^ Section flags
   , sh_addr      :: Elf64_Addr   -- ^ Section virtual address at execution
   , sh_offset    :: Elf64_Off    -- ^ Section file offset
   , sh_size      :: Elf64_Xword  -- ^ Section size in bytes
