@@ -74,6 +74,13 @@ data ObjFileType
 -- | Legal values for @'e_machine'@.
 data Arch
   = EM_None             -- ^ No machine
+  | EM_sparc            -- ^ SUN SPARC
+  | EM_x86_64           -- ^ AMD x86-64 architecture
+  | EM_arm              -- ^ ARM
+
+
+
+-- Versions
 
 -- | Invalid ELF version
 ev_none :: Elf64_Word
