@@ -17,6 +17,8 @@ module Data.Elf.Flags
 , ef_arm_symsaresorted, ef_arm_dynsymsusesegidx, ef_arm_mapsymsfirst
 , ef_arm_be8, ef_arm_le8
 , ef_arm_eabi_version, ef_arm_eabie_unknown, ef_arm_eabi_ver1, ef_arm_eabi_ver2, ef_arm_eabi_ver3, ef_arm_eabi_ver4, ef_arm_eabi_ver5
+  -- * IA-64 specific flags
+, ef_ia_64_maskos, ef_ia_64_abi64, ef_ia_64_arch
 ) where
 
 #include <elf.h>
@@ -173,3 +175,17 @@ ef_arm_eabi_ver4 = Flag {#const EF_ARM_EABI_VER4#}
 
 ef_arm_eabi_ver5 :: Flag
 ef_arm_eabi_ver5 = Flag {#const EF_ARM_EABI_VER5#}
+
+-- IA-64 specific flags
+
+-- | OS-specific flags
+ef_ia_64_maskos :: Flag
+ef_ia_64_maskos = Flag {#const EF_IA_64_MASKOS#}
+
+-- | 64-bit ABI
+ef_ia_64_abi64 :: Flag
+ef_ia_64_abi64 = Flag {#const EF_IA_64_ABI64#}
+
+-- | architecture version mask
+ef_ia_46_arch :: Flag
+ef_ia_64_arch = Flag {#const EF_IA_64_ARCH#}
