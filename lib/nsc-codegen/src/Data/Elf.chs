@@ -3,7 +3,7 @@
 
 {-|
 
-  For a complete documentation, please see the one in the <elf.h> header on linux.
+  For a complete documentation, please see the one in the <https://code.woboq.org/userspace/glibc/elf/elf.h.html elf.h> header on linux.
 -}
 module Data.Elf
 ( -- * Types
