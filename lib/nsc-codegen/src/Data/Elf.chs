@@ -12,8 +12,12 @@ module Data.Elf
 , module Data.Elf.FileHeader
   -- * Section header
 , module Data.Elf.SectionHeader
-  -- * program header
+  -- * Program header
 , module Data.Elf.ProgramHeader
+
+
+  -- * ELF structure
+, Object(..)
 ) where
 
 #include <elf.h>
@@ -24,6 +28,7 @@ import Data.Elf.Types
 import Data.Elf.FileHeader
 import Data.Elf.SectionHeader
 import Data.Elf.ProgramHeader
+import Data.ByteString (ByteString)
 
 
 {- $e_ident
@@ -42,4 +47,11 @@ import Data.Elf.ProgramHeader
 
 -------------------------------------------------------------
 
-
+-- | An object file layout.
+data Object
+  = Object
+  { o_header    :: Elf64_Ehdr   -- ^ The ELF header
+  , p_table     :: Elf64_Phdr   -- ^ The program header table
+  , s_table     :: Elf64_Shdr   -- ^ The section header table
+  , bytes       :: ![UChar]     -- ^ Data stored in the object file
+  }
