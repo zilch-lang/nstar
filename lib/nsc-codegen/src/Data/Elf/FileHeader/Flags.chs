@@ -1,8 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Data.Elf.FileHeader.Flags
-( Flag
-, Flags
+( EFlags
   -- * SUN SPARC specific flags
 , ef_sparcv9_mm, ef_sparcv9_tso, ef_sparcv9_pso, ef_sparcv9_rmo, ef_sparc_ledata
 , ef_sparc_ext_mask, ef_sparc_32plus, ef_sparc_sun_us1, ef_sparc_hal_r1, ef_sparc_sun_us3
@@ -28,7 +27,7 @@ module Data.Elf.FileHeader.Flags
 import Data.Elf.Types
 import Data.Bits (Bits, (.&.))
 
-type Flags = Flag
+type EFlags = Flag
 -- | Processor specific flags
 newtype Flag = Flag Elf64_Word
   deriving (Show, Eq, Ord, Num, Bits)

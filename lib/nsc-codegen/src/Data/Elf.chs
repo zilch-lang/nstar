@@ -25,7 +25,7 @@ module Data.Elf
 , ev_none, ev_current
 
   -- ** @'e_flags'@
-, module Data.Elf.Flags
+, module Data.Elf.FileHeader.Flags
 
   -- * Section header
 , Elf64_Shdr(..)
@@ -69,7 +69,7 @@ data Elf64_Ehdr
   , e_entry     :: !Elf64_Addr   -- ^ Entry point virtual address
   , e_phoff     :: !Elf64_Off    -- ^ Program header table file offset
   , e_shoff     :: !Elf64_Off    -- ^ Section header table file offset
-  , e_flags     :: !Flags        -- ^ Processor-specific flags
+  , e_flags     :: !EFlags       -- ^ Processor-specific flags
   , e_ehsize    :: !Elf64_Half   -- ^ ELF header size in bytes
   , e_phentsize :: !Elf64_Half   -- ^ Program header table entry size
   , e_phnum     :: !Elf64_Half   -- ^ Program header table entry count
