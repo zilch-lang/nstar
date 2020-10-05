@@ -19,6 +19,8 @@ module Data.Elf.Flags
 , ef_arm_eabi_version, ef_arm_eabie_unknown, ef_arm_eabi_ver1, ef_arm_eabi_ver2, ef_arm_eabi_ver3, ef_arm_eabi_ver4, ef_arm_eabi_ver5
   -- * IA-64 specific flags
 , ef_ia_64_maskos, ef_ia_64_abi64, ef_ia_64_arch
+  -- * C-SKY specific flags
+, ef_csky_abimask, ef_csky_other, ef_csky_processor, ef_csky_abiv1, ef_csky_abiv2
 ) where
 
 #include <elf.h>
@@ -189,3 +191,21 @@ ef_ia_64_abi64 = Flag {#const EF_IA_64_ABI64#}
 -- | architecture version mask
 ef_ia_46_arch :: Flag
 ef_ia_64_arch = Flag {#const EF_IA_64_ARCH#}
+
+
+-- C-SKY specific flags
+
+ef_csky_abimask :: Flag
+ef_csky_abimask = Flag {#const EF_CSKY_ABIMASK#}
+
+ef_csky_other :: Flag
+ef_csky_other = Flag {#const EF_CSKY_OTHER#}
+
+ef_csky_processor :: Flag
+ef_csky_processor = Flag {#const EF_CSKY_PROCESSOR#}
+
+ef_csky_abiv1 :: Flag
+ef_csky_abiv1 = Flag {#const EF_CSKY_ABIV1#}
+
+ef_csky_abiv2 :: Flag
+ef_csky_abiv2 = Flag {#const EF_CSKY_ABIV2#}
