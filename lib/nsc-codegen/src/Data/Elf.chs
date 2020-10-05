@@ -11,6 +11,11 @@ module Data.Elf
 
   -- * File header
 , Elf64_Ehdr(..)
+  -- ** @'e_ident'@
+
+  -- ** @'e_type'@
+, ObjFileType(..)
+
 ) where
 
 #include <elf.h>
@@ -72,3 +77,14 @@ data Elf64_Ehdr
   , e_shstrndx  :: !Elf64_Half   -- ^ Section header string table index
   }
 
+-- | Legal values for @'e_type'@.
+data ObjFileType
+  = ET_None        -- ^ No file type
+  | ET_Rel         -- ^ Relocatable file
+  | ET_Exec        -- ^ Executable file
+  | ET_Dyn         -- ^ Shared object file
+  | ET_Core        -- ^ Core file
+  | ET_OS Word8    -- ^ OS-specific (between @<https://code.woboq.org/userspace/glibc/elf/elf.h.html#168 ET_LOOS>@
+                   --                and @<https://code.woboq.org/userspace/glibc/elf/elf.h.html#169 ET_HIOS>@)
+  | ET_Proc Word8  -- ^ Processor-specific (between @<https://code.woboq.org/userspace/glibc/elf/elf.h.html#170 ET_LOPROC>@
+                   --   and @<https://code.woboq.org/userspace/glibc/elf/elf.h.html#171 ET_HIPROC>@)
