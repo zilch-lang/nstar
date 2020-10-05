@@ -12,19 +12,18 @@ module Data.Elf
 , module Data.Elf.FileHeader
   -- * Section header
 , module Data.Elf.SectionHeader
+  -- * program header
+, module Data.Elf.ProgramHeader
 ) where
 
 #include <elf.h>
 
 -- For now, let's just focus on the 64 bits format, no matter what the HOST/TARGET arch is.
 
-import Data.Word (Word8)
-import Data.Bits (Bits)
-
 import Data.Elf.Types
 import Data.Elf.FileHeader
 import Data.Elf.SectionHeader
-
+import Data.Elf.ProgramHeader
 
 
 {- $e_ident
