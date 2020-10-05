@@ -33,7 +33,7 @@ module Data.Elf
 , SectionType(..)
 
   -- ** @'sh_flags'@
-, module Data.Elf.Section.Flags
+, module Data.Elf.SectionHeader.Flags
 ) where
 
 #include <elf.h>
@@ -45,7 +45,7 @@ import Data.Bits (Bits)
 
 import Data.Elf.Types
 import Data.Elf.FileHeader.Flags
-import Data.Elf.Section.Flags
+import Data.Elf.SectionHeader.Flags
 
 
 

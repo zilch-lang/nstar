@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Data.Elf.Section.Flags
+module Data.Elf.SectionHeader.Flags
 ( SFlags
   -- * Flags set
 , shf_write, shf_alloc, shf_execinstr, shf_merge, shf_strings, shf_info_link
