@@ -13,6 +13,7 @@ module Data.Elf
   -- ** @'e_ident'@
 
   -- $e_ident
+, elfosabi_none, elfosabi_sysv
 
   -- ** @'e_type'@
 , ObjFileType(..)
@@ -48,7 +49,7 @@ import Data.Elf.Flags
    - Byte number 4: ELF class (32-bit or 64-bit object)
    - Byte number 5: Data encoding (little endian or big endian)
    - Byte number 6: File version (must always be @'ev_current'@)
-   - Byte number 7: OS ABI identification
+   - Byte number 7: OS ABI identification (one of 'elfosabi_none', 'elfosabi_sysv')
    - Byte number 8: ABI version
    - Bytes number 9-15: @0@-ed padding bytes
 -}
@@ -104,3 +105,14 @@ ev_none = {#const EV_NONE#}
 -- | Current version
 ev_current :: Elf64_Word
 ev_current = {#const EV_CURRENT#}
+
+
+-- OS ABI identification
+
+-- | UNIX System V ABI
+elfosabi_none :: UChar
+elfosabi_none = {#const ELFOSABI_NONE#}
+
+-- | Alias for 'elfosabi_none'
+elfosabi_sysv :: UChar
+elfosabi_sysv = {#const ELFOSABI_SYSV#}
