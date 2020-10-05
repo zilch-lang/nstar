@@ -18,6 +18,9 @@ module Data.Elf
   -- ** @'e_machine'@
 , Arch(..)
 
+  -- ** @'e_version'@
+, ev_none, ev_current
+
   -- ** @'e_flags'@
 , module Data.Elf.Flags
 ) where
@@ -71,3 +74,11 @@ data ObjFileType
 -- | Legal values for @'e_machine'@.
 data Arch
   = EM_None             -- ^ No machine
+
+-- | Invalid ELF version
+ev_none :: Elf64_Word
+ev_none = {#const EV_NONE#}
+
+-- | Current version
+ev_current :: Elf64_Word
+ev_current = {#const EV_CURRENT#}
