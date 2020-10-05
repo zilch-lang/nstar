@@ -7,8 +7,7 @@
 -}
 module Data.Elf
 ( -- * Types
-  Elf64_Half, Elf64_Word, Elf64_Sword, Elf64_Xword, Elf64_Sxword, Elf64_Addr, Elf64_Off, Elf64_Section, Elf64_Versym, UChar
-
+  module Data.Elf.Types
   -- * File header
 , Elf64_Ehdr(..)
   -- ** @'e_ident'@
@@ -20,55 +19,19 @@ module Data.Elf
 , Arch(..)
 
   -- ** @'e_flags'@
-, Flag
-, Flags
-  -- *** SUN SPARC specific flags
-, ef_sparcv9_mm, ef_sparcv9_tso, ef_sparcv9_pso, ef_sparcv9_rmo, ef_sparc_ledata
-, ef_sparc_ext_mask, ef_sparc_32plus, ef_sparc_sun_us1, ef_sparc_hal_r1, ef_sparc_sun_us3
-  -- *** Alpha specific flags
-, ef_alpha_32bit, ef_alpha_canrelax
-  -- *** PowerPC specific flags
-, ef_ppc_emb, ef_ppc_relocatable, ef_ppc_relocatable_lib, ef_ppc64_abi
 ) where
 
 #include <elf.h>
 
 -- For now, let's just focus on the 64 bits format, no matter what the HOST/TARGET arch is.
 
-import Data.Word (Word8, Word16, Word32, Word64)
-import Data.Int (Int32, Int64)
-import Data.Char (ord)
+import Data.Word (Word8)
 import Data.Bits (Bits)
 
+import Data.Elf.Types
 
 
--- | Unsigned 16-bits integer
-type Elf64_Half = Word16
 
--- | Unsigned 32-bits integer
-type Elf64_Word = Word32
--- | Signed 32-bits integer
-type Elf64_Sword = Int32
-
--- | Unsigned 64-bits integer
-type Elf64_Xword = Word64
--- | Signed 64-bits integer
-type Elf64_Sxword = Int64
-
--- | Unsigned 64-bits integer
-type Elf64_Addr = Word64
-
--- | Unsigned 64-bits integer
-type Elf64_Off = Word64
-
--- | Unsigned 16-bits integer
-type Elf64_Section = Word16
-
--- | Unsigned 16-bits integer
-type Elf64_Versym = Elf64_Half
-
--- | Unsigned 8-bits integer
-type UChar = Word8
 
 -------------------------------------------------------------
 
