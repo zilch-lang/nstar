@@ -58,6 +58,3 @@ data SectionType
   | SHT_GNU_verdef     -- ^ Version definition section
   | SHT_GNU_verneed    -- ^ Version needs section
   | SHT_GNU_versym     -- ^ Version symbol table
-
-  | SHT_Proc !Word8    -- ^ Processor-specific
-  | SHT_User !Word8    -- ^ Application-specific

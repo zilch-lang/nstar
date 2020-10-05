@@ -52,10 +52,6 @@ data ObjFileType
   | ET_Exec        -- ^ Executable file
   | ET_Dyn         -- ^ Shared object file
   | ET_Core        -- ^ Core file
-  | ET_OS Word8    -- ^ OS-specific (between @<https://code.woboq.org/userspace/glibc/elf/elf.h.html#168 ET_LOOS>@
-                   --                and @<https://code.woboq.org/userspace/glibc/elf/elf.h.html#169 ET_HIOS>@)
-  | ET_Proc Word8  -- ^ Processor-specific (between @<https://code.woboq.org/userspace/glibc/elf/elf.h.html#170 ET_LOPROC>@
-                   --   and @<https://code.woboq.org/userspace/glibc/elf/elf.h.html#171 ET_HIPROC>@)
 
 -- | Legal values for @'e_machine'@.
 data Arch
