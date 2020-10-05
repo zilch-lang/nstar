@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Data.Elf.Flags
+module Data.Elf.FileHeader.Flags
 ( Flag
 , Flags
   -- * SUN SPARC specific flags
