@@ -13,6 +13,7 @@ library
       Data.Elf
       Data.Elf.FileHeader
       Data.Elf.FileHeader.Flags
+      Data.Elf.SectionHeader
       Data.Elf.SectionHeader.Flags
       Data.Elf.Types
   other-modules:
