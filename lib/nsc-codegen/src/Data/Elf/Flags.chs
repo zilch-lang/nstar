@@ -10,13 +10,19 @@ module Data.Elf.Flags
 , ef_alpha_32bit, ef_alpha_canrelax
   -- * PowerPC specific flags
 , ef_ppc_emb, ef_ppc_relocatable, ef_ppc_relocatable_lib, ef_ppc64_abi
-
+  -- * ARM specific flags
+, ef_arm_relexec, ef_arm_hasentry, ef_arm_interwork, ef_arm_apcs_26, ef_arm_apcs_float
+, ef_arm_pic, ef_arm_align8, ef_arm_new_abi, ef_arm_old_abi, ef_arm_soft_float, ef_arm_vfp_float
+, ef_arm_maverick_float, ef_arm_abi_float_soft, ef_arm_abi_float_hard
+, ef_arm_symsaresorted, ef_arm_dynsymsusesegidx, ef_arm_mapsymsfirst
+, ef_arm_be8, ef_arm_le8
+, ef_arm_eabi_version, ef_arm_eabie_unknown, ef_arm_eabi_ver1, ef_arm_eabi_ver2, ef_arm_eabi_ver3, ef_arm_eabi_ver4, ef_arm_eabi_ver5
 ) where
 
 #include <elf.h>
 
 import Data.Elf.Types
-import Data.Bits (Bits)
+import Data.Bits (Bits, (.&.))
 
 type Flags = Flag
 -- | Processor specific flags
@@ -78,3 +84,92 @@ ef_ppc_relocatable_lib = Flag {#const EF_PPC_RELOCATABLE_LIB#}
 
 ef_ppc64_abi :: Flag
 ef_ppc64_abi = Flag {#const EF_PPC64_ABI#}
+
+-- ARM specific flags
+
+ef_arm_relexec :: Flag
+ef_arm_relexec = Flag {#const EF_ARM_RELEXEC#}
+
+ef_arm_hasentry :: Flag
+ef_arm_hasentry = Flag {#const EF_ARM_HASENTRY#}
+
+ef_arm_interwork :: Flag
+ef_arm_interwork = Flag {#const EF_ARM_INTERWORK#}
+
+ef_arm_apcs_26 :: Flag
+ef_arm_apcs_26 = Flag {#const EF_ARM_APCS_26#}
+
+ef_arm_apcs_float :: Flag
+ef_arm_apcs_float = Flag {#const EF_ARM_APCS_FLOAT#}
+
+ef_arm_pic :: Flag
+ef_arm_pic = Flag {#const EF_ARM_PIC#}
+-- | 8-bit structure alignment is in use
+ef_arm_align8 :: Flag
+ef_arm_align8 = Flag {#const EF_ARM_ALIGN8#}
+
+ef_arm_new_abi :: Flag
+ef_arm_new_abi = Flag {#const EF_ARM_NEW_ABI#}
+
+ef_arm_old_abi :: Flag
+ef_arm_old_abi = Flag {#const EF_ARM_OLD_ABI#}
+
+ef_arm_soft_float :: Flag
+ef_arm_soft_float = Flag {#const EF_ARM_SOFT_FLOAT#}
+
+ef_arm_vfp_float :: Flag
+ef_arm_vfp_float = Flag {#const EF_ARM_VFP_FLOAT#}
+
+ef_arm_maverick_float :: Flag
+ef_arm_maverick_float = Flag {#const EF_ARM_MAVERICK_FLOAT#}
+-- | Conflicts with 'ef_arm_soft_float'
+ef_arm_abi_float_soft :: Flag
+ef_arm_abi_float_soft = Flag {#const EF_ARM_ABI_FLOAT_SOFT#}
+-- | Conflicts with 'ef_arm_vfp_float'
+ef_arm_abi_float_hard :: Flag
+ef_arm_abi_float_hard = Flag {#const EF_ARM_ABI_FLOAT_HARD#}
+
+-- Other constants defined in the ARM ELF spec (v B-01).
+-- NOTE: these conflict with the flags defined above.
+
+ef_arm_symsaresorted :: Flag
+ef_arm_symsaresorted = Flag {#const EF_ARM_SYMSARESORTED#}
+
+ef_arm_dynsymsusesegidx :: Flag
+ef_arm_dynsymsusesegidx = Flag {#const EF_ARM_DYNSYMSUSESEGIDX#}
+
+ef_arm_mapsymsfirst :: Flag
+ef_arm_mapsymsfirst = Flag {#const EF_ARM_MAPSYMSFIRST#}
+
+ef_arm_eabimask :: Flag
+ef_arm_eabimask = Flag {#const EF_ARM_EABIMASK#}
+
+-- Constants defined in AAELF.
+
+ef_arm_be8 :: Flag
+ef_arm_be8 = Flag {#const EF_ARM_BE8#}
+
+ef_arm_le8 :: Flag
+ef_arm_le8 = Flag {#const EF_ARM_LE8#}
+
+ef_arm_eabi_version :: Flag -> Flag
+ef_arm_eabi_version = (.&. ef_arm_eabimask)
+{-# INLINE ef_arm_eabi_version #-}
+
+ef_arm_eabi_unknown :: Flag
+ef_arm_eabi_unknown = Flag {#const EF_ARM_EABI_UNKNOWN#}
+
+ef_arm_eabi_ver1 :: Flag
+ef_arm_eabi_ver1 = Flag {#const EF_ARM_EABI_VER1#}
+
+ef_arm_eabi_ver2 :: Flag
+ef_arm_eabi_ver2 = Flag {#const EF_ARM_EABI_VER2#}
+
+ef_arm_eabi_ver3 :: Flag
+ef_arm_eabi_ver3 = Flag {#const EF_ARM_EABI_VER3#}
+
+ef_arm_eabi_ver4 :: Flag
+ef_arm_eabi_ver4 = Flag {#const EF_ARM_EABI_VER4#}
+
+ef_arm_eabi_ver5 :: Flag
+ef_arm_eabi_ver5 = Flag {#const EF_ARM_EABI_VER5#}
