@@ -12,6 +12,8 @@ module Data.Elf
 , Elf64_Ehdr(..)
   -- ** @'e_ident'@
 
+  -- $e_ident
+
   -- ** @'e_type'@
 , ObjFileType(..)
 
@@ -37,6 +39,19 @@ import Data.Elf.Flags
 
 
 
+{- $e_ident
+
+   The 'e_ident' field contains the ELF magic number and some other info laid out as:
+
+   - Byte number 0: @0x7f@
+   - Bytes number 1-3: @\'E\', \'L\', \'F\'@
+   - Byte number 4: ELF class (32-bit or 64-bit object)
+   - Byte number 5: Data encoding (little endian or big endian)
+   - Byte number 6: File version (must always be @'ev_current'@)
+   - Byte number 7: OS ABI identification
+   - Byte number 8: ABI version
+   - Bytes number 9-15: @0@-ed padding bytes
+-}
 
 -------------------------------------------------------------
 
