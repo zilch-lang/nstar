@@ -11,7 +11,8 @@ build-type:     Simple
 library
   exposed-modules:
       Data.Elf
-      Data.Elf.Flags
+      Data.Elf.FileHeader.Flags
+      Data.Elf.Section.Flags
       Data.Elf.Types
   other-modules:
       Paths_nsc_codegen
