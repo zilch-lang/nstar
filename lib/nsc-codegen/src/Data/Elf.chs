@@ -16,6 +16,8 @@ module Data.Elf
   -- ** @'e_type'@
 , ObjFileType(..)
 
+  -- ** @'e_machine'@
+, Arch(..)
 ) where
 
 #include <elf.h>
@@ -88,3 +90,7 @@ data ObjFileType
                    --                and @<https://code.woboq.org/userspace/glibc/elf/elf.h.html#169 ET_HIOS>@)
   | ET_Proc Word8  -- ^ Processor-specific (between @<https://code.woboq.org/userspace/glibc/elf/elf.h.html#170 ET_LOPROC>@
                    --   and @<https://code.woboq.org/userspace/glibc/elf/elf.h.html#171 ET_HIPROC>@)
+
+-- | Legal values for @'e_machine'@.
+data Arch
+  = EM_None             -- ^ No machine
