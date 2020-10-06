@@ -13,6 +13,7 @@ library
       Data.Elf
       Data.Elf.FileHeader
       Data.Elf.FileHeader.Flags
+      Data.Elf.Object
       Data.Elf.ProgramHeader
       Data.Elf.ProgramHeader.Flags
       Data.Elf.SectionHeader

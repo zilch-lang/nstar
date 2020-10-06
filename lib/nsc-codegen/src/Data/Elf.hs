@@ -17,7 +17,7 @@ module Data.Elf
 
 
   -- * ELF structure
-, Object(..)
+, module Data.Elf.Object
 ) where
 
 -- For now, let's just focus on the 64 bits format, no matter what the HOST/TARGET arch is.
@@ -26,14 +26,5 @@ import Data.Elf.Types
 import Data.Elf.FileHeader
 import Data.Elf.SectionHeader
 import Data.Elf.ProgramHeader
+import Data.Elf.Object
 import Data.ByteString (ByteString)
-
-
--- | An object file layout.
-data Object
-  = Object
-  { o_header    :: Elf64_Ehdr   -- ^ The ELF header
-  , p_table     :: [Elf64_Phdr] -- ^ Program headers
-  , s_table     :: [Elf64_Shdr] -- ^ Section headers
-  , bytes       :: ![UChar]     -- ^ Data stored in the object file
-  }
