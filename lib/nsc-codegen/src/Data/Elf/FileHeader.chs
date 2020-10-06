@@ -26,6 +26,22 @@ import Data.Elf.Types
 import Data.Elf.FileHeader.Flags
 import Data.Word (Word8)
 
+
+{- $e_ident
+
+   The 'e_ident' field contains the ELF magic number and some other info laid out as:
+
+   - Byte number 0: @0x7f@
+   - Bytes number 1-3: @\'E\', \'L\', \'F\'@
+   - Byte number 4: ELF class (32-bit or 64-bit object)
+   - Byte number 5: Data encoding (little endian or big endian)
+   - Byte number 6: File version (must always be @'ev_current'@)
+   - Byte number 7: OS ABI identification (one of 'elfosabi_none', 'elfosabi_sysv')
+   - Byte number 8: ABI version
+   - Bytes number 9-15: @0@-ed padding bytes
+-}
+
+
 -- | The ELF file header. This appears at the start of every ELF file.
 data Elf64_Ehdr
   = Elf64_Ehdr
