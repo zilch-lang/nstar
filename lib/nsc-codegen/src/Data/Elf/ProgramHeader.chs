@@ -21,11 +21,12 @@ data Elf64_Phdr
   { p_type      :: !ProgType      -- ^ Segment type
   , p_flags     :: !PFlags        -- ^ Segment flags
   , p_offset    :: !Elf64_Off     -- ^ Segment file offset
-  , p_vaddr     :: !Elf64_Addr    -- ^ Segment virtual address
-  , p_paddr     :: !Elf64_Addr    -- ^ Segment physical address
-  , p_filesz    :: !Elf64_Xword   -- ^ Segment size in file
-  , p_memsz     :: !Elf64_Xword   -- ^ Segment size in memory
-  , p_align     :: !Elf64_Xword   -- ^ Segment alignment
+  , p_content   :: ![UChar]       -- ^ Segment content (from which to determine its size, address, etc)
+  -- , p_vaddr     :: !Elf64_Addr    -- ^ Segment virtual address
+  -- , p_paddr     :: !Elf64_Addr    -- ^ Segment physical address
+  -- , p_filesz    :: !Elf64_Xword   -- ^ Segment size in file
+  -- , p_memsz     :: !Elf64_Xword   -- ^ Segment size in memory
+  -- , p_align     :: !Elf64_Xword   -- ^ Segment alignment
   }
 
 -- | Legal values for @'p_type'@ (segment type).
