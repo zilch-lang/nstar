@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2dce9a45fc377545ea769de74641f09786ec793246332bb33c8e6f64c5a48c15
+-- hash: ee6b833da9e64c992e8a6d0cd31aa0c7771c7be2da205702c6cead5492ce6e1a
 
 name:           nsc-core
 version:        0.0.1.0
@@ -19,7 +19,7 @@ library
       Paths_nsc_core
   hs-source-dirs:
       src
-  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams
+  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
   build-depends:
       base >=4.7 && <5
     , containers >=0.6

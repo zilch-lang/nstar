@@ -1,5 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 
+{-# OPTIONS -Wno-duplicate-exports #-}
+
 module Data.Elf.FileHeader
 ( Elf64_Ehdr(..)
   -- ** @'e_ident'@

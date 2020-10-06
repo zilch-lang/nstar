@@ -23,7 +23,7 @@ library
       Paths_nsc_codegen
   hs-source-dirs:
       src
-  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams
+  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
   build-depends:
       base >=4.7 && <5
     , bytestring >=0.10
