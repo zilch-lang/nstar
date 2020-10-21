@@ -13,5 +13,4 @@ data Object64
   { o_header    :: ElfHeader           -- ^ The ELF header
   , p_table     :: [ProgramHeader]     -- ^ Program headers
   , s_table     :: [SectionHeader]     -- ^ Section headers
-  , bytes       :: ![UChar]            -- ^ Data stored in the object file
   }
