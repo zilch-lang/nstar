@@ -13,7 +13,11 @@ library
       Data.Elf
       Data.Elf.FileHeader
       Data.Elf.FileHeader.Flags
+      Data.Elf.Internal.FileHeader
+      Data.Elf.Internal.ProgramHeader
+      Data.Elf.Internal.SectionHeader
       Data.Elf.Object
+      Data.Elf.Object.Builder
       Data.Elf.ProgramHeader
       Data.Elf.ProgramHeader.Flags
       Data.Elf.SectionHeader
