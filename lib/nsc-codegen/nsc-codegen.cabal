@@ -17,11 +17,11 @@ library
       Data.Elf.Internal.ProgramHeader
       Data.Elf.Internal.SectionHeader
       Data.Elf.Object
-      Data.Elf.Object.Builder
       Data.Elf.ProgramHeader
       Data.Elf.ProgramHeader.Flags
       Data.Elf.SectionHeader
       Data.Elf.SectionHeader.Flags
+      Data.Elf.SymbolTable
       Data.Elf.Types
   other-modules:
       Paths_nsc_codegen
