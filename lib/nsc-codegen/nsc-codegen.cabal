@@ -23,6 +23,9 @@ library
       Data.Elf.SectionHeader.Flags
       Data.Elf.SymbolTable
       Data.Elf.Types
+      Language.NStar.CodeGen.Compiler
+      Language.NStar.CodeGen.Errors
+      Language.NStar.CodeGen.Machine
   other-modules:
       Paths_nsc_codegen
   hs-source-dirs:
@@ -32,4 +35,6 @@ library
       base >=4.7 && <5
     , bytestring >=0.10
     , diagnose
+    , mtl
+    , nsc-core
   default-language: Haskell2010
