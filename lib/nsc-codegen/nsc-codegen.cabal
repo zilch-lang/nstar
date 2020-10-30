@@ -23,6 +23,7 @@ library
       Data.Elf.SectionHeader.Flags
       Data.Elf.SymbolTable
       Data.Elf.Types
+      Language.NStar.CodeGen.Arch
       Language.NStar.CodeGen.Compiler
       Language.NStar.CodeGen.Errors
       Language.NStar.CodeGen.Machine

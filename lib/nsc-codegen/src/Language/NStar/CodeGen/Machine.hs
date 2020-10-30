@@ -6,9 +6,7 @@ import qualified Data.ByteString as BS (pack)
 import Control.Monad.Writer (execWriter)
 import Language.NStar.CodeGen.Machine.X64
 import Text.Diagnose (Report)
-
-data SupportedArch
-  = X64
+import Language.NStar.CodeGen.Arch (SupportedArch(..))
 
 
 compile :: SupportedArch -> TypedProgram -> ByteString
