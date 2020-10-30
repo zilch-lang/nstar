@@ -7,7 +7,7 @@ module Data.Elf.SectionHeader
 
 import Data.Elf.Types
 import Data.Word (Word8)
-import Data.Elf.SectionHeader.Flags (SFlags)
+import Data.Elf.SectionHeader.Flags
 
 -- | Section header
 data SectionHeader

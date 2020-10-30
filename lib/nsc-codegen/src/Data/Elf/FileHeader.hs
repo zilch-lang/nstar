@@ -14,7 +14,7 @@ module Data.Elf.FileHeader
 ) where
 
 import Data.Elf.Types
-import Data.Elf.FileHeader.Flags (EFlags)
+import Data.Elf.FileHeader.Flags
 import Data.Word (Word8)
 
 
