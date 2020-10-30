@@ -12,3 +12,4 @@ dependencies:
 - bytestring >=0.10
 - mtl
 - nsc-core
+- text
