@@ -2,6 +2,7 @@
 
 module Data.Elf.ProgramHeader
 ( ProgramHeader(..)
+, section, binaryData
 , module Data.Elf.ProgramHeader.Flags
 ) where
 
@@ -15,9 +16,18 @@ data ProgramHeader
   = PNull
   -- | Loadable program segment
   | PLoad
-      [UChar]
+      (Either String [UChar])
       PFlags
   -- | Program interpreter
   | PInterp
       String     -- ^ Path to the dynamic interpreter
       PFlags
+
+-- | Indicates that we want to fetch data from a specific section. This essentially is an alias for 'Left', to be used with data constructors from 'ProgramHeader'
+--   in order to prevent duplicated binary data in the resulting ELF file (note that this duplication causes all sorts of problems like non-allocation of progbits).
+section :: String -> Either String [UChar]
+section = Left
+
+-- | Indicates that we want to have direct binary data which is not present in any other section. This is an alias for 'Right'.
+binaryData :: [UChar] -> Either String [UChar]
+binaryData = Right
