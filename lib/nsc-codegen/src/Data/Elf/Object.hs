@@ -16,3 +16,6 @@ data Object64
   , sections      :: [SectionHeader]     -- ^ Section headers
   , symbols       :: [ElfSymbol]         -- ^ Symbol table
   }
+
+-- Ideally, we'd want that object file format to be abstract enough to be cross-platform (32-bit or 64-bit, little endian or big endian, etc).
+-- We might remove the "64" part of it later.
