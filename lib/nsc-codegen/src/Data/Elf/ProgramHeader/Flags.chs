@@ -4,7 +4,7 @@ module Data.Elf.ProgramHeader.Flags
 ( PFlags
 
   -- * Flags set
-, pf_x, pf_w, pf_r, pf_maskos, pf_maskproc
+, pf_x, pf_w, pf_r
 ) where
 
 #include <elf.h>
@@ -32,9 +32,3 @@ pf_w = Flag {#const PF_W#}
 -- | Segment is readable
 pf_r :: Flag
 pf_r = Flag {#const PF_R#}
--- | OS-specific
-pf_maskos :: Flag
-pf_maskos = Flag {#const PF_MASKOS#}
--- | Processor-specific
-pf_maskproc :: Flag
-pf_maskproc = Flag {#const PF_MASKPROC#}

@@ -5,7 +5,7 @@ module Data.Elf.SectionHeader.Flags
   -- * Flags set
 , shf_write, shf_alloc, shf_execinstr, shf_merge, shf_strings, shf_info_link
 , shf_link_order, shf_os_nonconforming, shf_group, shf_tls, shf_compressed
-, shf_maskos, shf_maskproc, shf_ordered -- , shf_exclude
+, shf_ordered -- , shf_exclude
 ) where
 
 import Data.Bits (Bits, shiftL)
@@ -55,12 +55,6 @@ shf_tls = Flag {#const SHF_TLS#}
 -- | Section with compressed data
 shf_compressed :: Flag
 shf_compressed = Flag {#const SHF_COMPRESSED#}
--- | OS-specific
-shf_maskos :: Flag
-shf_maskos = Flag {#const SHF_MASKOS#}
--- | Processor-specific
-shf_maskproc :: Flag
-shf_maskproc = Flag {#const SHF_MASKPROC#}
 -- | Special ordering requirement (Solaris)
 shf_ordered :: Flag
 shf_ordered = Flag {#const SHF_ORDERED#}
