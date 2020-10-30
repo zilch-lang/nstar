@@ -15,9 +15,11 @@ data SectionHeader
   = SNull
   -- | Program data
   | SProgBits
+      String
       [UChar]
       SFlags
   -- | Program space with no data (bss)
   | SNoBits
+      String
       [UChar]
       SFlags
