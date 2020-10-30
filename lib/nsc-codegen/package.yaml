@@ -13,3 +13,4 @@ dependencies:
 - mtl
 - nsc-core
 - text
+- containers
