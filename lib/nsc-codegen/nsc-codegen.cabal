@@ -27,6 +27,7 @@ library
       Language.NStar.CodeGen.Errors
       Language.NStar.CodeGen.Machine
       Language.NStar.CodeGen.Machine.Internal.Intermediate
+      Language.NStar.CodeGen.Machine.X64
   other-modules:
       Paths_nsc_codegen
   hs-source-dirs:
