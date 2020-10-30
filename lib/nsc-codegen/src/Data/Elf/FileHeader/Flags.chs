@@ -2,6 +2,7 @@
 
 module Data.Elf.FileHeader.Flags
 ( EFlags
+, ef_none
   -- * SUN SPARC specific flags
 , ef_sparcv9_mm, ef_sparcv9_tso, ef_sparcv9_pso, ef_sparcv9_rmo, ef_sparc_ledata
 , ef_sparc_ext_mask, ef_sparc_32plus, ef_sparc_sun_us1, ef_sparc_hal_r1, ef_sparc_sun_us3
@@ -31,6 +32,10 @@ type EFlags = Flag
 -- | Processor specific flags
 newtype Flag = Flag Elf64_Word
   deriving (Show, Eq, Ord, Num, Bits)
+
+-- | No flags
+ef_none :: Flag
+ef_none = Flag 0
 
 -- SPARC specific flags
 
