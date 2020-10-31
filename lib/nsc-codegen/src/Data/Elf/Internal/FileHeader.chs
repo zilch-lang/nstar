@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Data.Elf.Internal.FileHeader
 ( Elf64_Ehdr(..)
@@ -38,6 +39,7 @@ module Data.Elf.Internal.FileHeader
 #include <elf.h>
 
 import Data.Elf.Types
+import Data.Elf.Internal.ToBytes (ToBytes(..))
 
 
 -- | The ELF file header. This appears at the start of every ELF file.
@@ -59,6 +61,23 @@ data Elf64_Ehdr
   , e_shstrndx  :: !Elf64_Half   -- ^ Section header string table index
   }
 
+instance ToBytes Elf64_Ehdr where
+  toBytes le Elf64_Ehdr{..} = mconcat
+    [ toBytes le e_ident
+    , toBytes le e_type
+    , toBytes le e_machine
+    , toBytes le e_version
+    , toBytes le e_entry
+    , toBytes le e_phoff
+    , toBytes le e_shoff
+    , toBytes le e_flags
+    , toBytes le e_ehsize
+    , toBytes le e_phentsize
+    , toBytes le e_phnum
+    , toBytes le e_shentsize
+    , toBytes le e_shnum
+    , toBytes le e_shstrndx
+    ]
 
 -- Versions
 

@@ -1,8 +1,10 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Data.Elf.Internal.SectionHeader where
 
 import Data.Elf.Types
+import Data.Elf.Internal.ToBytes (ToBytes(..))
 
 -- | Section header
 data Elf64_Shdr
@@ -18,3 +20,17 @@ data Elf64_Shdr
   , sh_addralign   :: !Elf64_Xword   -- ^ Section alignment
   , sh_entsize     :: !Elf64_Xword   -- ^ Entry size if section holds table
   }
+
+instance ToBytes Elf64_Shdr where
+  toBytes le Elf64_Shdr{..} = mconcat
+    [ toBytes le sh_name
+    , toBytes le sh_type
+    , toBytes le sh_flags
+    , toBytes le sh_addr
+    , toBytes le sh_offset
+    , toBytes le sh_size
+    , toBytes le sh_link
+    , toBytes le sh_info
+    , toBytes le sh_addralign
+    , toBytes le sh_entsize
+    ]
