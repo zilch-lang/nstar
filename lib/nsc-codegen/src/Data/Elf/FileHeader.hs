@@ -23,10 +23,10 @@ data ElfHeader
   = ElfHeader
       !Class         -- ^ ELF class (32-bit or 64-bit object)
       !Encoding      -- ^ Data encoding (little endian or big endian)
-      OSABI          -- ^ OS ABI identification
+      !OSABI         -- ^ OS ABI identification
       !UChar         -- ^ ABI version
-      ObjFileType    -- ^ Object file type
-      Arch           -- ^ Architecture
+      !ObjFileType   -- ^ Object file type
+      !Arch          -- ^ Architecture
       !Version       -- ^ Object file version (@'ev_current'@ or @'ev_none'@)
       !EFlags        -- ^ Processor-specific flags
 
