@@ -34,11 +34,14 @@ compileSectionHeader64bits sect =
       SNull           -> sht_null
       SProgBits _ _ _ -> sht_progbits
       SNoBits _ _ _   -> sht_nobits
+      SStrTab _ _     -> sht_strtab
     compileFlags64bits = case sect of
       SNull           -> 0x0
       SProgBits _ _ f -> f
       SNoBits _ _ f   -> f
+      SStrTab _ _     -> 0x0
     compileAlignment64bits = case sect of
       SNull           -> 0x0
       SProgBits _ _ _ -> 0x1
       SNoBits _ _ _   -> 0x20
+      SStrTab _ _     -> 0x1

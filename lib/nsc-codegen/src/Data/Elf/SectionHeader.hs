@@ -23,4 +23,8 @@ data SectionHeader
       String
       [UChar]
       SFlags
+  -- | String table
+  | SStrTab
+      String
+      [UChar]
   deriving (Eq, Ord)
