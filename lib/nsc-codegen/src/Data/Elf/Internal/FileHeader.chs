@@ -28,7 +28,7 @@ module Data.Elf.Internal.FileHeader
 , et_none, et_rel, et_exec, et_dyn, et_core
 
   -- * @'e_machine'@
---, Arch(..)
+, em_none, em_sparc, em_x86_64, em_arm
 
   -- * @'e_version'@
 , ev_none, ev_current
@@ -131,19 +131,31 @@ elfdata2msb = {#const ELFDATA2MSB#}
 -- | No file type
 et_none :: Elf64_Half
 et_none = {#const ET_NONE#}
-
 -- | Relocatable file
 et_rel :: Elf64_Half
 et_rel = {#const ET_REL#}
-
 -- | Executable file
 et_exec :: Elf64_Half
 et_exec = {#const ET_EXEC#}
-
 -- | Shared object file
 et_dyn :: Elf64_Half
 et_dyn = {#const ET_DYN#}
-
 -- | Core file
 et_core :: Elf64_Half
 et_core = {#const ET_CORE#}
+
+
+-- Architecture
+
+-- | No machine
+em_none :: Elf64_Half
+em_none = {#const EM_NONE#}
+-- | SUN SPARC
+em_sparc :: Elf64_Half
+em_sparc = {#const EM_SPARC#}
+-- | ARM
+em_arm :: Elf64_Half
+em_arm = {#const EM_ARM#}
+-- | AMD x86-64 architecture
+em_x86_64 :: Elf64_Half
+em_x86_64 = {#const EM_X86_64#}
