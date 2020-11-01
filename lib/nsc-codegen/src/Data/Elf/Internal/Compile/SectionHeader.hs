@@ -3,6 +3,19 @@ module Data.Elf.Internal.Compile.SectionHeader where
 import Data.Elf.SectionHeader
 import Data.Elf.Internal.SectionHeader
 
+-- | Compiles an abstract 'SectionHeader' into a concrete 'Elf64_Shdr'.
+--
+--   __NOTE:__ Some fields are not filled, because of the lack of information at that current point.
+--             These are listed here:
+--
+--             - 'sh_name'
+--             - 'sh_addr'
+--             - 'sh_offset'
+--             - 'sh_size'
+--             - 'sh_link'
+--             - 'sh_info'
+--             - 'sh_addralign'
+--             - 'sh_entsize' (may not be filled if the section does not hold a table)
 compileSectionHeader64bits :: SectionHeader -> Elf64_Shdr
 compileSectionHeader64bits sect =
   Elf64_Shdr
