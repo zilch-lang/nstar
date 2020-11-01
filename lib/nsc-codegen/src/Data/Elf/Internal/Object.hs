@@ -8,10 +8,10 @@ import Data.Elf.Types (UChar)
 
 data Object64
   = Obj64
-      Elf64_Ehdr
-      [Elf64_Phdr]
-      [Elf64_Shdr]
-      [UChar]
+      Elf64_Ehdr     -- ^ The file header
+      [Elf64_Phdr]   -- ^ Programs headers
+      [Elf64_Shdr]   -- ^ Section headers
+      [UChar]        -- ^ Raw data
 
 instance ToBytes Object64 where
   toBytes le (Obj64 fh phs shs bytes) = mconcat
