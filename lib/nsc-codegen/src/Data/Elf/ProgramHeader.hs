@@ -22,6 +22,7 @@ data ProgramHeader
   | PInterp
       String     -- ^ Path to the dynamic interpreter
       PFlags
+  deriving (Eq, Ord)
 
 -- | Indicates that we want to fetch data from a specific section. This essentially is an alias for 'Left', to be used with data constructors from 'ProgramHeader'
 --   in order to prevent duplicated binary data in the resulting ELF file (note that this duplication causes all sorts of problems like non-allocation of progbits).

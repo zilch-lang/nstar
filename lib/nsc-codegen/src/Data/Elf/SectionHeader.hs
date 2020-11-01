@@ -23,3 +23,4 @@ data SectionHeader
       String
       [UChar]
       SFlags
+  deriving (Eq, Ord)
