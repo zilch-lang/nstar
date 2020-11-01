@@ -15,7 +15,7 @@ import Data.Elf.Types
 type PFlags = Flag
 
 newtype Flag = Flag Elf64_Word
-  deriving (Show, Eq, Ord, Bits, Num)
+  deriving (Show, Eq, Ord, Bits, Num, Integral, Real, Enum)
 
 
 -- | Convenient alias of @'shiftL'@ because the imported constants use @'<<'@.

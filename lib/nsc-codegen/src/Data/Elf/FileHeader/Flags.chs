@@ -31,7 +31,7 @@ import Data.Bits (Bits, (.&.))
 type EFlags = Flag
 -- | Processor specific flags
 newtype Flag = Flag Elf64_Word
-  deriving (Show, Eq, Ord, Num, Bits)
+  deriving (Show, Eq, Ord, Num, Bits, Integral, Real, Enum)
 
 -- | No flags
 ef_none :: Flag

@@ -16,7 +16,7 @@ import Data.Elf.Types (Elf64_Xword)
 type SFlags = Flag
 -- | Section flags
 newtype Flag = Flag Elf64_Xword
-  deriving (Show, Eq, Ord, Num, Bits)
+  deriving (Show, Eq, Ord, Num, Bits, Integral, Real, Enum)
 
 -- | Convenient alias of @'shiftL'@ because the imported constants use @'<<'@.
 (<<) :: Bits a => a -> Int -> a
