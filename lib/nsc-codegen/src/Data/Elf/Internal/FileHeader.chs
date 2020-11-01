@@ -63,7 +63,22 @@ data Elf64_Ehdr
   }
 
 instance Storable Elf64_Ehdr where
-  sizeOf _ = {#sizeof Elf64_Ehdr#}
+  sizeOf _ = 64
+    --   16  bytes for @e_ident@
+    -- +  2  bytes for @e_type@
+    -- +  2  bytes for @e_machine@
+    -- +  4  bytes for @e_version@
+    -- +  8  bytes for @e_entry@
+    -- +  8  bytes for @e_phoff@
+    -- +  8  bytes for @e_shoff@
+    -- +  4  bytes for @e_flags@
+    -- +  2  bytes for @e_ehsize@
+    -- +  2  bytes for @e_phentsize@
+    -- +  2  bytes for @e_phnum@
+    -- +  2  bytes for @e_shentsize@
+    -- +  2  bytes for @e_shnum@
+    -- +  2  bytes for @e_shstrndx@
+    -- = 64  bytes total
   alignment _ = {#alignof Elf64_Ehdr#}
   peek _ = undefined      -- ↓
   poke _ _ = undefined    -- we don't need to either write or read it to/from a pointer
