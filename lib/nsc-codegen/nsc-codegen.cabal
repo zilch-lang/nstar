@@ -13,6 +13,9 @@ library
       Data.Elf
       Data.Elf.FileHeader
       Data.Elf.FileHeader.Flags
+      Data.Elf.Internal.Compile.FileHeader
+      Data.Elf.Internal.Compile.ProgramHeader
+      Data.Elf.Internal.Compile.SectionHeader
       Data.Elf.Internal.FileHeader
       Data.Elf.Internal.Object
       Data.Elf.Internal.ProgramHeader
