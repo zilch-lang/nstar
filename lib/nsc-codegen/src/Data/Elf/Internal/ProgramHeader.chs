@@ -5,6 +5,9 @@ module Data.Elf.Internal.ProgramHeader where
 
 import Data.Elf.Types
 import Data.Elf.Internal.ToBytes (ToBytes(..))
+import Foreign.Storable (Storable(..))
+
+#include <elf.h>
 
 -- | Program segment header
 data Elf64_Phdr
@@ -18,6 +21,12 @@ data Elf64_Phdr
   , p_memsz   :: !Elf64_Xword   -- ^ Segment size in memory
   , p_align   :: !Elf64_Xword   -- ^ Segment alignment
   }
+
+instance Storable Elf64_Phdr where
+  sizeOf _ = {#sizeof Elf64_Phdr#}
+  alignment _ = {#alignof Elf64_Phdr#}
+  peek _ = undefined
+  poke _ _ = undefined
 
 instance ToBytes Elf64_Phdr where
   toBytes le Elf64_Phdr{..} = mconcat
