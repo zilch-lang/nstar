@@ -83,7 +83,7 @@ instance ToBytes Elf64_Ehdr where
     , toBytes True e_phnum
     , toBytes True e_shentsize
     , toBytes True e_shnum
-    , toBytes le e_shstrndx
+    , toBytes True e_shstrndx
     ]
 
 -- Versions
