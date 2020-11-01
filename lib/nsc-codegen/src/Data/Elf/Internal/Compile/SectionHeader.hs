@@ -28,4 +28,4 @@ compileSectionHeader64bits sect =
     compileAlignment64bits = case sect of
       SNull           -> 0x0
       SProgBits _ _ _ -> 0x1
-      SNoBits _ _ _   -> 0x32
+      SNoBits _ _ _   -> 0x20
