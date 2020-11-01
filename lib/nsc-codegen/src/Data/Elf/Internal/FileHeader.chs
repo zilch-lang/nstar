@@ -40,6 +40,7 @@ module Data.Elf.Internal.FileHeader
 
 import Data.Elf.Types
 import Data.Elf.Internal.ToBytes (ToBytes(..))
+import Foreign.Storable (Storable(..))
 
 
 -- | The ELF file header. This appears at the start of every ELF file.
@@ -60,6 +61,12 @@ data Elf64_Ehdr
   , e_shnum     :: !Elf64_Half   -- ^ Section header table entry count
   , e_shstrndx  :: !Elf64_Half   -- ^ Section header string table index
   }
+
+instance Storable Elf64_Ehdr where
+  sizeOf _ = {#sizeof Elf64_Ehdr#}
+  alignment _ = {#alignof Elf64_Ehdr#}
+  peek _ = undefined      -- ↓
+  poke _ _ = undefined    -- we don't need to either write or read it to/from a pointer
 
 instance ToBytes Elf64_Ehdr where
   toBytes le Elf64_Ehdr{..} = mconcat
