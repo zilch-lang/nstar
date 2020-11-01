@@ -15,7 +15,7 @@ import qualified Data.Map as Map (fromList, mapKeys, keys, elems)
 import Data.Elf.SectionHeader
 import qualified Data.Text as Text (pack)
 import Data.Maybe (mapMaybe)
-import Data.List (intercalate)
+import Data.List (intersperse)
 
 unabstract :: Object64 -> Internal.Object64
 unabstract Object64{..} =
@@ -25,7 +25,9 @@ unabstract Object64{..} =
 
       segs      = toSnd compileProgramHeader64bits <$> segments
 
-      sects     = toSnd compileSectionHeader64bits <$> (sections <> [SStrTab ".shstrtab" (intercalate [0x0] (fmap c2w <$> Map.keys sectNames))])
+      allSectionNames = 0x0 : intersperse 0x0 (c2w <$> mconcat (".shstrtab" : Map.keys sectNames)) <> [0x0]
+      sects     = toSnd compileSectionHeader64bits <$>
+        (sections <> [SStrTab ".shstrtab" allSectionNames])
 
 
   in
