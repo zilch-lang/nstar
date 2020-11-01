@@ -4,7 +4,7 @@
 module Data.Elf.Internal.SectionHeader
 ( Elf64_Shdr(..)
   -- * @'sh_type'@
-, sht_null, sht_progbits, sht_nobits
+, sht_null, sht_progbits, sht_nobits, sht_strtab, sht_symtab
 ) where
 
 import Data.Elf.Types
@@ -59,3 +59,9 @@ sht_progbits = {#const SHT_PROGBITS#}
 -- | Program space with no data (bss)
 sht_nobits :: Elf64_Word
 sht_nobits = {#const SHT_NOBITS#}
+-- | Symbol table
+sht_symtab :: Elf64_Word
+sht_symtab = {#const SHT_SYMTAB#}
+-- | String table
+sht_strtab :: Elf64_Word
+sht_strtab = {#const SHT_STRTAB#}
