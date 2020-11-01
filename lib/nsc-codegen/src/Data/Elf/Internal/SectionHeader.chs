@@ -1,7 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Data.Elf.Internal.SectionHeader where
+module Data.Elf.Internal.SectionHeader
+( Elf64_Shdr(..)
+  -- * @'sh_type'@
+, sht_null, sht_progbits, sht_nobits
+) where
 
 import Data.Elf.Types
 import Data.Elf.Internal.ToBytes (ToBytes(..))
@@ -43,3 +47,15 @@ instance ToBytes Elf64_Shdr where
     , toBytes le sh_addralign
     , toBytes le sh_entsize
     ]
+
+-- | Section types
+
+-- | Section header table entry unused
+sht_null :: Elf64_Word
+sht_null = {#const SHT_NULL#}
+-- | Program data
+sht_progbits :: Elf64_Word
+sht_progbits = {#const SHT_PROGBITS#}
+-- | Program space with no data (bss)
+sht_nobits :: Elf64_Word
+sht_nobits = {#const SHT_NOBITS#}
