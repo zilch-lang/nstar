@@ -24,6 +24,7 @@ dependencies:
 - nsc-parser
 - nsc-typechecker
 - nsc-codegen
+- bytestring
 
 library:
   source-dirs: src
