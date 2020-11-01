@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5adf399ffe519eb47ef8c73908c692fcc58c32c972440f10bf08d57e3ae798fe
+-- hash: eebf3e85d33e59cd30811c01e40948e6a79b2b599e6d5c5c79d00c09aff2cafe
 
 name:           nsc-lib
 version:        0.0.1.0
@@ -26,6 +26,7 @@ source-repository head
 
 library
   exposed-modules:
+      Language.NStar.CodeGen
       Language.NStar.Syntax
       Language.NStar.Typechecker
       Lib
@@ -37,6 +38,7 @@ library
   build-depends:
       base >=4.7 && <5
     , diagnose
+    , nsc-codegen
     , nsc-core
     , nsc-parser
     , nsc-typechecker
@@ -54,6 +56,7 @@ executable nsc
       base >=4.7 && <5
     , containers
     , diagnose
+    , nsc-codegen
     , nsc-core
     , nsc-flags
     , nsc-lib
@@ -76,6 +79,7 @@ test-suite nsc-tests
     , base >=4.7 && <5
     , diagnose
     , hspec
+    , nsc-codegen
     , nsc-core
     , nsc-flags
     , nsc-lib

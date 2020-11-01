@@ -23,6 +23,7 @@ dependencies:
 - nsc-core
 - nsc-parser
 - nsc-typechecker
+- nsc-codegen
 
 library:
   source-dirs: src
