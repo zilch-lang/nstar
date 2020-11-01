@@ -1,7 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Data.Elf.Internal.ProgramHeader where
+module Data.Elf.Internal.ProgramHeader
+( Elf64_Phdr(..)
+  -- * @'p_type'@
+, pt_null, pt_load, pt_interp
+) where
 
 import Data.Elf.Types
 import Data.Elf.Internal.ToBytes (ToBytes(..))
@@ -39,3 +43,15 @@ instance ToBytes Elf64_Phdr where
     , toBytes le p_memsz
     , toBytes le p_align
     ]
+
+-- Segment types
+
+-- | Program header table entry unused
+pt_null :: Elf64_Word
+pt_null = {#const PT_NULL#}
+-- | Loadable program segment
+pt_load :: Elf64_Word
+pt_load = {#const PT_LOAD#}
+-- | Program interpreter
+pt_interp :: Elf64_Word
+pt_interp = {#const PT_INTERP#}
