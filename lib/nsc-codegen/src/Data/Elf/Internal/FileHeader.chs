@@ -80,9 +80,9 @@ instance ToBytes Elf64_Ehdr where
     , toBytes le e_flags
     , toBytes True e_ehsize
     , toBytes True e_phentsize
-    , toBytes le e_phnum
+    , toBytes True e_phnum
     , toBytes True e_shentsize
-    , toBytes le e_shnum
+    , toBytes True e_shnum
     , toBytes le e_shstrndx
     ]
 
