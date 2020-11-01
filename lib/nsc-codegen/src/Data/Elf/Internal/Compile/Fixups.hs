@@ -1,4 +1,5 @@
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE MagicHash #-}
 
 module Data.Elf.Internal.Compile.Fixups where
 
@@ -11,6 +12,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import Control.Monad.State (State, get, put, execState)
+import GHC.Base (Int (..), Int#, (+#))
 
 -- | Associative list between abstract and concrete section header structures.
 type Section64AList = Map SectionHeader Elf64_Shdr
@@ -37,6 +39,7 @@ runFixup = execState
 allFixes :: Fixup ()
 allFixes = do
   fixupHeaderCount
+  fixupShstrtabIndex
 
 -- | A fix for headers count in the ELF file header (fields 'e_phnum' and 'e_shnum').
 fixupHeaderCount :: Fixup ()
@@ -46,3 +49,32 @@ fixupHeaderCount = do
         { e_phnum = fromIntegral (Map.size segs)
         , e_shnum = fromIntegral (Map.size sects) }
   put (FixupEnv newHeader sects sectsNames segs)
+
+fixupShstrtabIndex :: Fixup ()
+fixupShstrtabIndex = do
+  FixupEnv fileHeader sects sectsNames segs <- get
+  let sectionsWithIndexes = indexed (Map.keys sects)
+      e_shstrtabndx:_     = fst <$> filter (\ (i, s) -> getName s == Just ".shstrtab") sectionsWithIndexes
+      newHeader           = fileHeader
+        { e_shstrndx = fromIntegral e_shstrtabndx }
+  put (FixupEnv newHeader sects sectsNames segs)
+ where
+   getName SNull             = Nothing
+   getName (SProgBits n _ _) = Just n
+   getName (SNoBits n _ _)   = Just n
+   getName (SStrTab n _)     = Just n
+
+{- |
+'indexed' pairs each element with its index.
+
+>>> indexed "hello"
+[(0,'h'),(1,'e'),(2,'l'),(3,'l'),(4,'o')]
+
+/Subject to fusion./
+-}
+indexed :: [a] -> [(Int, a)]
+indexed xs = go 0# xs
+  where
+    go i (a:as) = (I# i, a) : go (i +# 1#) as
+    go _ _      = []
+{-# NOINLINE [1] indexed #-}
