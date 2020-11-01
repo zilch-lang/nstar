@@ -16,7 +16,7 @@ data ProgramHeader
   = PNull
   -- | Loadable program segment
   | PLoad
-      (Either String [UChar])
+      (Either String [UChar])     -- ^ Either the name of a section or concrete binary data.
       PFlags
   -- | Program interpreter
   | PInterp
