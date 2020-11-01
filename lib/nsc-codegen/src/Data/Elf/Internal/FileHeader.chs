@@ -25,7 +25,7 @@ module Data.Elf.Internal.FileHeader
   --   [Byte number 9-15] @0@-ed padding bytes
 
   -- * @'e_type'@
---, ObjFileType(..)
+, et_none, et_rel, et_exec, et_dyn, et_core
 
   -- * @'e_machine'@
 --, Arch(..)
@@ -124,3 +124,26 @@ elfdata2lsb = {#const ELFDATA2LSB#}
 -- | 2's complement, big endian
 elfdata2msb :: UChar
 elfdata2msb = {#const ELFDATA2MSB#}
+
+
+-- File type
+
+-- | No file type
+et_none :: Elf64_Half
+et_none = {#const ET_NONE#}
+
+-- | Relocatable file
+et_rel :: Elf64_Half
+et_rel = {#const ET_REL#}
+
+-- | Executable file
+et_exec :: Elf64_Half
+et_exec = {#const ET_EXEC#}
+
+-- | Shared object file
+et_dyn :: Elf64_Half
+et_dyn = {#const ET_DYN#}
+
+-- | Core file
+et_core :: Elf64_Half
+et_core = {#const ET_CORE#}
