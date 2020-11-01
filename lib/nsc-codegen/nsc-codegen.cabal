@@ -14,6 +14,7 @@ library
       Data.Elf.FileHeader
       Data.Elf.FileHeader.Flags
       Data.Elf.Internal.Compile.FileHeader
+      Data.Elf.Internal.Compile.Fixups
       Data.Elf.Internal.Compile.ProgramHeader
       Data.Elf.Internal.Compile.SectionHeader
       Data.Elf.Internal.FileHeader
