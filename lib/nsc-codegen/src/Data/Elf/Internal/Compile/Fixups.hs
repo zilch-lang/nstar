@@ -40,6 +40,7 @@ allFixes :: Fixup ()
 allFixes = do
   fixupHeaderCount
   fixupShstrtabIndex
+  fixupHeadersOffsets
 
 -- | A fix for headers count in the ELF file header (fields 'e_phnum' and 'e_shnum').
 fixupHeaderCount :: Fixup ()
@@ -63,6 +64,19 @@ fixupShstrtabIndex = do
    getName (SProgBits n _ _) = Just n
    getName (SNoBits n _ _)   = Just n
    getName (SStrTab n _)     = Just n
+
+fixupHeadersOffsets :: Fixup ()
+fixupHeadersOffsets = do
+  FixupEnv fileHeader sects sectsNames segs <- get
+  let phnum     = fromIntegral (e_phnum fileHeader)
+      phentsize = fromIntegral (e_phentsize fileHeader)
+      phoff     = fromIntegral (e_ehsize fileHeader)    -- we want to have program headers right after the file header
+      shoff     = phoff + phnum * phentsize             -- and section headers right after program headers
+  let newHeader = fileHeader
+        { e_shoff = shoff
+        , e_phoff = phoff }
+
+  put (FixupEnv newHeader sects sectsNames segs)
 
 {- |
 'indexed' pairs each element with its index.
