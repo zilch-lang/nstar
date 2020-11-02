@@ -73,3 +73,11 @@ instance Serializable S64 LE Int64 where
 
 instance Serializable S64 BE Int64 where
   put = B.putInt64be
+
+instance Serializable S64 b a => Serializable S64 b [a] where
+  put = mapM_ (put @S64 @b)
+    -- A little tradeoff happening here: most serializers put the size of the list in front of the list.
+    -- While this works, this is not what I want because the ELF format does not do that.
+    -- That's why we simply output everything concatenated.
+    --
+    -- NOTE: endianness does not do much regarding the order the list is serialized.
