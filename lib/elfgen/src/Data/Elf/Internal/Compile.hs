@@ -17,6 +17,7 @@ import Data.Elf.ProgramHeader
 import qualified Data.Text as Text (pack)
 import Data.Maybe (mapMaybe)
 import Data.List (intersperse)
+import Data.Word (Word8)
 
 unabstract :: Object64 -> Internal.Object64
 unabstract Object64{..} =
@@ -47,7 +48,7 @@ fetchSectionNamesFrom = Map.fromList . mapMaybe f
     f h@(SNoBits n _ _)   = Just (n, h)
     f h@(SStrTab n _)     = Just (n, h)
 
-c2w :: Char -> UChar
+c2w :: Char -> Word8
 c2w = unsafeCoerce
 
 toSnd :: (a -> b) -> a -> (a, b)

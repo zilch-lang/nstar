@@ -18,7 +18,7 @@ data ProgramHeader
   | PNull
   -- | Loadable program segment
   | PLoad
-      (Either String [UChar])     -- ^ Either the name of a section or concrete binary data.
+      (Either String [Elf64_UChar])     -- ^ Either the name of a section or concrete binary data.
       PFlags
   -- | Program interpreter
   | PInterp
@@ -28,9 +28,9 @@ data ProgramHeader
 
 -- | Indicates that we want to fetch data from a specific section. This essentially is an alias for 'Left', to be used with data constructors from 'ProgramHeader'
 --   in order to prevent duplicated binary data in the resulting ELF file (note that this duplication causes all sorts of problems like non-allocation of progbits).
-section :: String -> Either String [UChar]
+section :: String -> Either String [Elf64_UChar]
 section = Left
 
 -- | Indicates that we want to have direct binary data which is not present in any other section. This is an alias for 'Right'.
-binaryData :: [UChar] -> Either String [UChar]
+binaryData :: [Elf64_UChar] -> Either String [Elf64_UChar]
 binaryData = Right

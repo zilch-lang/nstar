@@ -16,7 +16,7 @@ import Data.Elf.Internal.SectionHeader
 --             - 'sh_info'
 --             - 'sh_addralign'
 --             - 'sh_entsize' (may not be filled if the section does not hold a table)
-compileSectionHeader64bits :: SectionHeader -> Elf64_Shdr
+compileSectionHeader64bits :: SectionHeader -> Elf_Shdr 64
 compileSectionHeader64bits sect =
   Elf64_Shdr
     0x0

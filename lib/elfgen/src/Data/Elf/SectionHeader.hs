@@ -16,15 +16,15 @@ data SectionHeader
   -- | Program data
   | SProgBits
       String
-      [UChar]
+      [Elf64_UChar]
       SFlags
   -- | Program space with no data (bss)
   | SNoBits
       String
-      [UChar]
+      [Elf64_UChar]
       SFlags
   -- | String table
   | SStrTab
       String
-      [UChar]
+      [Elf64_UChar]
   deriving (Eq, Ord)

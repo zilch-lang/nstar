@@ -12,7 +12,7 @@ import Data.Elf.Internal.ProgramHeader
 --             - 'p_paddr'
 --             - 'p_filesz'
 --             - 'p_memsz'
-compileProgramHeader64bits :: ProgramHeader -> Elf64_Phdr
+compileProgramHeader64bits :: ProgramHeader -> Elf_Phdr 64
 compileProgramHeader64bits prog =
   Elf64_Phdr
     compileType64bits
