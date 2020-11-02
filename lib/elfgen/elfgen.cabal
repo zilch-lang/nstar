@@ -19,6 +19,7 @@ library
       Data.Elf.Internal.Compile.Fixups
       Data.Elf.Internal.Compile.ProgramHeader
       Data.Elf.Internal.Compile.SectionHeader
+      Data.Elf.Internal.Endianness
       Data.Elf.Internal.FileHeader
       Data.Elf.Internal.Object
       Data.Elf.Internal.ProgramHeader

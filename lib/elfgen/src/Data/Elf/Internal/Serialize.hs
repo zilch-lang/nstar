@@ -18,13 +18,7 @@ import qualified Data.Binary.Put as B
 import Data.Word (Word8, Word16, Word32, Word64)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Elf.Internal.BusSize (Size(..))
-
-
-data Endianness
-  = LE     -- ^ little endian
-  | BE     -- ^ big endian
-
-
+import Data.Elf.Internal.Endianness (Endianness(..))
 
 -- | A class of serializable values depending on the endianness (le) and the data size (n).
 --
