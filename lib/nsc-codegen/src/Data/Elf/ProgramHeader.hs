@@ -12,8 +12,10 @@ import Data.Elf.ProgramHeader.Flags
 
 -- | Program segment header
 data ProgramHeader
+  -- | Entry for header table itself
+  = PPhdr
   -- | Program header table entry unused
-  = PNull
+  | PNull
   -- | Loadable program segment
   | PLoad
       (Either String [UChar])     -- ^ Either the name of a section or concrete binary data.

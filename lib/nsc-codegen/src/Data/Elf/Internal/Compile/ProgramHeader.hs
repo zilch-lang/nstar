@@ -25,14 +25,17 @@ compileProgramHeader64bits prog =
     compileAlignment64bits
   where
     compileType64bits = case prog of
+      PPhdr       -> pt_phdr
       PNull       -> pt_null
       PLoad _ _   -> pt_load
       PInterp _ _ -> pt_interp
     compileFlags64bits = case prog of
+      PPhdr       -> pf_r
       PNull       -> 0x0
       PLoad _ f   -> f
       PInterp _ f -> f
     compileAlignment64bits = case prog of
+      PPhdr       -> 0x8
       PNull       -> 0x0
       PLoad _ _   -> 0x1000
       PInterp _ _ -> 0x1
