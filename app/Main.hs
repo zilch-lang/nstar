@@ -76,7 +76,7 @@ tryCompile flags file = do
       --   For now, only write ELF output in a file named "test.o".
 
       let elfObject = unabstract (compileToElf X64 p)
-      let bytes = toBytes False elfObject
+      let bytes = toBytes True elfObject   -- we want little endian as a test
       BS.writeFile "./test.o" bytes
 
       exitSuccess
