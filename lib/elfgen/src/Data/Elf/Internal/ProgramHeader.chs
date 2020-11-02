@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Data.Elf.Internal.ProgramHeader
 ( Elf_Phdr(..)
@@ -14,6 +15,7 @@ import Data.Elf.Types
 import Foreign.Storable (Storable(..))
 import GHC.TypeNats (Nat)
 import Data.Elf.Internal.BusSize (Size(..))
+import Data.Elf.Internal.Serialize (Serializable(..))
 
 #include <elf.h>
 
@@ -36,6 +38,22 @@ instance Storable (Elf_Phdr S64) where
   alignment _ = {#alignof Elf64_Phdr#}
   peek _ = undefined
   poke _ _ = undefined
+
+instance ( n ~ S64
+         , Serializable n e Elf64_Word
+         , Serializable n e Elf64_Off
+         , Serializable n e Elf64_Addr
+         , Serializable n e Elf64_Xword
+         ) => Serializable n e (Elf_Phdr n) where
+  put Elf64_Phdr{..} = do
+    put @n @e p_type
+    put @n @e p_flags
+    put @n @e p_offset
+    put @n @e p_vaddr
+    put @n @e p_paddr
+    put @n @e p_filesz
+    put @n @e p_memsz
+    put @n @e p_align
 
 -- Segment types
 
