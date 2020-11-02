@@ -13,6 +13,7 @@ import qualified Data.Map as Map
 import Data.Text (Text)
 import Control.Monad.State (State, get, put, execState)
 import GHC.Base (Int (..), Int#, (+#))
+import Data.Functor ((<&>))
 
 -- | Associative list between abstract and concrete section header structures.
 type Section64AList = Map SectionHeader Elf64_Shdr
@@ -75,8 +76,9 @@ fixupHeadersOffsets = do
   let newHeader = fileHeader
         { e_shoff = shoff
         , e_phoff = phoff }
+  let phdr = Map.lookup PPhdr segs <&> \ p -> p { p_offset = phoff }
 
-  put (FixupEnv newHeader sects sectsNames segs)
+  put (FixupEnv newHeader sects sectsNames (Map.update (const phdr) PPhdr segs))
 
 {- |
 'indexed' pairs each element with its index.
