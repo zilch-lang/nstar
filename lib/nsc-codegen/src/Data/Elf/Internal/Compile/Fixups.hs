@@ -42,6 +42,7 @@ allFixes = do
   fixupHeaderCount
   fixupShstrtabIndex
   fixupHeadersOffsets
+  fixupPHDREntry
 
 -- | A fix for headers count in the ELF file header (fields 'e_phnum' and 'e_shnum').
 fixupHeaderCount :: Fixup ()
@@ -76,9 +77,18 @@ fixupHeadersOffsets = do
   let newHeader = fileHeader
         { e_shoff = shoff
         , e_phoff = phoff }
-  let phdr = Map.lookup PPhdr segs <&> \ p -> p { p_offset = phoff }
 
-  put (FixupEnv newHeader sects sectsNames (Map.update (const phdr) PPhdr segs))
+  put (FixupEnv newHeader sects sectsNames segs)
+
+fixupPHDREntry :: Fixup ()
+fixupPHDREntry = do
+  FixupEnv fileHeader sects sectsNames segs <- get
+
+  let phoff    = e_phoff fileHeader
+      phdrSize = fromIntegral (e_phnum fileHeader) * fromIntegral (e_phentsize fileHeader)
+  let phdr = Map.lookup PPhdr segs <&> \ p -> p { p_offset = phoff, p_filesz = phdrSize, p_memsz = phdrSize }
+
+  put (FixupEnv fileHeader sects sectsNames (Map.update (const phdr) PPhdr segs))
 
 {- |
 'indexed' pairs each element with its index.
