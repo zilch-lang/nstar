@@ -1,20 +1,24 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Data.Elf.Internal.SectionHeader
-( Elf64_Shdr(..)
+( Elf_Shdr(..)
   -- * @'sh_type'@
 , sht_null, sht_progbits, sht_nobits, sht_strtab, sht_symtab
 ) where
 
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))
+import GHC.TypeNats (Nat)
 
 #include <elf.h>
 
 -- | Section header
-data Elf64_Shdr
-  = Elf64_Shdr
+data family Elf_Shdr (n :: Nat)
+data instance Elf_Shdr 64 = Elf64_Shdr
   { sh_name        :: !Elf64_Word    -- ^ Section name (string table index)
   , sh_type        :: !Elf64_Word    -- ^ Section type
   , sh_flags       :: !Elf64_Xword   -- ^ Section flags
@@ -27,7 +31,7 @@ data Elf64_Shdr
   , sh_entsize     :: !Elf64_Xword   -- ^ Entry size if section holds table
   }
 
-instance Storable Elf64_Shdr where
+instance Storable (Elf_Shdr 64) where
   sizeOf _ = {#sizeof Elf64_Shdr#}
   alignment _ = {#alignof Elf64_Shdr#}
   peek _ = undefined
