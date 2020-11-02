@@ -1,0 +1,45 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           elfgen
+version:        1.0.0
+build-type:     Simple
+
+library
+  exposed-modules:
+      Data.Elf
+      Data.Elf.FileHeader
+      Data.Elf.FileHeader.Flags
+      Data.Elf.Internal.Compile
+      Data.Elf.Internal.Compile.FileHeader
+      Data.Elf.Internal.Compile.Fixups
+      Data.Elf.Internal.Compile.ProgramHeader
+      Data.Elf.Internal.Compile.SectionHeader
+      Data.Elf.Internal.FileHeader
+      Data.Elf.Internal.Object
+      Data.Elf.Internal.ProgramHeader
+      Data.Elf.Internal.SectionHeader
+      Data.Elf.Internal.ToBytes
+      Data.Elf.Object
+      Data.Elf.ProgramHeader
+      Data.Elf.ProgramHeader.Flags
+      Data.Elf.SectionHeader
+      Data.Elf.SectionHeader.Flags
+      Data.Elf.SymbolTable
+      Data.Elf.Types
+  other-modules:
+      Paths_elfgen
+  hs-source-dirs:
+      src
+  default-extensions: LambdaCase BinaryLiterals BlockArguments
+  build-depends:
+      base >=4.7 && <5
+    , binary
+    , bytestring
+    , containers
+    , mtl
+    , text
+  default-language: Haskell2010
