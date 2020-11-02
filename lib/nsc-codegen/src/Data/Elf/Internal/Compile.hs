@@ -13,6 +13,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import Data.Map (Map)
 import qualified Data.Map as Map (fromList, mapKeys, keys, elems)
 import Data.Elf.SectionHeader
+import Data.Elf.ProgramHeader
 import qualified Data.Text as Text (pack)
 import Data.Maybe (mapMaybe)
 import Data.List (intersperse)
@@ -23,7 +24,7 @@ unabstract Object64{..} =
 
       sectNames = fetchSectionNamesFrom sections
 
-      segs      = toSnd compileProgramHeader64bits <$> segments
+      segs      = toSnd compileProgramHeader64bits <$> (PPhdr : segments)
 
       allSectionNames = 0x0 : intersperse 0x0 (c2w <$> mconcat (".shstrtab" : Map.keys sectNames)) <> [0x0]
       sects     = toSnd compileSectionHeader64bits <$>
