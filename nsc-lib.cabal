@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f2669db95017a80cbf8dd0cdbc9935dc808940883a5e16f1ac47403166226e90
+-- hash: 8a38119712c4553c81821f94bcc7f5b0c3ca7fccc1b2d9023fa610f8534b6f07
 
 name:           nsc-lib
 version:        0.0.1.0
@@ -39,6 +39,7 @@ library
       base >=4.7 && <5
     , bytestring
     , diagnose
+    , elfgen
     , nsc-codegen
     , nsc-core
     , nsc-parser
@@ -58,6 +59,7 @@ executable nsc
     , bytestring
     , containers
     , diagnose
+    , elfgen
     , nsc-codegen
     , nsc-core
     , nsc-flags
@@ -81,6 +83,7 @@ test-suite nsc-tests
     , base >=4.7 && <5
     , bytestring
     , diagnose
+    , elfgen
     , hspec
     , nsc-codegen
     , nsc-core
