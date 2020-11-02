@@ -8,7 +8,6 @@ module Data.Elf.Internal.SectionHeader
 ) where
 
 import Data.Elf.Types
-import Data.Elf.Internal.ToBytes (ToBytes(..))
 import Foreign.Storable (Storable(..))
 
 #include <elf.h>
@@ -34,19 +33,6 @@ instance Storable Elf64_Shdr where
   peek _ = undefined
   poke _ _ = undefined
 
-instance ToBytes Elf64_Shdr where
-  toBytes le Elf64_Shdr{..} = mconcat
-    [ toBytes le sh_name
-    , toBytes le sh_type
-    , toBytes le sh_flags
-    , toBytes le sh_addr
-    , toBytes le sh_offset
-    , toBytes le sh_size
-    , toBytes le sh_link
-    , toBytes le sh_info
-    , toBytes le sh_addralign
-    , toBytes le sh_entsize
-    ]
 
 -- | Section types
 

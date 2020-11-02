@@ -22,7 +22,6 @@ library
       Data.Elf.Internal.Object
       Data.Elf.Internal.ProgramHeader
       Data.Elf.Internal.SectionHeader
-      Data.Elf.Internal.ToBytes
       Data.Elf.Object
       Data.Elf.ProgramHeader
       Data.Elf.ProgramHeader.Flags

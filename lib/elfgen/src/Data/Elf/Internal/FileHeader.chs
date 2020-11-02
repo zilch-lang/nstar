@@ -39,7 +39,6 @@ module Data.Elf.Internal.FileHeader
 #include <elf.h>
 
 import Data.Elf.Types
-import Data.Elf.Internal.ToBytes (ToBytes(..))
 import Foreign.Storable (Storable(..))
 
 
@@ -67,24 +66,6 @@ instance Storable Elf64_Ehdr where
   alignment _ = {#alignof Elf64_Ehdr#}
   peek _ = undefined      -- ↓
   poke _ _ = undefined    -- we don't need to either write or read it to/from a pointer
-
-instance ToBytes Elf64_Ehdr where
-  toBytes le Elf64_Ehdr{..} = mconcat
-    [ toBytes le e_ident
-    , toBytes le e_type
-    , toBytes le e_machine
-    , toBytes le e_version
-    , toBytes le e_entry
-    , toBytes le e_phoff
-    , toBytes le e_shoff
-    , toBytes le e_flags
-    , toBytes le e_ehsize
-    , toBytes le e_phentsize
-    , toBytes le e_phnum
-    , toBytes le e_shentsize
-    , toBytes le e_shnum
-    , toBytes le e_shstrndx
-    ]
 
 -- Versions
 
