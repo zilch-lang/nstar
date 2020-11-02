@@ -1,6 +1,6 @@
 module Language.NStar.CodeGen.Elf.Builder where
 
-import Data.Elf
+import Data.Elf hiding (compile)
 import Language.NStar.CodeGen.Machine
 import Data.Bits ((.|.))
 import Language.NStar.CodeGen.Arch (SupportedArch(..))
