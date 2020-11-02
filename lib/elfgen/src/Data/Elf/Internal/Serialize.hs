@@ -32,14 +32,11 @@ data Endianness
 class Serializable (n :: Size) (le :: Endianness) (a :: Type) where
   put :: a -> B.Put
 
-instance Serializable S32 e Word8 where
-  put = B.putWord8
-
 instance Serializable S64 e Word8 where
   put = B.putWord8
 
-instance Serializable n e Word8 => Serializable n e Int8 where
-  put = put @n @e @Word8 . fromIntegral
+instance Serializable S64 e Int8 where
+  put = B.putInt8
 
 instance Serializable S64 LE Word16 where
   put = B.putWord16le
@@ -47,8 +44,11 @@ instance Serializable S64 LE Word16 where
 instance Serializable S64 BE Word16 where
   put = B.putWord16be
 
-instance Serializable n e Word16 => Serializable n e Int16 where
-  put = put @n @e @Word16 . fromIntegral
+instance Serializable S64 LE Int16 where
+  put = B.putInt16le
+
+instance Serializable S64 BE Int16 where
+  put = B.putInt16be
 
 instance Serializable S64 LE Word32 where
   put = B.putWord32le
@@ -56,8 +56,11 @@ instance Serializable S64 LE Word32 where
 instance Serializable S64 BE Word32 where
   put = B.putWord32be
 
-instance Serializable n e Word32 => Serializable n e Int32 where
-  put = put @n @e @Word32 . fromIntegral
+instance Serializable S64 LE Int32 where
+  put = B.putInt32le
+
+instance Serializable S64 BE Int32 where
+  put = B.putInt32be
 
 instance Serializable S64 LE Word64 where
   put = B.putWord64le
@@ -65,5 +68,8 @@ instance Serializable S64 LE Word64 where
 instance Serializable S64 BE Word64 where
   put = B.putWord64be
 
-instance Serializable n e Word64 => Serializable n e Int64 where
-  put = put @n @e @Word64 . fromIntegral
+instance Serializable S64 LE Int64 where
+  put = B.putInt64le
+
+instance Serializable S64 BE Int64 where
+  put = B.putInt64be
