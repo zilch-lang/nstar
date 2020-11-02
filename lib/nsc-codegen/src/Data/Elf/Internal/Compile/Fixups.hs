@@ -86,9 +86,19 @@ fixupPHDREntry = do
 
   let phoff    = e_phoff fileHeader
       phdrSize = fromIntegral (e_phnum fileHeader) * fromIntegral (e_phentsize fileHeader)
-  let phdr = Map.lookup PPhdr segs <&> \ p -> p { p_offset = phoff, p_filesz = phdrSize, p_memsz = phdrSize }
+  let phdr = Map.lookup PPhdr segs <&>
+        \ p -> p { p_offset = phoff
+                 , p_filesz = phdrSize
+                 , p_memsz = phdrSize }
+  let phdrLoad = Map.lookup (PLoad (section "PHDR") pf_r) segs <&>
+        \ p -> p { p_offset = 0x0
+                 , p_filesz = phdrSize + phoff
+                 , p_memsz = phdrSize + phoff }
+  let newSegs = Map.update (const phdr) PPhdr $
+                Map.update (const phdrLoad) (PLoad (section "PHDR") pf_r) $
+                segs
 
-  put (FixupEnv fileHeader sects sectsNames (Map.update (const phdr) PPhdr segs))
+  put (FixupEnv fileHeader sects sectsNames newSegs)
 
 {- |
 'indexed' pairs each element with its index.

@@ -24,7 +24,8 @@ unabstract Object64{..} =
 
       sectNames = fetchSectionNamesFrom sections
 
-      segs      = toSnd compileProgramHeader64bits <$> (PPhdr : segments)
+      segs      = toSnd compileProgramHeader64bits <$> (PPhdr : PLoad (section "PHDR") pf_r : segments)
+                                                        --                      ^^^^ Special identifier, to refer to the PHDR segment
 
       allSectionNames = 0x0 : intersperse 0x0 (c2w <$> mconcat (".shstrtab" : Map.keys sectNames)) <> [0x0]
       sects     = toSnd compileSectionHeader64bits <$>
