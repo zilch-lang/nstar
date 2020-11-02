@@ -9,6 +9,8 @@
 
 module Data.Elf.Internal.Serialize
 ( Serializable(..)
+  -- * Re-export
+, B.runPut
 ) where
 
 import Data.Elf.Types
