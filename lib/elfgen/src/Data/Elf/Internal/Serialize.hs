@@ -1,80 +1,48 @@
-{-# LANGUAGE NoStarIsType #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Data.Elf.Internal.Serialize
-( ElfSerializable(..)
+( Serializable(..)
 ) where
 
 import Data.Elf.Types
 import GHC.TypeNats (Nat)
+import Data.Kind (Type)
 import qualified Data.Binary.Put as B
+import Data.Word (Word8, Word16, Word32, Word64)
+import Data.Int (Int8, Int16, Int32, Int64)
 
--- | A class of ELF serializable values depending on the endianness (lowE) and the data size (n).
+-- | A class of serializable values depending on the endianness (le) and the data size (n).
 --
 --   n> @n@ should be equal to @32@ or @64@.
-class ( Num (ElfUChar n lowE)
-      , Num (ElfHalf n lowE)
-      , Num (ElfWord n lowE)
-      , Num (ElfSword n lowE)
-      , Num (ElfXword n lowE)
-      , Num (ElfSxword n lowE)
-      , Num (ElfAddr n lowE)
-      , Num (ElfOff n lowE)
-      ) => ElfSerializable (n :: Nat) (lowE :: Bool) where
-  -- | The type of unsigned characters
-  type ElfUChar n lowE
-  -- | The type of half words
-  type ElfHalf n lowE
-  -- | The type of words
-  type ElfWord n lowE
-  -- | The type of signed words
-  type ElfSword n lowE
-  -- | The type of double (large) words
-  type ElfXword n lowE
-  -- | The type of signed double words
-  type ElfSxword n lowE
-  -- | The type of addresses
-  type ElfAddr n lowE
-  -- | The type of offsets
-  type ElfOff n lowE
+class Serializable (n :: Nat) (le :: Bool) (a :: Type) where
+  put :: a -> B.Put
 
-  -- | Puts an unsigned char into the stream.
-  putUChar  :: ElfUChar n lowE  -> B.Put
-  -- | Puts a half word into the stream.
-  putHalf   :: ElfHalf n lowE   -> B.Put
-  -- | Puts a word into the stream.
-  putWord   :: ElfWord n lowE   -> B.Put
-  -- | Puts a signed word into the stream.
-  putSword  :: ElfSword n lowE  -> B.Put
-  -- | Puts a large word into the stream.
-  putXword  :: ElfXword n lowE  -> B.Put
-  -- | Puts a signed large word into the stream.
-  putSxword :: ElfSxword n lowE -> B.Put
-  -- | Puts an address into the stream.
-  putAddr   :: ElfAddr n lowE   -> B.Put
-  -- | Puts an offset into the stream.
-  putOff    :: ElfOff n lowE    -> B.Put
+instance Serializable 64 b Word8 where
+  put = B.putWord8
 
--- | Serialize for little-endian 64-bits platforms
-instance ElfSerializable 64 True where
-  type ElfUChar 64 True = Elf64_UChar
-  type ElfHalf 64 True = Elf64_Half
-  type ElfSword 64 True = Elf64_Sword
-  type ElfWord 64 True = Elf64_Word
-  type ElfXword 64 True = Elf64_Xword
-  type ElfSxword 64 True = Elf64_Sxword
-  type ElfAddr 64 True = Elf64_Addr
-  type ElfOff 64 True = Elf64_Off
+instance Serializable 64 b Int8 where
+  put = put @64 @b @Word8 . fromIntegral
 
-  putUChar = B.putWord8
-  putHalf = B.putWord16le
-  putWord = B.putWord32le
-  putSword = putWord @64 @True . fromIntegral    -- sign does not matter
-  putXword = B.putWord64le
-  putSxword = putXword @64 @True . fromIntegral  -- sign does not matter
-  putAddr = putXword @64 @True
-  putOff = putXword @64 @True
+instance Serializable 64 True Word16 where
+  put = B.putWord16le
+
+instance Serializable 64 True Int16 where
+  put = put @64 @True @Word16 . fromIntegral
+
+instance Serializable 64 True Word32 where
+  put = B.putWord32le
+
+instance Serializable 64 True Int32 where
+  put = put @64 @True @Word32 . fromIntegral
+
+instance Serializable 64 True Word64 where
+  put = B.putWord64le
+
+instance Serializable 64 True Int64 where
+  put = put @64 @True @Word64 . fromIntegral
