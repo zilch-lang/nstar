@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Data.Elf.Internal.FileHeader
 ( Elf_Ehdr(..)
@@ -45,7 +46,7 @@ import Data.Elf.Types
 import Foreign.Storable (Storable(..))
 import GHC.TypeNats (Nat)
 import Data.Elf.Internal.BusSize (Size(..))
-
+import Data.Elf.Internal.Serialize (Serializable(..))
 
 -- | The ELF file header. This appears at the start of every ELF file.
 data family Elf_Ehdr (n :: Size)
@@ -71,6 +72,29 @@ instance Storable (Elf_Ehdr S64) where
   alignment _ = {#alignof Elf64_Ehdr#}
   peek _ = undefined      -- ↓
   poke _ _ = undefined    -- we don't need to either write or read it to/from a pointer
+
+instance ( n ~ S64
+         , Serializable n e Elf64_UChar
+         , Serializable n e Elf64_Half
+         , Serializable n e Elf64_Word
+         , Serializable n e Elf64_Addr
+         , Serializable n e Elf64_Off
+         ) => Serializable n e (Elf_Ehdr n) where
+  put Elf64_Ehdr{..} = do
+    put @n @e e_ident
+    put @n @e e_type
+    put @n @e e_machine
+    put @n @e e_version
+    put @n @e e_entry
+    put @n @e e_phoff
+    put @n @e e_shoff
+    put @n @e e_flags
+    put @n @e e_ehsize
+    put @n @e e_phentsize
+    put @n @e e_phnum
+    put @n @e e_shentsize
+    put @n @e e_shnum
+    put @n @e e_shstrndx
 
 -- Versions
 
