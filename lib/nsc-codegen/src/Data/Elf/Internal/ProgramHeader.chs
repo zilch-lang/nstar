@@ -36,7 +36,7 @@ instance ToBytes Elf64_Phdr where
   toBytes le Elf64_Phdr{..} = mconcat
     [ toBytes True p_type
     , toBytes True p_flags
-    , toBytes le p_offset
+    , toBytes True p_offset
     , toBytes le p_vaddr
     , toBytes le p_paddr
     , toBytes le p_filesz
