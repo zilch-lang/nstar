@@ -44,11 +44,12 @@ module Data.Elf.Internal.FileHeader
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))
 import GHC.TypeNats (Nat)
+import Data.Elf.Internal.BusSize (Size(..))
 
 
 -- | The ELF file header. This appears at the start of every ELF file.
-data family Elf_Ehdr (n :: Nat)
-data instance Elf_Ehdr 64 = Elf64_Ehdr
+data family Elf_Ehdr (n :: Size)
+data instance Elf_Ehdr S64 = Elf64_Ehdr
   { e_ident     :: ![Elf64_UChar]      -- ^ Magic number and other info
   , e_type      :: !Elf64_Half   -- ^ Object file type
   , e_machine   :: !Elf64_Half   -- ^ Architecture
@@ -65,7 +66,7 @@ data instance Elf_Ehdr 64 = Elf64_Ehdr
   , e_shstrndx  :: !Elf64_Half   -- ^ Section header string table index
   }
 
-instance Storable (Elf_Ehdr 64) where
+instance Storable (Elf_Ehdr S64) where
   sizeOf _ = {#sizeof Elf64_Ehdr#}
   alignment _ = {#alignof Elf64_Ehdr#}
   peek _ = undefined      -- ↓

@@ -10,6 +10,7 @@ import Data.Elf.Internal.SectionHeader (Elf_Shdr)   --  ↓
 import Data.Elf.Internal.ProgramHeader (Elf_Phdr)   -- Only to compute their sizes
 import Data.Elf.Types
 import Foreign.Storable (sizeOf)
+import Data.Elf.Internal.BusSize (Size(..))
 
 -- | Compiles an abstracted 'ElfHeader' into an unabstracted 'Elf64_Ehdr'.
 --
@@ -23,7 +24,7 @@ import Foreign.Storable (sizeOf)
 --             - 'e_phnum'
 --             - 'e_shnum'
 --             - 'e_shstrndx'
-compileFileHeader64bits :: ElfHeader -> Elf_Ehdr 64
+compileFileHeader64bits :: ElfHeader -> Elf_Ehdr S64
 compileFileHeader64bits (ElfHeader cls enc abi abiVer fileType arch fileVer flags) =
   Elf64_Ehdr
     [ 0x7F, 0x45, 0x4C, 0x46, compileClass64bits, compileEncoding64bits, fromIntegral compileFileVersion64bits, compileABI64bits, abiVer, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0 ]
@@ -34,10 +35,10 @@ compileFileHeader64bits (ElfHeader cls enc abi abiVer fileType arch fileVer flag
     0x0
     0x0
     (fromIntegral flags)
-    (fromIntegral $ sizeOf @(Elf_Ehdr 64) undefined)
-    (fromIntegral $ sizeOf @(Elf_Phdr 64) undefined)
+    (fromIntegral $ sizeOf @(Elf_Ehdr S64) undefined)
+    (fromIntegral $ sizeOf @(Elf_Phdr S64) undefined)
     0x0
-    (fromIntegral $ sizeOf @(Elf_Shdr 64) undefined)
+    (fromIntegral $ sizeOf @(Elf_Shdr S64) undefined)
     0x0
     0x0
   where

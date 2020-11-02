@@ -13,13 +13,14 @@ module Data.Elf.Internal.ProgramHeader
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))
 import GHC.TypeNats (Nat)
+import Data.Elf.Internal.BusSize (Size(..))
 
 #include <elf.h>
 
 -- | Program segment header parameterized by the CPU bus size @n@.
-data family Elf_Phdr (n :: Nat)
+data family Elf_Phdr (n :: Size)
 -- | A 64-bits ELF program header.
-data instance Elf_Phdr 64 = Elf64_Phdr
+data instance Elf_Phdr S64 = Elf64_Phdr
   { p_type    :: !Elf64_Word    -- ^ Segment type
   , p_flags   :: !Elf64_Word    -- ^ Segment flags
   , p_offset  :: !Elf64_Off     -- ^ Segment file offset
@@ -30,7 +31,7 @@ data instance Elf_Phdr 64 = Elf64_Phdr
   , p_align   :: !Elf64_Xword   -- ^ Segment alignment
   }
 
-instance Storable (Elf_Phdr 64) where
+instance Storable (Elf_Phdr S64) where
   sizeOf _ = {#sizeof Elf64_Phdr#}
   alignment _ = {#alignof Elf64_Phdr#}
   peek _ = undefined

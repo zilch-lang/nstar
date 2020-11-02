@@ -2,6 +2,7 @@ module Data.Elf.Internal.Compile.ProgramHeader where
 
 import Data.Elf.ProgramHeader
 import Data.Elf.Internal.ProgramHeader
+import Data.Elf.Internal.BusSize (Size(..))
 
 -- | Compiles an abstract 'ProgramHeader' into an 'Elf64_Phdr' ready to be inserted into an object file.
 --
@@ -12,7 +13,7 @@ import Data.Elf.Internal.ProgramHeader
 --             - 'p_paddr'
 --             - 'p_filesz'
 --             - 'p_memsz'
-compileProgramHeader64bits :: ProgramHeader -> Elf_Phdr 64
+compileProgramHeader64bits :: ProgramHeader -> Elf_Phdr S64
 compileProgramHeader64bits prog =
   Elf64_Phdr
     compileType64bits

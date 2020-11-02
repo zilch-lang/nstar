@@ -2,6 +2,7 @@ module Data.Elf.Internal.Compile.SectionHeader where
 
 import Data.Elf.SectionHeader
 import Data.Elf.Internal.SectionHeader
+import Data.Elf.Internal.BusSize (Size(..))
 
 -- | Compiles an abstract 'SectionHeader' into a concrete 'Elf64_Shdr'.
 --
@@ -16,7 +17,7 @@ import Data.Elf.Internal.SectionHeader
 --             - 'sh_info'
 --             - 'sh_addralign'
 --             - 'sh_entsize' (may not be filled if the section does not hold a table)
-compileSectionHeader64bits :: SectionHeader -> Elf_Shdr 64
+compileSectionHeader64bits :: SectionHeader -> Elf_Shdr S64
 compileSectionHeader64bits sect =
   Elf64_Shdr
     0x0

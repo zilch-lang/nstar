@@ -7,8 +7,9 @@ import Data.Elf.Internal.ProgramHeader
 import Data.Elf.Internal.SectionHeader
 import Data.Word (Word8)
 import GHC.TypeNats (Nat)
+import Data.Elf.Internal.BusSize (Size(..))
 
-data Object (n :: Nat)
+data Object (n :: Size)
   = Obj
       (Elf_Ehdr n)   -- ^ The file header
       [Elf_Phdr n]   -- ^ Programs headers

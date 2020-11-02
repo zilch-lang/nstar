@@ -20,18 +20,19 @@ import Data.Text (Text)
 import Control.Monad.State (State, get, put, execState)
 import GHC.Base (Int (..), Int#, (+#))
 import Data.Functor ((<&>))
+import Data.Elf.Internal.BusSize (Size(..))
 
 -- | Associative list between abstract and concrete section header structures.
-type Section64AList = Map SectionHeader (Elf_Shdr 64)
+type Section64AList = Map SectionHeader (Elf_Shdr S64)
 -- | Associative list between abstract and concrete program header structures.
-type Segment64AList = Map ProgramHeader (Elf_Phdr 64)
+type Segment64AList = Map ProgramHeader (Elf_Phdr S64)
 -- | Mapping from section names to abstract section headers.
 type SectionByName = Map Text SectionHeader
 
 -- | The fixup environment, containing all sections to be fixed up.
 data FixupEnvironment
   = FixupEnv
-      (Elf_Ehdr 64)     -- ^ The ELF file header
+      (Elf_Ehdr S64)     -- ^ The ELF file header
       Section64AList   -- ^ An association list associating abstract and concrete section headers
       SectionByName    -- ^ All segments mapped by their respective names
       Segment64AList   -- ^ An association from abstract to concrete segment headers

@@ -1,8 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Data.Elf.Internal.SectionHeader
 ( Elf_Shdr(..)
@@ -12,15 +11,16 @@ module Data.Elf.Internal.SectionHeader
 
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))
-import Data.Binary (Put, put)
 import GHC.TypeNats (Nat)
+import Data.Elf.Internal.Serialize (Serializable(..))
+import Data.Elf.Internal.BusSize (Size(..))
 
 #include <elf.h>
 
 -- | Section header parameterized by the architecture bus size @n@.
-data family Elf_Shdr (n :: Nat)
+data family Elf_Shdr (n :: Size)
 -- | A section header for a 64-bits ELF file.
-data instance Elf_Shdr 64 = Elf64_Shdr
+data instance Elf_Shdr S64 = Elf64_Shdr
   { sh_name        :: !Elf64_Word    -- ^ Section name (string table index)
   , sh_type        :: !Elf64_Word    -- ^ Section type
   , sh_flags       :: !Elf64_Xword   -- ^ Section flags
@@ -33,12 +33,29 @@ data instance Elf_Shdr 64 = Elf64_Shdr
   , sh_entsize     :: !Elf64_Xword   -- ^ Entry size if section holds table
   }
 
-instance Storable (Elf_Shdr 64) where
+instance Storable (Elf_Shdr S64) where
   sizeOf _ = {#sizeof Elf64_Shdr#}
   alignment _ = {#alignof Elf64_Shdr#}
   peek _ = undefined
   poke _ _ = undefined
 
+instance ( n ~ S64
+         , Serializable n e Elf64_Word
+         , Serializable n e Elf64_Xword
+         , Serializable n e Elf64_Addr
+         , Serializable n e Elf64_Off
+         ) => Serializable n e (Elf_Shdr n) where
+  put Elf64_Shdr{..} = do
+    put @n @e sh_name
+    put @n @e sh_type
+    put @n @e sh_flags
+    put @n @e sh_addr
+    put @n @e sh_offset
+    put @n @e sh_size
+    put @n @e sh_link
+    put @n @e sh_info
+    put @n @e sh_addralign
+    put @n @e sh_entsize
 
 -- Section types
 
