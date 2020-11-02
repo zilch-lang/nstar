@@ -13,6 +13,7 @@ library
       Data.Elf
       Data.Elf.FileHeader
       Data.Elf.FileHeader.Flags
+      Data.Elf.Internal.BusSize
       Data.Elf.Internal.Compile
       Data.Elf.Internal.Compile.FileHeader
       Data.Elf.Internal.Compile.Fixups
@@ -34,7 +35,7 @@ library
       Paths_elfgen
   hs-source-dirs:
       src
-  default-extensions: LambdaCase BinaryLiterals BlockArguments TypeApplications DataKinds FlexibleInstances MultiParamTypeClasses ScopedTypeVariables
+  default-extensions: LambdaCase BinaryLiterals BlockArguments TypeApplications DataKinds FlexibleInstances MultiParamTypeClasses ScopedTypeVariables TypeFamilies
   build-depends:
       base >=4.7 && <5
     , binary
