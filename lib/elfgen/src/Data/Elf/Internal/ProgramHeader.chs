@@ -1,20 +1,25 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE KindSignatures #-}
 
 module Data.Elf.Internal.ProgramHeader
-( Elf64_Phdr(..)
+( Elf_Phdr(..)
   -- * @'p_type'@
 , pt_null, pt_phdr, pt_load, pt_interp
 ) where
 
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))
+import GHC.TypeNats (Nat)
 
 #include <elf.h>
 
--- | Program segment header
-data Elf64_Phdr
-  = Elf64_Phdr
+-- | Program segment header parameterized by the CPU bus size @n@.
+data family Elf_Phdr (n :: Nat)
+-- | A 64-bits ELF program header.
+data instance Elf_Phdr 64 = Elf64_Phdr
   { p_type    :: !Elf64_Word    -- ^ Segment type
   , p_flags   :: !Elf64_Word    -- ^ Segment flags
   , p_offset  :: !Elf64_Off     -- ^ Segment file offset
@@ -25,7 +30,7 @@ data Elf64_Phdr
   , p_align   :: !Elf64_Xword   -- ^ Segment alignment
   }
 
-instance Storable Elf64_Phdr where
+instance Storable (Elf_Phdr 64) where
   sizeOf _ = {#sizeof Elf64_Phdr#}
   alignment _ = {#alignof Elf64_Phdr#}
   peek _ = undefined
