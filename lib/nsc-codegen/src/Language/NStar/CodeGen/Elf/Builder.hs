@@ -6,9 +6,9 @@ import Data.Bits ((.|.))
 import Language.NStar.CodeGen.Arch (SupportedArch(..))
 import Language.NStar.Typechecker.Core (TypedProgram)
 
-compileToElf :: SupportedArch -> TypedProgram -> Object64
+compileToElf :: SupportedArch -> TypedProgram -> ElfObject
 compileToElf arch prog =
-  Object64
+  ElfObject
     (ElfHeader (supportedArchToClass arch) (supportedArchToEncoding arch) OSABI_None 0x0 ET_Exec (supportedArchToArch arch) EV_Current ef_none)
     [PLoad (section ".text") pf_r]
     [SProgBits ".text" (compile arch prog) (shf_alloc .|. shf_execinstr)]

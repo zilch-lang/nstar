@@ -19,8 +19,8 @@ import Data.Maybe (mapMaybe)
 import Data.List (intersperse)
 import Data.Word (Word8)
 
-unabstract :: Object64 -> Internal.Object 64
-unabstract Object64{..} =
+unabstract :: ElfObject -> Internal.Object 64
+unabstract ElfObject{..} =
   let elfheader = compileFileHeader64bits fileHeader
 
       sectNames = fetchSectionNamesFrom sections
