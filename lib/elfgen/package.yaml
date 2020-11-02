@@ -8,6 +8,8 @@ default-extensions:
 - LambdaCase
 - BinaryLiterals
 - BlockArguments
+- TypeApplications
+- DataKinds
 
 dependencies:
 - base >=4.7 && <5

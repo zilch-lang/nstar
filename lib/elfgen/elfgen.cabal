@@ -34,7 +34,7 @@ library
       Paths_elfgen
   hs-source-dirs:
       src
-  default-extensions: LambdaCase BinaryLiterals BlockArguments
+  default-extensions: LambdaCase BinaryLiterals BlockArguments TypeApplications DataKinds
   build-depends:
       base >=4.7 && <5
     , binary
