@@ -10,26 +10,6 @@ build-type:     Simple
 
 library
   exposed-modules:
-      Data.Elf
-      Data.Elf.FileHeader
-      Data.Elf.FileHeader.Flags
-      Data.Elf.Internal.Compile
-      Data.Elf.Internal.Compile.FileHeader
-      Data.Elf.Internal.Compile.Fixups
-      Data.Elf.Internal.Compile.ProgramHeader
-      Data.Elf.Internal.Compile.SectionHeader
-      Data.Elf.Internal.FileHeader
-      Data.Elf.Internal.Object
-      Data.Elf.Internal.ProgramHeader
-      Data.Elf.Internal.SectionHeader
-      Data.Elf.Internal.ToBytes
-      Data.Elf.Object
-      Data.Elf.ProgramHeader
-      Data.Elf.ProgramHeader.Flags
-      Data.Elf.SectionHeader
-      Data.Elf.SectionHeader.Flags
-      Data.Elf.SymbolTable
-      Data.Elf.Types
       Language.NStar.CodeGen.Arch
       Language.NStar.CodeGen.Compiler
       Language.NStar.CodeGen.Elf
@@ -48,6 +28,7 @@ library
     , bytestring >=0.10
     , containers
     , diagnose
+    , elfgen
     , mtl
     , nsc-core
     , text
