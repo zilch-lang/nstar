@@ -12,12 +12,14 @@ module Data.Elf.Internal.SectionHeader
 
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))
+import Data.Binary (Put, put)
 import GHC.TypeNats (Nat)
 
 #include <elf.h>
 
--- | Section header
+-- | Section header parameterized by the architecture bus size @n@.
 data family Elf_Shdr (n :: Nat)
+-- | A section header for a 64-bits ELF file.
 data instance Elf_Shdr 64 = Elf64_Shdr
   { sh_name        :: !Elf64_Word    -- ^ Section name (string table index)
   , sh_type        :: !Elf64_Word    -- ^ Section type
@@ -38,7 +40,7 @@ instance Storable (Elf_Shdr 64) where
   poke _ _ = undefined
 
 
--- | Section types
+-- Section types
 
 -- | Section header table entry unused
 sht_null :: Elf64_Word
