@@ -75,8 +75,8 @@ instance ToBytes Elf64_Ehdr where
     , toBytes True e_machine
     , toBytes True e_version
     , toBytes le e_entry
-    , toBytes le e_phoff
-    , toBytes le e_shoff
+    , toBytes True e_phoff
+    , toBytes True e_shoff
     , toBytes le e_flags
     , toBytes True e_ehsize
     , toBytes True e_phentsize
