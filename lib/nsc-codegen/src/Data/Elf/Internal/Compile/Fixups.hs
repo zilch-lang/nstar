@@ -1,7 +1,13 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE MagicHash #-}
 
-module Data.Elf.Internal.Compile.Fixups where
+module Data.Elf.Internal.Compile.Fixups
+( FixupEnvironment(..), Fixup
+, Section64AList, Segment64AList, SectionByName
+, runFixup
+  -- * All fixup steps
+, allFixes, fixupHeaderCount, fixupShstrtabIndex, fixupHeadersOffsets, fixupPHDREntry
+) where
 
 import Data.Elf.SectionHeader
 import Data.Elf.Internal.SectionHeader
