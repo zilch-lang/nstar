@@ -36,15 +36,15 @@ instance Storable Elf64_Shdr where
 
 instance ToBytes Elf64_Shdr where
   toBytes le Elf64_Shdr{..} = mconcat
-    [ toBytes True sh_name
-    , toBytes True sh_type
-    , toBytes True sh_flags
+    [ toBytes le sh_name
+    , toBytes le sh_type
+    , toBytes le sh_flags
     , toBytes le sh_addr
     , toBytes le sh_offset
     , toBytes le sh_size
     , toBytes le sh_link
     , toBytes le sh_info
-    , toBytes True sh_addralign
+    , toBytes le sh_addralign
     , toBytes le sh_entsize
     ]
 

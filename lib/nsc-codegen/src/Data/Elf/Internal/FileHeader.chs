@@ -70,20 +70,20 @@ instance Storable Elf64_Ehdr where
 
 instance ToBytes Elf64_Ehdr where
   toBytes le Elf64_Ehdr{..} = mconcat
-    [ toBytes True e_ident
-    , toBytes True e_type
-    , toBytes True e_machine
-    , toBytes True e_version
+    [ toBytes le e_ident
+    , toBytes le e_type
+    , toBytes le e_machine
+    , toBytes le e_version
     , toBytes le e_entry
-    , toBytes True e_phoff
-    , toBytes True e_shoff
+    , toBytes le e_phoff
+    , toBytes le e_shoff
     , toBytes le e_flags
-    , toBytes True e_ehsize
-    , toBytes True e_phentsize
-    , toBytes True e_phnum
-    , toBytes True e_shentsize
-    , toBytes True e_shnum
-    , toBytes True e_shstrndx
+    , toBytes le e_ehsize
+    , toBytes le e_phentsize
+    , toBytes le e_phnum
+    , toBytes le e_shentsize
+    , toBytes le e_shnum
+    , toBytes le e_shstrndx
     ]
 
 -- Versions
