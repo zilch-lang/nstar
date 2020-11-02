@@ -19,7 +19,7 @@ import Data.Maybe (mapMaybe)
 import Data.List (intersperse)
 import Data.Word (Word8)
 
-unabstract :: Object64 -> Internal.Object64
+unabstract :: Object64 -> Internal.Object 64
 unabstract Object64{..} =
   let elfheader = compileFileHeader64bits fileHeader
 
@@ -38,7 +38,7 @@ unabstract Object64{..} =
                 = Fix.runFixup Fix.allFixes $
                     Fix.FixupEnv elfheader (Map.fromList sects) (Map.mapKeys Text.pack sectNames) (Map.fromList segs)
 
-  in Internal.Obj64 fileHeader (Map.elems segments) (Map.elems sections) []
+  in Internal.Obj @64 fileHeader (Map.elems segments) (Map.elems sections) []
 
 fetchSectionNamesFrom :: [SectionHeader] -> Map String SectionHeader
 fetchSectionNamesFrom = Map.fromList . mapMaybe f
