@@ -1,8 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE KindSignatures #-}
 
 module Data.Elf.Internal.FileHeader
-( Elf64_Ehdr(..)
+( Elf_Ehdr(..)
   -- * @'e_ident'@
 
   -- | The 'e_ident' field contains the ELF magic number and some other info, laid out as:
@@ -40,12 +43,13 @@ module Data.Elf.Internal.FileHeader
 
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))
+import GHC.TypeNats (Nat)
 
 
 -- | The ELF file header. This appears at the start of every ELF file.
-data Elf64_Ehdr
-  = Elf64_Ehdr
-  { e_ident     :: ![UChar]      -- ^ Magic number and other info
+data family Elf_Ehdr (n :: Nat)
+data instance Elf_Ehdr 64 = Elf64_Ehdr
+  { e_ident     :: ![Elf64_UChar]      -- ^ Magic number and other info
   , e_type      :: !Elf64_Half   -- ^ Object file type
   , e_machine   :: !Elf64_Half   -- ^ Architecture
   , e_version   :: !Elf64_Word   -- ^ Object file version
@@ -61,7 +65,7 @@ data Elf64_Ehdr
   , e_shstrndx  :: !Elf64_Half   -- ^ Section header string table index
   }
 
-instance Storable Elf64_Ehdr where
+instance Storable (Elf_Ehdr 64) where
   sizeOf _ = {#sizeof Elf64_Ehdr#}
   alignment _ = {#alignof Elf64_Ehdr#}
   peek _ = undefined      -- ↓
@@ -81,36 +85,36 @@ ev_current = {#const EV_CURRENT#}
 -- OS ABI identification
 
 -- | UNIX System V ABI
-elfosabi_none :: UChar
+elfosabi_none :: Elf64_UChar
 elfosabi_none = {#const ELFOSABI_NONE#}
 -- | Alias for 'elfosabi_none'
-elfosabi_sysv :: UChar
+elfosabi_sysv :: Elf64_UChar
 elfosabi_sysv = {#const ELFOSABI_SYSV#}
 
 
 -- ELF class
 
 -- | Invalid class
-elfclassnone :: UChar
+elfclassnone :: Elf64_UChar
 elfclassnone = {#const ELFCLASSNONE#}
 -- | 32-bit object
-elfclass32 :: UChar
+elfclass32 :: Elf64_UChar
 elfclass32 = {#const ELFCLASS32#}
 -- | 64-bit object
-elfclass64 :: UChar
+elfclass64 :: Elf64_UChar
 elfclass64 = {#const ELFCLASS64#}
 
 
 -- Data encoding
 
 -- | Invalid data encoding
-elfdatanone :: UChar
+elfdatanone :: Elf64_UChar
 elfdatanone = {#const ELFDATANONE#}
 -- | 2's completement, little endian
-elfdata2lsb :: UChar
+elfdata2lsb :: Elf64_UChar
 elfdata2lsb = {#const ELFDATA2LSB#}
 -- | 2's complement, big endian
-elfdata2msb :: UChar
+elfdata2msb :: Elf64_UChar
 elfdata2msb = {#const ELFDATA2MSB#}
 
 
