@@ -18,6 +18,9 @@ module Data.Elf
 
   -- * ELF structure
 , module Data.Elf.Object
+
+  -- * Compilation to a 'ByteString'
+, module Data.Elf.CompileToBytes
 ) where
 
 -- For now, let's just focus on the 64 bits format, no matter what the HOST/TARGET arch is.
@@ -28,3 +31,4 @@ import Data.Elf.SectionHeader
 import Data.Elf.ProgramHeader
 import Data.Elf.Object
 import Data.ByteString (ByteString)
+import Data.Elf.CompileToBytes
