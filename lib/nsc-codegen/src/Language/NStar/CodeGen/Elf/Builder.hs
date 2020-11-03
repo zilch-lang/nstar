@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds #-}
+
 module Language.NStar.CodeGen.Elf.Builder where
 
 import Data.Elf hiding (compile)
@@ -6,7 +8,7 @@ import Data.Bits ((.|.))
 import Language.NStar.CodeGen.Arch (SupportedArch(..))
 import Language.NStar.Typechecker.Core (TypedProgram)
 
-compileToElf :: SupportedArch -> TypedProgram -> ElfObject
+compileToElf :: SupportedArch -> TypedProgram -> ElfObject S64
 compileToElf arch prog =
   ElfObject
     (ElfHeader (supportedArchToClass arch) (supportedArchToEncoding arch) OSABI_None 0x0 ET_Exec (supportedArchToArch arch) EV_Current ef_none)
