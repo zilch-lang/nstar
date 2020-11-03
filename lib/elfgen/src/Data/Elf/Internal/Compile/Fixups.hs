@@ -24,7 +24,7 @@ import Control.Monad.State (State, get, put, execState)
 import Data.Functor ((<&>))
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.List (elemIndex, intercalate)
-import Data.Elf.Types (ValueSet, Elf_Off)
+import Data.Elf.Types (ValueSet, Elf_Off, Elf_Addr)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Word (Word8)
@@ -47,6 +47,9 @@ data FixupEnvironment (n :: Size)
       ByteString           -- ^ All generated binary data unrelated to headers (for example the content of the @.shstrtab@ section)
 
 type Fixup (n :: Size) a = State (FixupEnvironment n) a
+
+defaultStartAddress :: ValueSet n => Elf_Addr n
+defaultStartAddress = 0x400000
 
 -- | Run a given fixup step (or multiple) with the given initial environment.
 runFixup :: ValueSet n => Fixup n a -> FixupEnvironment n -> FixupEnvironment n
@@ -152,7 +155,7 @@ fixupSectionNames = do
 
 -- | Inserts binary data from a section (if it contains any) directly into the environment
 --   and updates the fields 'sh_addr', 'sh_offset' and 'sh_size'.
-fixupSectionOffsets :: ValueSet n => Fixup n ()
+fixupSectionOffsets :: forall (n :: Size). ValueSet n => Fixup n ()
 fixupSectionOffsets = do
   FixupEnv fileHeader sects sectsNames segs gen <- get
 
@@ -162,13 +165,14 @@ fixupSectionOffsets = do
       endSects   = startSects + sectsCount * sectsSize
   let startPhys = endSects
 
-  let (newGen, newSects) = generateBinFromSectionsStartingAt (Map.toList sects) startPhys
+  let (newGen, newSects) = generateBinFromSectionsStartingAt @n (Map.toList sects) startPhys
   let newGenBin = gen <> newGen
       newSectsModif = Map.union newSects sects
 
   put (FixupEnv fileHeader newSectsModif sectsNames segs newGenBin)
  where
-   generateBinFromSectionsStartingAt :: ValueSet n
+   generateBinFromSectionsStartingAt :: forall (n :: Size).
+                                        ValueSet n
                                      => [(SectionHeader n, Elf_Shdr n)]        -- ^ mappings unifying sections
                                      -> Elf_Off n                              -- ^ starting file offset
                                      -> (ByteString, Map (SectionHeader n) (Elf_Shdr n))
@@ -179,11 +183,11 @@ fixupSectionOffsets = do
            (SProgBits _ d _, _) ->
              let size       = fromIntegral (length d)
                  packed     = BS.pack d
-                 addr       = 0x400000 + fromIntegral off
+                 addr       = defaultStartAddress @n + fromIntegral off
                  updatedShd = shd { sh_offset = off, sh_addr = addr, sh_size = size }
              in (off + fromIntegral size, packed, Map.singleton sh updatedShd)
            (SNoBits _ s _, _)   ->
-             let addr       = 0x400000 + fromIntegral off
+             let addr       = defaultStartAddress @n + fromIntegral off
                  updatedShd = shd { sh_offset = off, sh_addr = addr, sh_size = fromIntegral s }
              in (off, mempty, Map.singleton sh updatedShd)
            (SStrTab _ s, _)     ->
@@ -200,7 +204,7 @@ fixupSectionOffsets = do
    c2w = unsafeCoerce
 
 -- | Fixes all @LOAD@ segments with correct addresses, sizes and offsets (fields 'p_vaddr', 'p_paddr', 'p_filesz', 'p_memsz' and 'p_offset').
-fixupLoadSegments :: ValueSet n => Fixup n ()
+fixupLoadSegments :: forall (n :: Size). ValueSet n => Fixup n ()
 fixupLoadSegments = do
   FixupEnv fileHeader sects sectsNames segs gen <- get
 
@@ -210,12 +214,13 @@ fixupLoadSegments = do
       endSects   = startSects + sectsCount * sectsSize
 
       startOff   = endSects + fromIntegral (BS.length gen)
-  let (newSegs, newGen)  = fixSegmentsOffsetsAndAddresses (Map.toList segs) startOff sects sectsNames
+  let (newSegs, newGen)  = fixSegmentsOffsetsAndAddresses @n (Map.toList segs) startOff sects sectsNames
       newSegsWithUnmodif = Map.union newSegs segs
 
   put (FixupEnv fileHeader sects sectsNames newSegsWithUnmodif (gen <> newGen))
  where
-   fixSegmentsOffsetsAndAddresses :: ValueSet n
+   fixSegmentsOffsetsAndAddresses :: forall (n :: Size).
+                                     ValueSet n
                                   => [(ProgramHeader n, Elf_Phdr n)]      -- ^ mappings unifying segments
                                   -> Elf_Off n                            -- ^ initial offset (end of file)
                                   -> SectionAList n
@@ -239,7 +244,7 @@ fixupLoadSegments = do
            (PLoad (Right binDat) _, _) ->
              let packed     = BS.pack binDat
                  size       = fromIntegral (BS.length packed)
-                 addr       = 0x400000 + fromIntegral off
+                 addr       = defaultStartAddress @n + fromIntegral off
                  updatedPhd = phd { p_offset = off, p_vaddr = addr, p_paddr = addr, p_filesz = size, p_memsz = size }
              in (off + fromIntegral size, packed, Map.singleton ph updatedPhd)
            (PInterp path _, _)         ->
