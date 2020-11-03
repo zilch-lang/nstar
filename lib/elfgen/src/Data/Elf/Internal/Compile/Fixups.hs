@@ -1,9 +1,9 @@
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Data.Elf.Internal.Compile.Fixups
 ( FixupEnvironment(..), Fixup
-, Section64AList, Segment64AList, SectionByName
+, SectionAList, SegmentAList, SectionByName
 , runFixup
   -- * All fixup steps
 , allFixes, fixupHeaderCount, fixupShstrtabIndex, fixupHeadersOffsets, fixupPHDREntry
@@ -18,41 +18,43 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import Control.Monad.State (State, get, put, execState)
-import GHC.Base (Int (..), Int#, (+#))
 import Data.Functor ((<&>))
 import Data.Elf.Internal.BusSize (Size(..))
+import Data.List (elemIndex)
+import Data.Elf.Types (ValueSet)
 
 -- | Associative list between abstract and concrete section header structures.
-type Section64AList = Map SectionHeader (Elf_Shdr S64)
+type SectionAList n = Map (SectionHeader n) (Elf_Shdr n)
 -- | Associative list between abstract and concrete program header structures.
-type Segment64AList = Map ProgramHeader (Elf_Phdr S64)
+type SegmentAList n = Map (ProgramHeader n) (Elf_Phdr n)
 -- | Mapping from section names to abstract section headers.
-type SectionByName = Map Text SectionHeader
+type SectionByName n = Map Text (SectionHeader n)
 
 -- | The fixup environment, containing all sections to be fixed up.
-data FixupEnvironment
+data FixupEnvironment (n :: Size)
   = FixupEnv
-      (Elf_Ehdr S64)     -- ^ The ELF file header
-      Section64AList   -- ^ An association list associating abstract and concrete section headers
-      SectionByName    -- ^ All segments mapped by their respective names
-      Segment64AList   -- ^ An association from abstract to concrete segment headers
+      (Elf_Ehdr n)         -- ^ The ELF file header
+      (SectionAList n)     -- ^ An association list associating abstract and concrete section headers
+      (SectionByName n)    -- ^ All segments mapped by their respective names
+      (SegmentAList n)     -- ^ An association from abstract to concrete segment headers
 
-type Fixup a = State FixupEnvironment a
+type Fixup (n :: Size) a = State (FixupEnvironment n) a
 
 -- | Run a given fixup step (or multiple) with the given initial environment.
-runFixup :: Fixup a -> FixupEnvironment -> FixupEnvironment
+runFixup :: ValueSet n => Fixup n a -> FixupEnvironment n -> FixupEnvironment n
 runFixup = execState
 
 -- | Contains all fixes to do.
-allFixes :: Fixup ()
+allFixes :: ValueSet n => Fixup n ()
 allFixes = do
   fixupHeaderCount
   fixupShstrtabIndex
   fixupHeadersOffsets
   fixupPHDREntry
+  fixupSectionNames
 
 -- | A fix for headers count in the ELF file header (fields 'e_phnum' and 'e_shnum').
-fixupHeaderCount :: Fixup ()
+fixupHeaderCount :: ValueSet n => Fixup n ()
 fixupHeaderCount = do
   FixupEnv fileHeader sects sectsNames segs <- get
   let newHeader = fileHeader
@@ -60,21 +62,20 @@ fixupHeaderCount = do
         , e_shnum = fromIntegral (Map.size sects) }
   put (FixupEnv newHeader sects sectsNames segs)
 
-fixupShstrtabIndex :: Fixup ()
+fixupShstrtabIndex :: ValueSet n => Fixup n ()
 fixupShstrtabIndex = do
   FixupEnv fileHeader sects sectsNames segs <- get
-  let sectionsWithIndexes = indexed (Map.keys sects)
-      e_shstrtabndx:_     = fst <$> filter (\ (i, s) -> getName s == Just ".shstrtab") sectionsWithIndexes
+  let Just e_shstrtabndx  = elemIndex ".shstrtab" (getName <$> Map.keys sects)
       newHeader           = fileHeader
         { e_shstrndx = fromIntegral e_shstrtabndx }
   put (FixupEnv newHeader sects sectsNames segs)
  where
-   getName SNull             = Nothing
-   getName (SProgBits n _ _) = Just n
-   getName (SNoBits n _ _)   = Just n
-   getName (SStrTab n _)     = Just n
+   getName SNull             = ""
+   getName (SProgBits n _ _) = n
+   getName (SNoBits n _ _)   = n
+   getName (SStrTab n _)     = n
 
-fixupHeadersOffsets :: Fixup ()
+fixupHeadersOffsets :: ValueSet n => Fixup n ()
 fixupHeadersOffsets = do
   FixupEnv fileHeader sects sectsNames segs <- get
   let phnum     = fromIntegral (e_phnum fileHeader)
@@ -87,37 +88,33 @@ fixupHeadersOffsets = do
 
   put (FixupEnv newHeader sects sectsNames segs)
 
-fixupPHDREntry :: Fixup ()
+fixupPHDREntry :: ValueSet n => Fixup n ()
 fixupPHDREntry = do
   FixupEnv fileHeader sects sectsNames segs <- get
 
-  let phoff    = e_phoff fileHeader
+  let phoff    = fromIntegral (e_phoff fileHeader)
       phdrSize = fromIntegral (e_phnum fileHeader) * fromIntegral (e_phentsize fileHeader)
   let phdr = Map.lookup PPhdr segs <&>
         \ p -> p { p_offset = phoff
                  , p_filesz = phdrSize
                  , p_memsz = phdrSize }
+  let phdrFileSize = phdrSize + fromIntegral phoff
   let phdrLoad = Map.lookup (PLoad (section "PHDR") pf_r) segs <&>
         \ p -> p { p_offset = 0x0
-                 , p_filesz = phdrSize + phoff
-                 , p_memsz = phdrSize + phoff }
+                 , p_filesz = phdrFileSize
+                 , p_memsz = phdrFileSize }
   let newSegs = Map.update (const phdr) PPhdr $
                 Map.update (const phdrLoad) (PLoad (section "PHDR") pf_r) $
                 segs
 
   put (FixupEnv fileHeader sects sectsNames newSegs)
 
-{- |
-'indexed' pairs each element with its index.
+fixupSectionNames :: ValueSet n => Fixup n ()
+fixupSectionNames = do
+  FixupEnv fileHeader sects sectsNames segs <- get
 
->>> indexed "hello"
-[(0,'h'),(1,'e'),(2,'l'),(3,'l'),(4,'o')]
 
-/Subject to fusion./
--}
-indexed :: [a] -> [(Int, a)]
-indexed xs = go 0# xs
-  where
-    go i (a:as) = (I# i, a) : go (i +# 1#) as
-    go _ _      = []
-{-# NOINLINE [1] indexed #-}
+  let newSects = sects
+
+  put (FixupEnv fileHeader newSects sectsNames segs)
+
