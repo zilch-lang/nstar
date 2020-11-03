@@ -11,37 +11,55 @@ import Data.Elf.Internal.Compile.SectionHeader
 import qualified Data.Elf.Internal.Compile.Fixups as Fix (runFixup, allFixes, FixupEnvironment(..))
 import Unsafe.Coerce (unsafeCoerce)
 import Data.Map (Map)
-import qualified Data.Map as Map (fromList, mapKeys, keys, elems)
-import Data.Elf.SectionHeader
-import Data.Elf.ProgramHeader
+import qualified Data.Map as Map (fromList, mapKeys, keys, elems, insert)
+import Data.Elf.SectionHeader (SectionHeader(..))
+import Data.Elf.ProgramHeader (ProgramHeader(PPhdr, PLoad), section, pf_r)
+import Data.Elf.FileHeader (ElfHeader)
+import Data.Elf.Internal.SectionHeader (Elf_Shdr)
+import Data.Elf.Internal.ProgramHeader (Elf_Phdr)
+import Data.Elf.Internal.FileHeader (Elf_Ehdr)
 import qualified Data.Text as Text (pack)
 import Data.Maybe (mapMaybe)
 import Data.List (intersperse)
 import Data.Word (Word8)
 import Data.Elf.Internal.BusSize (Size(..))
+import Data.Elf.Internal.Compile.ForArch
 
-unabstract :: ElfObject -> Internal.Object S64
-unabstract ElfObject{..} =
-  let elfheader = compileFileHeader64bits fileHeader
+unabstract :: ( ValueSet n
+              , CompileFor n ElfHeader Elf_Ehdr
+              , CompileFor n SectionHeader Elf_Shdr
+              , CompileFor n ProgramHeader Elf_Phdr
+              , CompileFor n ElfObject Internal.Object
+              ) => ElfObject n -> Internal.Object n
+unabstract = compileFor
 
-      sectNames = fetchSectionNamesFrom sections
+instance ( ValueSet n
+         , CompileFor n ElfHeader Elf_Ehdr
+         , CompileFor n SectionHeader Elf_Shdr
+         , CompileFor n ProgramHeader Elf_Phdr
+         ) => CompileFor n ElfObject Internal.Object where
+  compileFor ElfObject{..} =
+    let elfheader = compileFor @n fileHeader
 
-      segs      = toSnd compileProgramHeader64bits <$> (PPhdr : PLoad (section "PHDR") pf_r : segments)
+        sectNames = fetchSectionNamesFrom sections
+
+        segs      = toSnd (compileFor @n) <$> (PPhdr : PLoad (section "PHDR") pf_r : segments)
                                                         --                      ^^^^ Special identifier, to refer to the PHDR segment
 
-      allSectionNames = 0x0 : intersperse 0x0 (c2w <$> mconcat (".shstrtab" : Map.keys sectNames)) <> [0x0]
-      sects     = toSnd compileSectionHeader64bits <$>
-        (sections <> [SStrTab ".shstrtab" allSectionNames])
+        allSectionNames = 0x0 : intersperse 0x0 (c2w <$> mconcat (".shstrtab" : Map.keys sectNames)) <> [0x0]
+        shstrtab  = SStrTab ".shstrtab" allSectionNames
+        sects     = toSnd (compileFor @n) <$>
+          (sections <> [shstrtab])
+        newSectNames = Map.insert ".shstrtab" shstrtab sectNames
 
-
-  in
-  let Fix.FixupEnv fileHeader sections _ segments
+    in
+      let Fix.FixupEnv fileHeader sections _ segments
                 = Fix.runFixup Fix.allFixes $
-                    Fix.FixupEnv elfheader (Map.fromList sects) (Map.mapKeys Text.pack sectNames) (Map.fromList segs)
+                    Fix.FixupEnv @n elfheader (Map.fromList sects) (Map.mapKeys Text.pack newSectNames) (Map.fromList segs)
 
-  in Internal.Obj @S64 fileHeader (Map.elems segments) (Map.elems sections) []
+      in Internal.Obj @n fileHeader (Map.elems segments) (Map.elems sections) []
 
-fetchSectionNamesFrom :: [SectionHeader] -> Map String SectionHeader
+fetchSectionNamesFrom :: [SectionHeader n] -> Map String (SectionHeader n)
 fetchSectionNamesFrom = Map.fromList . mapMaybe f
   where
     f SNull             = Nothing
