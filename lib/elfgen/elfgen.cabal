@@ -37,7 +37,7 @@ library
       Paths_elfgen
   hs-source-dirs:
       src
-  default-extensions: LambdaCase BinaryLiterals BlockArguments TypeApplications DataKinds FlexibleInstances MultiParamTypeClasses ScopedTypeVariables TypeFamilies
+  default-extensions: LambdaCase BinaryLiterals BlockArguments TypeApplications DataKinds FlexibleInstances MultiParamTypeClasses ScopedTypeVariables TypeFamilies FlexibleContexts UndecidableInstances StandaloneDeriving AllowAmbiguousTypes
   build-depends:
       base >=4.7 && <5
     , binary
