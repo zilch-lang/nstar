@@ -26,6 +26,12 @@ import Data.Elf.FileHeader (ElfHeader)
 import Data.Elf.ProgramHeader (ProgramHeader)
 import Data.Elf.SectionHeader (SectionHeader)
 
+-- | Completely compiles an abstract ELF file down to a 'ByteString' ready to be written to a file.
+--
+--   The ELF object undergoes two stages:
+--
+--   [An unabstracting stage] Where the abstract ELF file is broken down into a concrete representation ready to be serialized.
+--   [A serialization stage] Where the concrete representation is compiled down to simple binary data following the ELF specifications.
 compile :: forall (n :: Size) e.
            ( ValueSet n
            , Serializable n e (Elf_Ehdr n)
