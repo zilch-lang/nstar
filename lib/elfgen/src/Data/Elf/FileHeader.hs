@@ -19,7 +19,7 @@ import Data.Word (Word8)
 
 
 
-data ElfHeader
+data ElfHeader n
   = ElfHeader
       !Class         -- ^ ELF class (32-bit or 64-bit object)
       !Encoding      -- ^ Data encoding (little endian or big endian)
@@ -28,7 +28,7 @@ data ElfHeader
       !ObjFileType   -- ^ Object file type
       !Arch          -- ^ Architecture
       !Version       -- ^ Object file version (@'ev_current'@ or @'ev_none'@)
-      !EFlags        -- ^ Processor-specific flags
+      !(EFlags n)    -- ^ Processor-specific flags
 
 -- | ELF class
 data Class

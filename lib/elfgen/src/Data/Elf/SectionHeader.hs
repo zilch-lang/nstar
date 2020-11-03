@@ -10,21 +10,22 @@ import Data.Word (Word8)
 import Data.Elf.SectionHeader.Flags
 
 -- | Section header
-data SectionHeader
+data SectionHeader n
   -- | Section header table entry unused
   = SNull
   -- | Program data
   | SProgBits
       String
-      [Elf64_UChar]
-      SFlags
+      [Word8]
+      (SFlags n)
   -- | Program space with no data (bss)
   | SNoBits
       String
-      [Elf64_UChar]
-      SFlags
+      Integer   -- ^ Space size
+      (SFlags n)
   -- | String table
   | SStrTab
       String
-      [Elf64_UChar]
-  deriving (Eq, Ord)
+      [Word8]
+deriving instance ValueSet n => Eq (SectionHeader n)
+deriving instance ValueSet n => Ord (SectionHeader n)
