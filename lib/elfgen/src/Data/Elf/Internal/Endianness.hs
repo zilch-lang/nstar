@@ -1,5 +1,14 @@
+{-# LANGUAGE GADTs #-}
+
 module Data.Elf.Internal.Endianness where
 
-data Endianness
-  = LE   -- ^ little endian
-  | BE   -- ^ big endian
+import Data.Kind (Type)
+
+-- | Endianness order
+data Order
+  = L   -- ^ little
+  | B   -- ^ big
+
+data Endianness :: Order -> Type where
+  LE :: Endianness L    -- ^ little endian
+  BE :: Endianness B    -- ^ big endian
