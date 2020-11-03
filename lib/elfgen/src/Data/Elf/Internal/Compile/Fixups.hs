@@ -17,6 +17,7 @@ import Data.Elf.Internal.FileHeader
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
+import qualified Data.Text as Text
 import Control.Monad.State (State, get, put, execState)
 import Data.Functor ((<&>))
 import Data.Elf.Internal.BusSize (Size(..))
@@ -121,8 +122,21 @@ fixupSectionNames :: ValueSet n => Fixup n ()
 fixupSectionNames = do
   FixupEnv fileHeader sects sectsNames segs <- get
 
+  let names = Map.keys sectsNames
+  let newSects = Map.fromList $ names <&> \ n ->
+        let index = fetchStringIndex n names
+            Just s = Map.lookup n sectsNames
+            Just sh = Map.lookup s sects <&> \ sh ->
+              sh { sh_name = fromIntegral index }
+        in (s, sh)
+  let newSectsWithUnmodified = Map.union newSects sects
 
-  let newSects = sects
+  put (FixupEnv fileHeader newSectsWithUnmodified sectsNames segs)
+ where
+   fetchStringIndex = goFetch 0
 
-  put (FixupEnv fileHeader newSects sectsNames segs)
-
+   goFetch :: Int -> Text -> [Text] -> Int
+   goFetch n str [] = 0
+   goFetch n str (x:xs)
+     | str == x  = n
+     | otherwise = goFetch (n + 1 + Text.length x) str xs
