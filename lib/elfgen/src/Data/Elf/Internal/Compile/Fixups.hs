@@ -6,7 +6,7 @@ module Data.Elf.Internal.Compile.Fixups
 , SectionAList, SegmentAList, SectionByName
 , runFixup
   -- * All fixup steps
-, allFixes, fixupHeaderCount, fixupShstrtabIndex, fixupHeadersOffsets, fixupPHDREntry
+, allFixes, fixupHeaderCount, fixupShstrtabIndex, fixupHeadersOffsets, fixupPHDREntry, fixupSectionNames
 ) where
 
 import Data.Elf.SectionHeader
@@ -62,6 +62,7 @@ fixupHeaderCount = do
         , e_shnum = fromIntegral (Map.size sects) }
   put (FixupEnv newHeader sects sectsNames segs)
 
+-- | Fixes the @.shstrtab@ section index in the file header.
 fixupShstrtabIndex :: ValueSet n => Fixup n ()
 fixupShstrtabIndex = do
   FixupEnv fileHeader sects sectsNames segs <- get
@@ -75,6 +76,7 @@ fixupShstrtabIndex = do
    getName (SNoBits n _ _)   = n
    getName (SStrTab n _)     = n
 
+-- | Fixes (sections/segments) headers offsets in the file header.
 fixupHeadersOffsets :: ValueSet n => Fixup n ()
 fixupHeadersOffsets = do
   FixupEnv fileHeader sects sectsNames segs <- get
@@ -88,6 +90,10 @@ fixupHeadersOffsets = do
 
   put (FixupEnv newHeader sects sectsNames segs)
 
+-- | Fixes the @LOAD@ segment corresponding to the @PHDR@ segment
+--
+--   As per @readelf@, we need to have a @LOAD@ segment that loads /at least/ the @PHDR@ in a read-only
+--   memory segment.
 fixupPHDREntry :: ValueSet n => Fixup n ()
 fixupPHDREntry = do
   FixupEnv fileHeader sects sectsNames segs <- get
@@ -109,6 +115,8 @@ fixupPHDREntry = do
 
   put (FixupEnv fileHeader sects sectsNames newSegs)
 
+-- | Fixes every section name index (field 'sh_name') depending on how data is laid out
+--   in the @.shstrtab@ section.
 fixupSectionNames :: ValueSet n => Fixup n ()
 fixupSectionNames = do
   FixupEnv fileHeader sects sectsNames segs <- get
