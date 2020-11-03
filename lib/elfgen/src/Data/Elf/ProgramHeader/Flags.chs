@@ -11,12 +11,20 @@ module Data.Elf.ProgramHeader.Flags
 
 import Data.Bits (Bits, shiftL)
 import Data.Elf.Types
+import Data.Elf.Internal.BusSize
 
 type PFlags = Flag
 
-newtype Flag = Flag Elf64_Word
-  deriving (Show, Eq, Ord, Bits, Num, Integral, Real, Enum)
-
+newtype Flag (n :: Size) = Flag (Elf_Word n)
+--  deriving (Show, Eq, Ord, Bits, Num, Integral, Real, Enum)
+deriving instance ValueSet n => Show (Flag n)
+deriving instance ValueSet n => Eq (Flag n)
+deriving instance ValueSet n => Ord (Flag n)
+deriving instance ValueSet n => Num (Flag n)
+deriving instance ValueSet n => Bits (Flag n)
+deriving instance ValueSet n => Integral (Flag n)
+deriving instance ValueSet n => Real (Flag n)
+deriving instance ValueSet n => Enum (Flag n)
 
 -- | Convenient alias of @'shiftL'@ because the imported constants use @'<<'@.
 (<<) :: Bits a => a -> Int -> a
@@ -24,11 +32,11 @@ newtype Flag = Flag Elf64_Word
 
 
 -- | Segment is executable
-pf_x :: Flag
+pf_x :: ValueSet n => Flag n
 pf_x = Flag {#const PF_X#}
 -- | Segment is writable
-pf_w :: Flag
+pf_w :: ValueSet n => Flag n
 pf_w = Flag {#const PF_W#}
 -- | Segment is readable
-pf_r :: Flag
+pf_r :: ValueSet n => Flag n
 pf_r = Flag {#const PF_R#}
