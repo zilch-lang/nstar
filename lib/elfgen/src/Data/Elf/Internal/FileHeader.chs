@@ -46,25 +46,24 @@ import Data.Elf.Types
 import Foreign.Storable (Storable(..))
 import GHC.TypeNats (Nat)
 import Data.Elf.Internal.BusSize (Size(..))
-import Data.Elf.Internal.Serialize (Serializable(..))
+import Data.Elf.Internal.Serialize (Serializable(..), SerializableValueSet)
 
 -- | The ELF file header. This appears at the start of every ELF file.
-data family Elf_Ehdr (n :: Size)
-data instance Elf_Ehdr S64 = Elf64_Ehdr
-  { e_ident     :: ![Elf64_UChar]      -- ^ Magic number and other info
-  , e_type      :: !Elf64_Half   -- ^ Object file type
-  , e_machine   :: !Elf64_Half   -- ^ Architecture
-  , e_version   :: !Elf64_Word   -- ^ Object file version
-  , e_entry     :: !Elf64_Addr   -- ^ Entry point virtual address
-  , e_phoff     :: !Elf64_Off    -- ^ Program header table file offset
-  , e_shoff     :: !Elf64_Off    -- ^ Section header table file offset
-  , e_flags     :: !Elf64_Word   -- ^ Processor-specific flags
-  , e_ehsize    :: !Elf64_Half   -- ^ ELF header size in bytes
-  , e_phentsize :: !Elf64_Half   -- ^ Program header table entry size
-  , e_phnum     :: !Elf64_Half   -- ^ Program header table entry count
-  , e_shentsize :: !Elf64_Half   -- ^ Section header table entry size
-  , e_shnum     :: !Elf64_Half   -- ^ Section header table entry count
-  , e_shstrndx  :: !Elf64_Half   -- ^ Section header string table index
+data Elf_Ehdr n = Elf_Ehdr
+  { e_ident     :: ![Elf_UChar n]   -- ^ Magic number and other info
+  , e_type      :: !(Elf_Half n)    -- ^ Object file type
+  , e_machine   :: !(Elf_Half n)    -- ^ Architecture
+  , e_version   :: !(Elf_Word n)    -- ^ Object file version
+  , e_entry     :: !(Elf_Addr n)    -- ^ Entry point virtual address
+  , e_phoff     :: !(Elf_Off n)     -- ^ Program header table file offset
+  , e_shoff     :: !(Elf_Off n)     -- ^ Section header table file offset
+  , e_flags     :: !(Elf_Word n)    -- ^ Processor-specific flags
+  , e_ehsize    :: !(Elf_Half n)    -- ^ ELF header size in bytes
+  , e_phentsize :: !(Elf_Half n)    -- ^ Program header table entry size
+  , e_phnum     :: !(Elf_Half n)    -- ^ Program header table entry count
+  , e_shentsize :: !(Elf_Half n)    -- ^ Section header table entry size
+  , e_shnum     :: !(Elf_Half n)    -- ^ Section header table entry count
+  , e_shstrndx  :: !(Elf_Half n)    -- ^ Section header string table index
   }
 
 instance Storable (Elf_Ehdr S64) where
@@ -73,106 +72,100 @@ instance Storable (Elf_Ehdr S64) where
   peek _ = undefined      -- ↓
   poke _ _ = undefined    -- we don't need to either write or read it to/from a pointer
 
-instance ( n ~ S64
-         , Serializable n e Elf64_UChar
-         , Serializable n e Elf64_Half
-         , Serializable n e Elf64_Word
-         , Serializable n e Elf64_Addr
-         , Serializable n e Elf64_Off
-         ) => Serializable n e (Elf_Ehdr n) where
-  put Elf64_Ehdr{..} = do
-    put @n @e e_ident
-    put @n @e e_type
-    put @n @e e_machine
-    put @n @e e_version
-    put @n @e e_entry
-    put @n @e e_phoff
-    put @n @e e_shoff
-    put @n @e e_flags
-    put @n @e e_ehsize
-    put @n @e e_phentsize
-    put @n @e e_phnum
-    put @n @e e_shentsize
-    put @n @e e_shnum
-    put @n @e e_shstrndx
+instance (SerializableValueSet S64 e) => Serializable S64 e (Elf_Ehdr S64) where
+  put e Elf_Ehdr{..} = do
+    put @S64 e e_ident
+    put @S64 e e_type
+    put @S64 e e_machine
+    put @S64 e e_version
+    put @S64 e e_entry
+    put @S64 e e_phoff
+    put @S64 e e_shoff
+    put @S64 e e_flags
+    put @S64 e e_ehsize
+    put @S64 e e_phentsize
+    put @S64 e e_phnum
+    put @S64 e e_shentsize
+    put @S64 e e_shnum
+    put @S64 e e_shstrndx
 
 -- Versions
 
 -- | Invalid ELF version
-ev_none :: Elf64_Word
+ev_none :: ValueSet n => Elf_Word n
 ev_none = {#const EV_NONE#}
 
 -- | Current version
-ev_current :: Elf64_Word
+ev_current :: ValueSet n => Elf_Word n
 ev_current = {#const EV_CURRENT#}
 
 
 -- OS ABI identification
 
 -- | UNIX System V ABI
-elfosabi_none :: Elf64_UChar
+elfosabi_none :: ValueSet n => Elf_UChar n
 elfosabi_none = {#const ELFOSABI_NONE#}
 -- | Alias for 'elfosabi_none'
-elfosabi_sysv :: Elf64_UChar
+elfosabi_sysv :: ValueSet n => Elf_UChar n
 elfosabi_sysv = {#const ELFOSABI_SYSV#}
 
 
 -- ELF class
 
 -- | Invalid class
-elfclassnone :: Elf64_UChar
+elfclassnone :: ValueSet n => Elf_UChar n
 elfclassnone = {#const ELFCLASSNONE#}
 -- | 32-bit object
-elfclass32 :: Elf64_UChar
+elfclass32 :: ValueSet n => Elf_UChar n
 elfclass32 = {#const ELFCLASS32#}
 -- | 64-bit object
-elfclass64 :: Elf64_UChar
+elfclass64 :: ValueSet n => Elf_UChar n
 elfclass64 = {#const ELFCLASS64#}
 
 
 -- Data encoding
 
 -- | Invalid data encoding
-elfdatanone :: Elf64_UChar
+elfdatanone :: ValueSet n => Elf_UChar n
 elfdatanone = {#const ELFDATANONE#}
 -- | 2's completement, little endian
-elfdata2lsb :: Elf64_UChar
+elfdata2lsb :: ValueSet n => Elf_UChar n
 elfdata2lsb = {#const ELFDATA2LSB#}
 -- | 2's complement, big endian
-elfdata2msb :: Elf64_UChar
+elfdata2msb :: ValueSet n => Elf_UChar n
 elfdata2msb = {#const ELFDATA2MSB#}
 
 
 -- File type
 
 -- | No file type
-et_none :: Elf64_Half
+et_none :: ValueSet n => Elf_Half n
 et_none = {#const ET_NONE#}
 -- | Relocatable file
-et_rel :: Elf64_Half
+et_rel :: ValueSet n => Elf_Half n
 et_rel = {#const ET_REL#}
 -- | Executable file
-et_exec :: Elf64_Half
+et_exec :: ValueSet n => Elf_Half n
 et_exec = {#const ET_EXEC#}
 -- | Shared object file
-et_dyn :: Elf64_Half
+et_dyn :: ValueSet n => Elf_Half n
 et_dyn = {#const ET_DYN#}
 -- | Core file
-et_core :: Elf64_Half
+et_core :: ValueSet n => Elf_Half n
 et_core = {#const ET_CORE#}
 
 
 -- Architecture
 
 -- | No machine
-em_none :: Elf64_Half
+em_none :: ValueSet n => Elf_Half n
 em_none = {#const EM_NONE#}
 -- | SUN SPARC
-em_sparc :: Elf64_Half
+em_sparc :: ValueSet n => Elf_Half n
 em_sparc = {#const EM_SPARC#}
 -- | ARM
-em_arm :: Elf64_Half
+em_arm :: ValueSet n => Elf_Half n
 em_arm = {#const EM_ARM#}
 -- | AMD x86-64 architecture
-em_x86_64 :: Elf64_Half
+em_x86_64 :: ValueSet n => Elf_Half n
 em_x86_64 = {#const EM_X86_64#}
