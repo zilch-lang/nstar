@@ -12,7 +12,7 @@ compileToElf :: SupportedArch -> TypedProgram -> ElfObject S64
 compileToElf arch prog =
   ElfObject
     (ElfHeader (supportedArchToClass arch) (supportedArchToEncoding arch) OSABI_None 0x0 ET_Exec (supportedArchToArch arch) EV_Current ef_none)
-    [PLoad (section ".text") pf_r]
+    [PLoad (section ".text") (pf_r .|. pf_x)]
     [SProgBits ".text" [] {- (compile arch prog) -} (shf_alloc .|. shf_execinstr)]
     [] -- Leave empty for now, will populate later
 
