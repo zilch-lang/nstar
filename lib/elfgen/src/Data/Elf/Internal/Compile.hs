@@ -24,6 +24,7 @@ import Data.List (intersperse)
 import Data.Word (Word8)
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.Elf.Internal.Compile.ForArch
+import qualified Data.ByteString as BS (unpack)
 
 -- | Transforms an abstract ELF object into a concrete ELF object.
 --
@@ -58,11 +59,11 @@ instance ( ValueSet n
         newSectNames = Map.insert ".shstrtab" shstrtab sectNames
 
     in
-      let Fix.FixupEnv fileHeader sections _ segments
+      let Fix.FixupEnv fileHeader sections _ segments gen
                 = Fix.runFixup Fix.allFixes $
-                    Fix.FixupEnv @n elfheader (Map.fromList sects) (Map.mapKeys Text.pack newSectNames) (Map.fromList segs)
+                    Fix.FixupEnv @n elfheader (Map.fromList sects) (Map.mapKeys Text.pack newSectNames) (Map.fromList segs) mempty
 
-      in Internal.Obj @n fileHeader (Map.elems segments) (Map.elems sections) []
+      in Internal.Obj @n fileHeader (Map.elems segments) (Map.elems sections) (BS.unpack gen)
 
 fetchSectionNamesFrom :: [SectionHeader n] -> Map String (SectionHeader n)
 fetchSectionNamesFrom = Map.fromList . mapMaybe f
@@ -71,9 +72,6 @@ fetchSectionNamesFrom = Map.fromList . mapMaybe f
     f h@(SProgBits n _ _) = Just (n, h)
     f h@(SNoBits n _ _)   = Just (n, h)
     f h@(SStrTab n _)     = Just (n, h)
-
-c2w :: Char -> Word8
-c2w = unsafeCoerce
 
 toSnd :: (a -> b) -> a -> (a, b)
 toSnd f x = (x, f x)
