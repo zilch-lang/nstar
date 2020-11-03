@@ -9,10 +9,10 @@ import Data.Elf.ProgramHeader (ProgramHeader)
 import Data.Elf.SymbolTable (ElfSymbol)
 
 -- | An object file layout.
-data ElfObject
+data ElfObject n
   = ElfObject
-  { fileHeader    :: ElfHeader           -- ^ The ELF header
-  , segments      :: [ProgramHeader]     -- ^ Program headers
-  , sections      :: [SectionHeader]     -- ^ Section headers
+  { fileHeader    :: ElfHeader n           -- ^ The ELF header
+  , segments      :: [ProgramHeader n]     -- ^ Program headers
+  , sections      :: [SectionHeader n]     -- ^ Section headers
   , symbols       :: [ElfSymbol]         -- ^ Symbol table
   }
