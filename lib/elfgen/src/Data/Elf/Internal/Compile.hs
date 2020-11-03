@@ -25,6 +25,11 @@ import Data.Word (Word8)
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.Elf.Internal.Compile.ForArch
 
+-- | Transforms an abstract ELF object into a concrete ELF object.
+--
+--   This is essentially a simple alias on 'compileFor' specialized for ELF objects.
+--
+--   >>> unabstract = compileFor
 unabstract :: ( ValueSet n
               , CompileFor n ElfHeader Elf_Ehdr
               , CompileFor n SectionHeader Elf_Shdr
