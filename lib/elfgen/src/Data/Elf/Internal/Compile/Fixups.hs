@@ -8,6 +8,7 @@ module Data.Elf.Internal.Compile.Fixups
 , runFixup
   -- * All fixup steps
 , allFixes, fixupHeaderCount, fixupShstrtabIndex, fixupHeadersOffsets, fixupPHDREntry, fixupSectionNames
+, fixupSectionOffsets, fixupLoadSegments
 ) where
 
 import Data.Elf.SectionHeader
@@ -60,6 +61,7 @@ allFixes = do
   fixupPHDREntry
   fixupSectionNames
   fixupSectionOffsets
+  fixupLoadSegments
 
 -- | A fix for headers count in the ELF file header (fields 'e_phnum' and 'e_shnum').
 fixupHeaderCount :: ValueSet n => Fixup n ()
@@ -196,3 +198,52 @@ fixupSectionOffsets = do
 
    c2w :: Char -> Word8
    c2w = unsafeCoerce
+
+-- | Fixes all @LOAD@ segments with correct addresses, sizes and offsets (fields 'p_vaddr', 'p_paddr', 'p_filesz', 'p_memsz' and 'p_offset').
+fixupLoadSegments :: ValueSet n => Fixup n ()
+fixupLoadSegments = do
+  FixupEnv fileHeader sects sectsNames segs gen <- get
+
+  let startSects = e_shoff fileHeader
+      sectsCount = fromIntegral (e_shnum fileHeader)
+      sectsSize  = fromIntegral (e_shentsize fileHeader)
+      endSects   = startSects + sectsCount * sectsSize
+
+      startOff   = endSects + fromIntegral (BS.length gen)
+  let (newSegs, newGen)  = fixSegmentsOffsetsAndAddresses (Map.toList segs) startOff sects sectsNames
+      newSegsWithUnmodif = Map.union newSegs segs
+
+  put (FixupEnv fileHeader sects sectsNames newSegsWithUnmodif (gen <> newGen))
+ where
+   fixSegmentsOffsetsAndAddresses :: ValueSet n
+                                  => [(ProgramHeader n, Elf_Phdr n)]      -- ^ mappings unifying segments
+                                  -> Elf_Off n                            -- ^ initial offset (end of file)
+                                  -> SectionAList n
+                                  -> SectionByName n
+                                  -> (Map (ProgramHeader n) (Elf_Phdr n), ByteString)
+   fixSegmentsOffsetsAndAddresses [] _ _ _                              = (mempty, mempty)
+   fixSegmentsOffsetsAndAddresses (s@(ph, phd):ss) off sects sectsNames =
+     let (newOff, segBin, newSegs) = case s of
+           (PPhdr, _)                  -> (off, mempty, Map.singleton ph phd)
+           (PNull, _)                  -> (off, mempty, Map.singleton ph phd)
+           (PLoad (Left "PHDR") _, _)  -> (off, mempty, Map.singleton ph phd)
+           (PLoad (Left section) _, _) ->
+             let Just sect = Map.lookup (Text.pack section) sectsNames
+                 Just shdr = Map.lookup sect sects
+             in
+             let sectSize   = sh_size shdr
+                 sectAddr   = sh_addr shdr
+                 sectOff    = sh_offset shdr
+                 updatedPhd = phd { p_offset = sectOff, p_vaddr = sectAddr, p_paddr = sectAddr, p_filesz = sectSize, p_memsz = sectSize }
+             in (off, mempty, Map.singleton ph updatedPhd)
+           (PLoad (Right binDat) _, _) ->
+             let packed     = BS.pack binDat
+                 size       = fromIntegral (BS.length packed)
+                 addr       = 0x400000 + fromIntegral off
+                 updatedPhd = phd { p_offset = off, p_vaddr = addr, p_paddr = addr, p_filesz = size, p_memsz = size }
+             in (off + fromIntegral size, packed, Map.singleton ph updatedPhd)
+           (PInterp path _, _)         ->
+             error "not yet implemented: fixup INTERP [PATH]"
+
+         (segs, gen) = fixSegmentsOffsetsAndAddresses ss newOff sects sectsNames
+     in (Map.union newSegs segs, segBin <> gen)
