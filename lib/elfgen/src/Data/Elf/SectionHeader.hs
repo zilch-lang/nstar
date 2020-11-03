@@ -26,6 +26,6 @@ data SectionHeader n
   -- | String table
   | SStrTab
       String
-      [Word8]
+      [String]
 deriving instance ValueSet n => Eq (SectionHeader n)
 deriving instance ValueSet n => Ord (SectionHeader n)

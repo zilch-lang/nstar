@@ -51,10 +51,10 @@ instance ( ValueSet n
         segs      = toSnd (compileFor @n) <$> (PPhdr : PLoad (section "PHDR") pf_r : segments)
                                                         --                      ^^^^ Special identifier, to refer to the PHDR segment
 
-        allSectionNames = 0x0 : intersperse 0x0 (c2w <$> mconcat (".shstrtab" : Map.keys sectNames)) <> [0x0]
+        allSectionNames = ".shstrtab" : Map.keys sectNames
         shstrtab  = SStrTab ".shstrtab" allSectionNames
         sects     = toSnd (compileFor @n) <$>
-          (sections <> [shstrtab])
+          (sections <> [shstrtab, SNull])
         newSectNames = Map.insert ".shstrtab" shstrtab sectNames
 
     in
