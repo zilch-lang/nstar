@@ -17,7 +17,22 @@ import Data.Elf.Object (ElfObject)
 import Data.ByteString.Lazy (ByteString, writeFile)
 import Data.Elf.Internal.Compile (unabstract)
 import Data.Elf.Internal.Object (Object)
+import Data.Elf.Internal.FileHeader (Elf_Ehdr)
+import Data.Elf.Internal.ProgramHeader (Elf_Phdr)
+import Data.Elf.Internal.SectionHeader (Elf_Shdr)
+import Data.Elf.Types (ValueSet)
+import Data.Elf.Internal.Compile.ForArch (CompileFor)
+import Data.Elf.FileHeader (ElfHeader)
+import Data.Elf.ProgramHeader (ProgramHeader)
+import Data.Elf.SectionHeader (SectionHeader)
 
-compile :: forall (n :: Size) (e :: Endianness).
-           Serializable n e (Object S64) => ElfObject -> ByteString
-compile = runPut . put @n @e . unabstract
+compile :: forall (n :: Size) e.
+           ( ValueSet n
+           , Serializable n e (Elf_Ehdr n)
+           , Serializable n e (Elf_Phdr n)
+           , Serializable n e (Elf_Shdr n)
+           , CompileFor n ElfHeader Elf_Ehdr
+           , CompileFor n ProgramHeader Elf_Phdr
+           , CompileFor n SectionHeader Elf_Shdr
+           ) => Endianness e -> ElfObject n -> ByteString
+compile e = runPut . put @n e . unabstract
