@@ -19,13 +19,12 @@ data Object (n :: Size)
       [Elf_Shdr n]   -- ^ Section headers
       [Word8]         -- ^ Raw data
 
-instance ( n ~ S64
-         , Serializable n e (Elf_Ehdr n)
+instance ( Serializable n e (Elf_Ehdr n)
          , Serializable n e (Elf_Phdr n)
          , Serializable n e (Elf_Shdr n)
          ) => Serializable n e (Object n) where
-  put (Obj fileHeader programHeaders sectionHeaders binaryData) = do
-    put @n @e fileHeader
-    put @n @e programHeaders
-    put @n @e sectionHeaders
-    put @n @e binaryData
+  put e (Obj fileHeader programHeaders sectionHeaders binaryData) = do
+    put @n e fileHeader
+    put @n e programHeaders
+    put @n e sectionHeaders
+    put @n e binaryData
