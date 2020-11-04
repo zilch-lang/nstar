@@ -76,4 +76,5 @@ type SerializableValueSet n e =
   , Serializable n e (Elf_Sxword n)
   , Serializable n e (Elf_Addr n)
   , Serializable n e (Elf_Off n)
+  , Serializable n e (Elf_Section n)
   )
