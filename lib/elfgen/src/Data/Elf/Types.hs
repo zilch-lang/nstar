@@ -3,7 +3,7 @@
 
 module Data.Elf.Types
 ( -- * ELF types
-  Elf_Half, Elf_Word, Elf_Sword, Elf_Xword, Elf_Sxword, Elf_Addr, Elf_Off, Elf_UChar
+  Elf_Half, Elf_Word, Elf_Sword, Elf_Xword, Elf_Sxword, Elf_Addr, Elf_Off, Elf_UChar, Elf_Section
   -- * Set of values depending on the bus size
 , ValueSet
 ) where
@@ -28,6 +28,7 @@ type ValueSet n =
   , IsInteger (Elf_Sxword n)
   , IsInteger (Elf_Addr n)
   , IsInteger (Elf_Off n)
+  , IsInteger (Elf_Section n)
   )
 
 -- | Unsigned 8-bits integer
@@ -50,6 +51,8 @@ type family Elf_Addr (n :: Size)
 -- | [32 bits] Unsigned 32-bits integer
 --   [64 bits] Unsigned 64-bits integer
 type family Elf_Off (n :: Size)
+-- | Unsigned 16-bits integer
+type family Elf_Section (n :: Size)
 
 type instance Elf_UChar S64 = Word8
 type instance Elf_Half S64 = Word16
@@ -59,3 +62,4 @@ type instance Elf_Xword S64 = Word64
 type instance Elf_Sxword S64 = Int64
 type instance Elf_Addr S64 = Word64
 type instance Elf_Off S64 = Word64
+type instance Elf_Section S64 = Word16
