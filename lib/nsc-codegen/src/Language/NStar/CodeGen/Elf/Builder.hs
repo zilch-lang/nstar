@@ -30,7 +30,7 @@ instance CompileToElf S64 where
 
 
 generateSymbolTableFrom :: forall (n :: Size). Map Text Integer -> [ElfSymbol]
-generateSymbolTableFrom _ = []
+generateSymbolTableFrom = Map.foldMapWithKey \ k _ -> [ElfSymbol (Text.unpack k) ST_Func SB_Global SV_Default]
 
 supportedArchToArch :: SupportedArch -> Arch
 supportedArchToArch X64 = EM_x86_64
