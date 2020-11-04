@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Data.Elf.SymbolTable
+module Data.Elf.Symbol
 ( ElfSymbol(..)
 , SymbolType(..)
 , SymbolBinding(..)

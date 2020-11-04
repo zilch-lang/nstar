@@ -32,7 +32,7 @@ library
       Data.Elf.ProgramHeader.Flags
       Data.Elf.SectionHeader
       Data.Elf.SectionHeader.Flags
-      Data.Elf.SymbolTable
+      Data.Elf.Symbol
       Data.Elf.Types
   other-modules:
       Paths_elfgen
