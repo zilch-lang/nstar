@@ -25,6 +25,8 @@ import Data.Elf.Internal.Compile.ForArch (CompileFor)
 import Data.Elf.FileHeader (ElfHeader)
 import Data.Elf.ProgramHeader (ProgramHeader)
 import Data.Elf.SectionHeader (SectionHeader)
+import Data.Elf.Symbol (ElfSymbol)
+import Data.Elf.Internal.Symbol (Elf_Sym)
 
 -- | Completely compiles an abstract ELF file down to a 'ByteString' ready to be written to a file.
 --
@@ -40,5 +42,6 @@ compile :: forall (n :: Size) e.
            , CompileFor n ElfHeader Elf_Ehdr
            , CompileFor n ProgramHeader Elf_Phdr
            , CompileFor n SectionHeader Elf_Shdr
+           , CompileFor n ElfSymbol Elf_Sym
            ) => Endianness e -> ElfObject n -> ByteString
 compile e = runPut . put @n e . unabstract

@@ -5,9 +5,10 @@ module Data.Elf.Internal.Compile (unabstract) where
 import Data.Elf.Types
 import Data.Elf.Object
 import qualified Data.Elf.Internal.Object as Internal
-import Data.Elf.Internal.Compile.FileHeader
-import Data.Elf.Internal.Compile.ProgramHeader
-import Data.Elf.Internal.Compile.SectionHeader
+import Data.Elf.Internal.Compile.FileHeader ()
+import Data.Elf.Internal.Compile.ProgramHeader ()
+import Data.Elf.Internal.Compile.SectionHeader ()
+import Data.Elf.Internal.Compile.Symbol ()
 import qualified Data.Elf.Internal.Compile.Fixups as Fix (runFixup, allFixes, FixupEnvironment(..))
 import Unsafe.Coerce (unsafeCoerce)
 import Data.Map (Map)
@@ -25,6 +26,9 @@ import Data.Word (Word8)
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.Elf.Internal.Compile.ForArch
 import qualified Data.ByteString as BS (unpack)
+import Data.Elf.Symbol (ElfSymbol(..))
+import Data.Elf.Internal.Symbol (Elf_Sym)
+import Data.Functor ((<&>))
 
 -- | Transforms an abstract ELF object into a concrete ELF object.
 --
@@ -35,6 +39,7 @@ unabstract :: ( ValueSet n
               , CompileFor n ElfHeader Elf_Ehdr
               , CompileFor n SectionHeader Elf_Shdr
               , CompileFor n ProgramHeader Elf_Phdr
+              , CompileFor n ElfSymbol Elf_Sym
               , CompileFor n ElfObject Internal.Object
               ) => ElfObject n -> Internal.Object n
 unabstract = compileFor
@@ -43,6 +48,7 @@ instance ( ValueSet n
          , CompileFor n ElfHeader Elf_Ehdr
          , CompileFor n SectionHeader Elf_Shdr
          , CompileFor n ProgramHeader Elf_Phdr
+         , CompileFor n ElfSymbol Elf_Sym
          ) => CompileFor n ElfObject Internal.Object where
   compileFor ElfObject{..} =
     let elfheader = compileFor @n fileHeader
