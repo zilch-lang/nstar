@@ -33,12 +33,12 @@ fixupAddressesX64 :: [InterOpcode] -> Compiler ()
 fixupAddressesX64 os = fixupAddressesX64Internal (findLabelsAddresses os) os
  where
    fixupAddressesX64Internal :: Map Text Integer -> [InterOpcode] -> Compiler ()
-   fixupAddressesX64Internal labelsAddresses []             = pure ()
-   fixupAddressesX64Internal labelsAddresses (Byte b:os)    = tell [b] *> fixupAddressesX64Internal labelsAddresses os
+   fixupAddressesX64Internal labelsAddresses []             = tell (MInfo [] labelsAddresses)
+   fixupAddressesX64Internal labelsAddresses (Byte b:os)    = tell (MInfo [b] mempty) *> fixupAddressesX64Internal labelsAddresses os
    fixupAddressesX64Internal labelsAddresses (Label n:os)   = fixupAddressesX64Internal labelsAddresses os
    fixupAddressesX64Internal labelsAddresses (Jump n:os)    =
      let addr = maybe (internalError $ "Label " <> show n <> " not found during codegen.") to4BLittleEndian (Map.lookup n labelsAddresses)
-     in tell addr *> fixupAddressesX64Internal labelsAddresses os
+     in tell (MInfo addr mempty) *> fixupAddressesX64Internal labelsAddresses os
 
 to4BLittleEndian :: Integer -> [Word8]
 to4BLittleEndian n = fromIntegral <$> [n .&. 0xff, (n .&. 0xff00) `shiftR` 16, (n .&. 0xff0000) `shiftR` 24, (n .&. 0xff000000) `shiftR` 32]
