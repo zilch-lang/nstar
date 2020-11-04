@@ -4,11 +4,11 @@
 
 module Data.Elf.Internal.Compile.Fixups
 ( FixupEnvironment(..), Fixup
-, SectionAList, SegmentAList, SectionByName
+, SectionAList, SegmentAList, SectionByName, SymbolsAList
 , runFixup
   -- * All fixup steps
 , allFixes, fixupHeaderCount, fixupShstrtabIndex, fixupHeadersOffsets, fixupPHDREntry, fixupSectionNames
-, fixupSectionOffsets, fixupLoadSegments
+, fixupSectionOffsets, fixupLoadSegments, fixupSymtabStrtabIndex, fixupSymtabShInfo, fixupSymtabOffset
 ) where
 
 import Data.Elf.SectionHeader
@@ -29,6 +29,8 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Word (Word8)
 import Unsafe.Coerce (unsafeCoerce)
+import Data.Elf.Symbol
+import Data.Elf.Internal.Symbol
 
 -- | Associative list between abstract and concrete section header structures.
 type SectionAList n = Map (SectionHeader n) (Elf_Shdr n)
@@ -36,6 +38,8 @@ type SectionAList n = Map (SectionHeader n) (Elf_Shdr n)
 type SegmentAList n = Map (ProgramHeader n) (Elf_Phdr n)
 -- | Mapping from section names to abstract section headers.
 type SectionByName n = Map Text (SectionHeader n)
+-- | Associative list between abstract and concrete symbol structures.
+type SymbolsAList n = Map (ElfSymbol n) (Elf_Sym n)
 
 -- | The fixup environment, containing all sections to be fixed up.
 data FixupEnvironment (n :: Size)
@@ -44,6 +48,7 @@ data FixupEnvironment (n :: Size)
       (SectionAList n)     -- ^ An association list associating abstract and concrete section headers
       (SectionByName n)    -- ^ All segments mapped by their respective names
       (SegmentAList n)     -- ^ An association from abstract to concrete segment headers
+      (SymbolsAList n)     -- ^ An association from abstract to concrete symbol structures
       ByteString           -- ^ All generated binary data unrelated to headers (for example the content of the @.shstrtab@ section)
 
 type Fixup (n :: Size) a = State (FixupEnvironment n) a
@@ -59,40 +64,62 @@ runFixup = execState
 allFixes :: ValueSet n => Fixup n ()
 allFixes = do
   fixupHeaderCount
+  fixupSymtabStrtabIndex
   fixupShstrtabIndex
   fixupHeadersOffsets
   fixupPHDREntry
   fixupSectionNames
   fixupSectionOffsets
   fixupLoadSegments
+  fixupSymtabShInfo
+  fixupSymtabOffset
 
 -- | A fix for headers count in the ELF file header (fields 'e_phnum' and 'e_shnum').
 fixupHeaderCount :: ValueSet n => Fixup n ()
 fixupHeaderCount = do
-  FixupEnv fileHeader sects sectsNames segs gen <- get
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
   let newHeader = fileHeader
         { e_phnum = fromIntegral (Map.size segs)
         , e_shnum = fromIntegral (Map.size sects) }
-  put (FixupEnv newHeader sects sectsNames segs gen)
+  put (FixupEnv newHeader sects sectsNames segs syms gen)
 
 -- | Fixes the @.shstrtab@ section index in the file header.
 fixupShstrtabIndex :: ValueSet n => Fixup n ()
 fixupShstrtabIndex = do
-  FixupEnv fileHeader sects sectsNames segs gen <- get
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
   let Just e_shstrtabndx  = elemIndex ".shstrtab" (getName <$> Map.keys sects)
       newHeader           = fileHeader
         { e_shstrndx = fromIntegral e_shstrtabndx }
-  put (FixupEnv newHeader sects sectsNames segs gen)
+  put (FixupEnv newHeader sects sectsNames segs syms gen)
  where
    getName SNull             = ""
    getName (SProgBits n _ _) = n
    getName (SNoBits n _ _)   = n
    getName (SStrTab n _)     = n
+   getName (SSymTab n _)     = n
+
+-- | Fixes the @.strtab@ section index in the @.symtab@ section field 'sh_link'.
+fixupSymtabStrtabIndex :: ValueSet n => Fixup n ()
+fixupSymtabStrtabIndex = do
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
+  let Just e_strtabndx  = elemIndex ".strtab" (getName <$> Map.keys sects)
+      Just symtab       = Map.lookup ".symtab" sectsNames
+      symtabSect        = Map.lookup symtab sects <&> \ s ->
+        s { sh_link = fromIntegral e_strtabndx }
+      newSects          = Map.update (const symtabSect) symtab sects
+
+  put (FixupEnv fileHeader newSects sectsNames segs syms gen)
+ where
+   getName SNull             = ""
+   getName (SProgBits n _ _) = n
+   getName (SNoBits n _ _)   = n
+   getName (SStrTab n _)     = n
+   getName (SSymTab n _)     = n
 
 -- | Fixes (sections/segments) headers offsets in the file header.
 fixupHeadersOffsets :: ValueSet n => Fixup n ()
 fixupHeadersOffsets = do
-  FixupEnv fileHeader sects sectsNames segs gen <- get
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
   let phnum     = fromIntegral (e_phnum fileHeader)
       phentsize = fromIntegral (e_phentsize fileHeader)
       phoff     = fromIntegral (e_ehsize fileHeader)    -- we want to have program headers right after the file header
@@ -101,7 +128,7 @@ fixupHeadersOffsets = do
         { e_shoff = shoff
         , e_phoff = phoff }
 
-  put (FixupEnv newHeader sects sectsNames segs gen)
+  put (FixupEnv newHeader sects sectsNames segs syms gen)
 
 -- | Fixes the @LOAD@ segment corresponding to the @PHDR@ segment
 --
@@ -109,7 +136,7 @@ fixupHeadersOffsets = do
 --   memory segment.
 fixupPHDREntry :: ValueSet n => Fixup n ()
 fixupPHDREntry = do
-  FixupEnv fileHeader sects sectsNames segs gen <- get
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
   let phoff    = fromIntegral (e_phoff fileHeader)
       phdrSize = fromIntegral (e_phnum fileHeader) * fromIntegral (e_phentsize fileHeader)
@@ -126,13 +153,13 @@ fixupPHDREntry = do
                 Map.update (const phdrLoad) (PLoad (section "PHDR") pf_r) $
                 segs
 
-  put (FixupEnv fileHeader sects sectsNames newSegs gen)
+  put (FixupEnv fileHeader sects sectsNames newSegs syms gen)
 
 -- | Fixes every section name index (field 'sh_name') depending on how data is laid out
 --   in the @.shstrtab@ section.
 fixupSectionNames :: ValueSet n => Fixup n ()
 fixupSectionNames = do
-  FixupEnv fileHeader sects sectsNames segs gen <- get
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
   let names = Map.keys sectsNames
   let newSects = Map.fromList $ names <&> \ n ->
@@ -143,7 +170,7 @@ fixupSectionNames = do
         in (s, sh)
   let newSectsWithUnmodified = Map.union newSects sects
 
-  put (FixupEnv fileHeader newSectsWithUnmodified sectsNames segs gen)
+  put (FixupEnv fileHeader newSectsWithUnmodified sectsNames segs syms gen)
  where
    fetchStringIndex = goFetch 0
 
@@ -157,7 +184,7 @@ fixupSectionNames = do
 --   and updates the fields 'sh_addr', 'sh_offset' and 'sh_size'.
 fixupSectionOffsets :: forall (n :: Size). ValueSet n => Fixup n ()
 fixupSectionOffsets = do
-  FixupEnv fileHeader sects sectsNames segs gen <- get
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
   let startSects = e_shoff fileHeader
       sectsCount = fromIntegral (e_shnum fileHeader)
@@ -169,7 +196,7 @@ fixupSectionOffsets = do
   let newGenBin = gen <> newGen
       newSectsModif = Map.union newSects sects
 
-  put (FixupEnv fileHeader newSectsModif sectsNames segs newGenBin)
+  put (FixupEnv fileHeader newSectsModif sectsNames segs syms newGenBin)
  where
    generateBinFromSectionsStartingAt :: forall (n :: Size).
                                         ValueSet n
@@ -196,6 +223,10 @@ fixupSectionOffsets = do
                  packed     = BS.pack content
                  updatedShd = shd { sh_offset = off, sh_size = size }
              in (off + fromIntegral size, packed, Map.singleton sh updatedShd)
+           (SSymTab _ _, _)     -> (off, mempty, Map.singleton sh shd)
+               -- NOTE: we do not generate anything from a symtab, because we want to handle symbol compilation
+               --       later, because we lack some information at the current moment (like the data size pointed by a symbol
+               --       or even the section it is in)
 
          (binGen, sects) = generateBinFromSectionsStartingAt ss newOff
      in (sectBin <> binGen, Map.union newSects sects)
@@ -206,7 +237,7 @@ fixupSectionOffsets = do
 -- | Fixes all @LOAD@ segments with correct addresses, sizes and offsets (fields 'p_vaddr', 'p_paddr', 'p_filesz', 'p_memsz' and 'p_offset').
 fixupLoadSegments :: forall (n :: Size). ValueSet n => Fixup n ()
 fixupLoadSegments = do
-  FixupEnv fileHeader sects sectsNames segs gen <- get
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
   let startSects = e_shoff fileHeader
       sectsCount = fromIntegral (e_shnum fileHeader)
@@ -217,7 +248,7 @@ fixupLoadSegments = do
   let (newSegs, newGen)  = fixSegmentsOffsetsAndAddresses @n (Map.toList segs) startOff sects sectsNames
       newSegsWithUnmodif = Map.union newSegs segs
 
-  put (FixupEnv fileHeader sects sectsNames newSegsWithUnmodif (gen <> newGen))
+  put (FixupEnv fileHeader sects sectsNames newSegsWithUnmodif syms (gen <> newGen))
  where
    fixSegmentsOffsetsAndAddresses :: forall (n :: Size).
                                      ValueSet n
@@ -252,3 +283,36 @@ fixupLoadSegments = do
 
          (segs, gen) = fixSegmentsOffsetsAndAddresses ss newOff sects sectsNames
      in (Map.union newSegs segs, segBin <> gen)
+
+-- | Fixes the field 'sh_info' of the section @.symtab@ with the number of symbols in the file + 1.
+fixupSymtabShInfo :: ValueSet n => Fixup n ()
+fixupSymtabShInfo = do
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
+
+  let Just symtab = Map.lookup ".symtab" sectsNames
+      symtabSect  = Map.lookup symtab sects <&> \ s ->
+        s { sh_info = fromIntegral (Map.size syms) + 1 }
+      newSects    = Map.update (const symtabSect) symtab sects
+
+  put (FixupEnv fileHeader newSects sectsNames segs syms gen)
+
+-- | Fixes the @.symtab@ section offset.
+--
+--   __NOTE:__ This is handled differently than other section because we need to know
+--             all data generated before trying to write the symbol table (function sizes will be unknown otherwise
+--             and most probably unfixable if written before).
+fixupSymtabOffset :: ValueSet n => Fixup n ()
+fixupSymtabOffset = do
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
+
+  let headerSize   = fromIntegral $ e_ehsize fileHeader
+      segmentHSize = fromIntegral $ e_phnum fileHeader * e_phentsize fileHeader
+      sectionHSize = fromIntegral $ e_shnum fileHeader * e_shentsize fileHeader
+  let initialSize  = fromIntegral (BS.length gen) + headerSize + segmentHSize + sectionHSize + 1
+       --            ^^^ start at the end of the file
+  let Just symtab = Map.lookup ".symtab" sectsNames
+      symtabSect  = Map.lookup symtab sects <&> \ s ->
+        s { sh_offset = initialSize }
+      newSects    = Map.update (const symtabSect) symtab sects
+
+  put (FixupEnv fileHeader newSects sectsNames segs syms gen)
