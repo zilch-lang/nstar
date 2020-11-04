@@ -21,6 +21,7 @@ library
       Data.Elf.Internal.Compile.ForArch
       Data.Elf.Internal.Compile.ProgramHeader
       Data.Elf.Internal.Compile.SectionHeader
+      Data.Elf.Internal.Compile.Symbol
       Data.Elf.Internal.Endianness
       Data.Elf.Internal.FileHeader
       Data.Elf.Internal.Object
