@@ -8,6 +8,7 @@ module Data.Elf.SectionHeader
 import Data.Elf.Types
 import Data.Word (Word8)
 import Data.Elf.SectionHeader.Flags
+import Data.Elf.Symbol
 
 -- | Section header
 data SectionHeader n
@@ -27,5 +28,8 @@ data SectionHeader n
   | SStrTab
       String
       [String]
+  | SSymTab
+      String
+      [ElfSymbol]
 deriving instance ValueSet n => Eq (SectionHeader n)
 deriving instance ValueSet n => Ord (SectionHeader n)
