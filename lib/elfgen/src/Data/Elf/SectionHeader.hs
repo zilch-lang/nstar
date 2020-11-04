@@ -27,7 +27,7 @@ data SectionHeader n
   -- | Symbol table
   | SSymTab
       String
-      [ElfSymbol]
+      [ElfSymbol n]
   -- | String table
   | SStrTab
       String

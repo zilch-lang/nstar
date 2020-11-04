@@ -8,9 +8,10 @@ module Data.Elf.Symbol
 ) where
 
 import Data.Elf.Types
+import Data.Elf.Internal.BusSize (Size)
 
 -- | Symbol table entry
-data ElfSymbol
+data ElfSymbol (n :: Size)
   = ElfSymbol
       String           -- ^ Symbol name
       SymbolType       -- ^ Symbol type
