@@ -27,6 +27,7 @@ library
       Data.Elf.Internal.ProgramHeader
       Data.Elf.Internal.SectionHeader
       Data.Elf.Internal.Serialize
+      Data.Elf.Internal.Symbol
       Data.Elf.Object
       Data.Elf.ProgramHeader
       Data.Elf.ProgramHeader.Flags
