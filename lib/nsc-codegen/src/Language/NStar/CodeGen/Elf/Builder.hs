@@ -26,7 +26,7 @@ instance CompileToElf S64 where
         (ElfHeader (supportedArchToClass arch) (supportedArchToEncoding arch) OSABI_None 0x0 ET_Exec (supportedArchToArch arch) EV_Current ef_none)
         [PLoad (section ".text") (pf_r .|. pf_x)]
         [ SProgBits ".text" opcodes (shf_alloc .|. shf_execinstr)
-        , SSymTab ".strtab" (generateSymbolTableFrom @S64 syms) ]
+        , SSymTab ".symtab" (generateSymbolTableFrom @S64 syms) ]
 
 
 generateSymbolTableFrom :: forall (n :: Size). Map Text Integer -> [ElfSymbol]
