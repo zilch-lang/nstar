@@ -20,13 +20,13 @@ data ElfSymbol
 
 -- | Symbol type
 data SymbolType
-  = ST_NoType       -- ^ Symbol type is unspecified
-  | ST_Object       -- ^ Symbol is a data object
-  | ST_Func         -- ^ Symbol is a code object
-  | ST_Section      -- ^ Symbol associated with a section
-  | ST_File         -- ^ Symbol's name is file name
-  | ST_Common       -- ^ Symbol is a common data object
-  | ST_TLS          -- ^ Symbol is a thread-local data object
+  = ST_NoType          -- ^ Symbol type is unspecified
+  | ST_Object          -- ^ Symbol is a data object
+  | ST_Func Integer    -- ^ Symbol is a code object
+  | ST_Section String  -- ^ Symbol associated with a section
+  | ST_File String     -- ^ Symbol's name is file name
+  | ST_Common          -- ^ Symbol is a common data object
+  | ST_TLS             -- ^ Symbol is a thread-local data object
   deriving (Eq, Ord)
 
 -- | Symbol binding type
