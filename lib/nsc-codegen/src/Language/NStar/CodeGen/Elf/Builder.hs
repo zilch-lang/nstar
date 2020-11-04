@@ -29,7 +29,7 @@ instance CompileToElf S64 where
         , SSymTab ".symtab" (generateSymbolTableFrom @S64 syms) ]
 
 
-generateSymbolTableFrom :: forall (n :: Size). Map Text Integer -> [ElfSymbol]
+generateSymbolTableFrom :: forall (n :: Size). Map Text Integer -> [ElfSymbol n]
 generateSymbolTableFrom = Map.foldMapWithKey \ k l -> [ElfSymbol (Text.unpack k) (ST_Func l) SB_Global SV_Default]
 
 supportedArchToArch :: SupportedArch -> Arch
