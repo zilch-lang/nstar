@@ -24,12 +24,14 @@ data SectionHeader n
       String
       Integer   -- ^ Space size
       (SFlags n)
+  -- | Symbol table
+  | SSymTab
+      String
+      [ElfSymbol]
   -- | String table
   | SStrTab
       String
       [String]
-  | SSymTab
-      String
-      [ElfSymbol]
+
 deriving instance ValueSet n => Eq (SectionHeader n)
 deriving instance ValueSet n => Ord (SectionHeader n)
