@@ -7,6 +7,8 @@ module Data.Elf.Internal.Symbol
 , stb_local, stb_global, stb_weak
   -- ** Symbol type
 , stt_notype, stt_object, stt_func, stt_section
+  -- * 'st_other'
+, stv_default, stv_internal, stv_hidden, stv_protected
 ) where
 
 import Data.Elf.Internal.BusSize (Size(..))
@@ -69,3 +71,19 @@ stt_func = {#const STT_FUNC#}
 -- | Symbol associated with a section
 stt_section :: ValueSet n => Elf_UChar n
 stt_section = {#const STT_SECTION#}
+
+
+-- Visibility
+
+-- | Default symbol visibility rules
+stv_default :: ValueSet n => Elf_UChar n
+stv_default = {#const STV_DEFAULT#}
+-- | Processor specific hidden class
+stv_internal :: ValueSet n => Elf_UChar n
+stv_internal = {#const STV_INTERNAL#}
+-- | Sym unavailable in other modules
+stv_hidden :: ValueSet n => Elf_UChar n
+stv_hidden = {#const STV_HIDDEN#}
+-- | Not preemptible, not exported
+stv_protected :: ValueSet n => Elf_UChar n
+stv_protected = {#const STV_PROTECTED#}
