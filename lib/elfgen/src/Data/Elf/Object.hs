@@ -14,5 +14,4 @@ data ElfObject n
   { fileHeader    :: ElfHeader n           -- ^ The ELF header
   , segments      :: [ProgramHeader n]     -- ^ Program headers
   , sections      :: [SectionHeader n]     -- ^ Section headers
-  , symbols       :: [ElfSymbol]         -- ^ Symbol table
   }
