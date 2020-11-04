@@ -6,7 +6,7 @@ import Data.Elf.Types
 import Data.Elf.FileHeader (ElfHeader)
 import Data.Elf.SectionHeader (SectionHeader)
 import Data.Elf.ProgramHeader (ProgramHeader)
-import Data.Elf.SymbolTable (ElfSymbol)
+import Data.Elf.Symbol (ElfSymbol)
 
 -- | An object file layout.
 data ElfObject n

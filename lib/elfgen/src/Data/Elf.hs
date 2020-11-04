@@ -14,6 +14,8 @@ module Data.Elf
 , module Data.Elf.SectionHeader
   -- * Program header
 , module Data.Elf.ProgramHeader
+  -- * Symbol table entry
+, module Data.Elf.Symbol
 
 
   -- * ELF structure
@@ -32,3 +34,4 @@ import Data.Elf.ProgramHeader
 import Data.Elf.Object
 import Data.ByteString (ByteString)
 import Data.Elf.CompileToBytes
+import Data.Elf.Symbol
