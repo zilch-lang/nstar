@@ -58,16 +58,31 @@ instance ( ValueSet n
         segs      = toSnd (compileFor @n) <$> (PPhdr : PLoad (section "PHDR") pf_r : segments)
                                                         --                      ^^^^ Special identifier, to refer to the PHDR segment
 
-        allSectionNames = ".shstrtab" : Map.keys sectNames
+        symbols = fetchSymbols sections
+
+        allSectionNames = ".shstrtab" : ".strtab" : Map.keys sectNames
+        allSymbolNames  = symbols <&> \ (ElfSymbol n _ _ _) -> n
+
+        strtab    = SStrTab ".strtab" allSymbolNames
         shstrtab  = SStrTab ".shstrtab" allSectionNames
         sects     = toSnd (compileFor @n) <$>
-          (sections <> [shstrtab, SNull])
-        newSectNames = Map.insert ".shstrtab" shstrtab sectNames
+          (sections <> [shstrtab, strtab, SNull])
+        newSectNames = Map.insert ".shstrtab" shstrtab $
+                       Map.insert ".strtab" strtab $
+                       sectNames
+
+        elfSymbols    = toSnd (compileFor @n) <$> symbols
 
     in
-      let Fix.FixupEnv fileHeader sections _ segments gen
+      let Fix.FixupEnv fileHeader sections _ segments _ gen
                 = Fix.runFixup Fix.allFixes $
-                    Fix.FixupEnv @n elfheader (Map.fromList sects) (Map.mapKeys Text.pack newSectNames) (Map.fromList segs) mempty
+                    Fix.FixupEnv @n
+                      elfheader
+                      (Map.fromList sects)
+                      (Map.mapKeys Text.pack newSectNames)
+                      (Map.fromList segs)
+                      (Map.fromList elfSymbols)
+                      mempty
 
       in Internal.Obj @n fileHeader (Map.elems segments) (Map.elems sections) (BS.unpack gen)
 
@@ -78,6 +93,16 @@ fetchSectionNamesFrom = Map.fromList . mapMaybe f
     f h@(SProgBits n _ _) = Just (n, h)
     f h@(SNoBits n _ _)   = Just (n, h)
     f h@(SStrTab n _)     = Just (n, h)
+    f h@(SSymTab n _)     = Just (n, h)
+
+fetchSymbols :: [SectionHeader n] -> [ElfSymbol n]
+fetchSymbols = mconcat . mapMaybe f
+  where
+    f SNull             = Nothing
+    f (SProgBits _ _ _) = Nothing
+    f (SNoBits _ _ _)   = Nothing
+    f (SStrTab _ _)     = Nothing
+    f (SSymTab _ syms)  = Just syms
 
 toSnd :: (a -> b) -> a -> (a, b)
 toSnd f x = (x, f x)
