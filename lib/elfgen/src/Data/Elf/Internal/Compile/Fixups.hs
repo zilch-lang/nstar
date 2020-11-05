@@ -298,7 +298,11 @@ fixupSymtabShInfo = do
 
   let Just symtab = Map.lookup ".symtab" sectsNames
       symtabSect  = Map.lookup symtab sects <&> \ s ->
-        s { sh_info = fromIntegral (Map.size syms) }
+        s { sh_info = fromIntegral (Map.size syms) - 1 }
+                                     --            ^^^ DO NOT COUNT THE NULL ENTRY
+                                     --                else `ld` is not able to figure out symbols
+                                     --                and will spit out errors like:
+                                     --                > undefined reference to `main'
       newSects    = Map.update (const symtabSect) symtab sects
 
   put (FixupEnv fileHeader newSects sectsNames segs syms gen)
