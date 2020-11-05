@@ -9,7 +9,7 @@ module Data.Elf.Internal.Compile.Fixups
   -- * All fixup steps
 , allFixes, fixupHeaderCount, fixupShstrtabIndex, fixupHeadersOffsets, fixupPHDREntry, fixupSectionNames
 , fixupSectionOffsets, fixupLoadSegments, fixupSymtabStrtabIndex, fixupSymtabShInfo, fixupSymtabOffset
-, fixupSymbolNames, fixupSymbolDefs, fixupFuncSymbolAddresses
+, fixupSymbolNames, fixupSymbolDefs, fixupFuncSymbolAddresses, fixupEntryPoint
 ) where
 
 import Data.Elf.SectionHeader
@@ -77,6 +77,7 @@ allFixes = do
   fixupSymbolNames
   fixupSymbolDefs
   fixupFuncSymbolAddresses
+  fixupEntryPoint
 
 -- | A fix for headers count in the ELF file header (fields 'e_phnum' and 'e_shnum').
 fixupHeaderCount :: ValueSet n => Fixup n ()
@@ -390,3 +391,19 @@ fixupFuncSymbolAddresses = do
      (ST_Func off1, _)            -> fixSymbolAddressesBy2 startAddr endOff [e1] <> fixSymbolAddressesBy2 startAddr endOff (e2:es)
      (_, ST_Func off2)            -> e1 : fixSymbolAddressesBy2 startAddr endOff (e2:es)
      (_, _)                       -> e1 : e2 : fixSymbolAddressesBy2 startAddr endOff es
+
+-- | Replace the 'e_entry' file header field with the address of the 'main' function, if there is one.
+--   Else leaves the header untouched.
+fixupEntryPoint :: ValueSet n => Fixup n ()
+fixupEntryPoint = do
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
+
+  let mainSym   = Map.foldrWithKey (\ (ElfSymbol n _ _ _) st sym -> case sym of
+                                       Nothing -> if n == "main" then Just st else Nothing
+                                       Just s  -> sym
+                                   ) Nothing syms
+  let newHeader = case mainSym of
+        Nothing -> fileHeader
+        Just ms -> fileHeader { e_entry = st_value ms }
+
+  put (FixupEnv newHeader sects sectsNames segs syms gen)
