@@ -7,6 +7,9 @@ import Data.Bits (shiftL, (.&.))
 import Data.Elf.Internal.BusSize (Size(..))
 
 instance CompileFor S64 ElfSymbol Elf_Sym where
+  -- | Compiles an abstract ELF symbol into a concrete symbol.
+  --
+  --   Fields 'st_name', 'st_value', 'st_shndx', 'st_size' must be fixed afterwards.
   compileFor (ElfSymbol name symType symBind symVis) =
     Elf_Sym @S64
       0x0
