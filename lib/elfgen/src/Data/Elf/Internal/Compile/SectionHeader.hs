@@ -62,4 +62,4 @@ instance CompileFor S64 SectionHeader Elf_Shdr where
         SProgBits _ _ _ -> 0x0
         SNoBits _ _ _   -> 0x0
         SStrTab _ _     -> 0x0
-        SSymTab _ s     -> fromIntegral (sizeOf @(Elf_Sym S64) undefined) * fromIntegral (length s)
+        SSymTab _ s     -> fromIntegral (sizeOf @(Elf_Sym S64) undefined) * (fromIntegral (length s) + 1)
