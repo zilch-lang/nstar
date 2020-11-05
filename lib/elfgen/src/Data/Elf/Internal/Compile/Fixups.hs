@@ -9,6 +9,7 @@ module Data.Elf.Internal.Compile.Fixups
   -- * All fixup steps
 , allFixes, fixupHeaderCount, fixupShstrtabIndex, fixupHeadersOffsets, fixupPHDREntry, fixupSectionNames
 , fixupSectionOffsets, fixupLoadSegments, fixupSymtabStrtabIndex, fixupSymtabShInfo, fixupSymtabOffset
+, fixupSymbolNames
 ) where
 
 import Data.Elf.SectionHeader
@@ -73,6 +74,7 @@ allFixes = do
   fixupLoadSegments
   fixupSymtabShInfo
   fixupSymtabOffset
+  fixupSymbolNames
 
 -- | A fix for headers count in the ELF file header (fields 'e_phnum' and 'e_shnum').
 fixupHeaderCount :: ValueSet n => Fixup n ()
@@ -317,3 +319,18 @@ fixupSymtabOffset = do
       newSects    = Map.update (const symtabSect) symtab sects
 
   put (FixupEnv fileHeader newSects sectsNames segs syms gen)
+
+-- | Replaces symbols names with the corresponding indices in the @.strtab@ section.
+fixupSymbolNames :: ValueSet n => Fixup n ()
+fixupSymbolNames = do
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
+
+  let Just (SStrTab _ c) = Map.lookup ".strtab" sectsNames
+      newSyms            = flip Map.mapWithKey syms \ (ElfSymbol n _ _ _) sy ->
+        let index =
+              if n /= ""
+              then fetchStringIndex (Text.pack n) (Text.pack <$> c)
+              else 0x0
+        in sy { st_name = fromIntegral index }
+
+  put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
