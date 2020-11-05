@@ -58,7 +58,7 @@ instance ( ValueSet n
         segs      = toSnd (compileFor @n) <$> (PPhdr : PLoad (section "PHDR") pf_r : segments)
                                                         --                      ^^^^ Special identifier, to refer to the PHDR segment
 
-        symbols = ElfSymbol "" ST_NoType SB_Global SV_Default : fetchSymbols sections
+        symbols = ElfSymbol "" ST_NoType SB_Local SV_Default : fetchSymbols sections
 
         allSectionNames = ".shstrtab" : ".strtab" : Map.keys sectNames
         allSymbolNames  = filter (/= "") $ symbols <&> \ (ElfSymbol n _ _ _) -> n
