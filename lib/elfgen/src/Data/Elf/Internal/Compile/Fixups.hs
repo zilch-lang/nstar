@@ -298,7 +298,7 @@ fixupSymtabShInfo = do
 
   let Just symtab = Map.lookup ".symtab" sectsNames
       symtabSect  = Map.lookup symtab sects <&> \ s ->
-        s { sh_info = fromIntegral (Map.size syms) + 1 }
+        s { sh_info = fromIntegral (Map.size syms) }
       newSects    = Map.update (const symtabSect) symtab sects
 
   put (FixupEnv fileHeader newSects sectsNames segs syms gen)
