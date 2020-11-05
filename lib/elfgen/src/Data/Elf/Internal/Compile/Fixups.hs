@@ -9,7 +9,7 @@ module Data.Elf.Internal.Compile.Fixups
   -- * All fixup steps
 , allFixes, fixupHeaderCount, fixupShstrtabIndex, fixupHeadersOffsets, fixupPHDREntry, fixupSectionNames
 , fixupSectionOffsets, fixupLoadSegments, fixupSymtabStrtabIndex, fixupSymtabShInfo, fixupSymtabOffset
-, fixupSymbolNames, fixupSymbolDefs
+, fixupSymbolNames, fixupSymbolDefs, fixupFuncSymbolAddresses
 ) where
 
 import Data.Elf.SectionHeader
@@ -25,7 +25,7 @@ import Control.Monad.State (State, get, put, execState)
 import Data.Functor ((<&>))
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.List (elemIndex, intercalate)
-import Data.Elf.Types (ValueSet, Elf_Off, Elf_Addr)
+import Data.Elf.Types (ValueSet, Elf_Off, Elf_Addr, Elf_Xword)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Word (Word8)
@@ -76,6 +76,7 @@ allFixes = do
   fixupSymtabOffset
   fixupSymbolNames
   fixupSymbolDefs
+  fixupFuncSymbolAddresses
 
 -- | A fix for headers count in the ELF file header (fields 'e_phnum' and 'e_shnum').
 fixupHeaderCount :: ValueSet n => Fixup n ()
@@ -355,3 +356,37 @@ fixupSymbolDefs = do
           _         -> st
 
   put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
+
+-- | Fixes function symbol addresses (field 'st_value') and code object sizes (field 'st_size').
+fixupFuncSymbolAddresses :: ValueSet n => Fixup n ()
+fixupFuncSymbolAddresses = do
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
+
+  let Just textSect = Map.lookup ".text" sectsNames
+      Just text     = Map.lookup textSect sects
+      startAddr     = sh_addr text
+      textSize      = sh_size text
+
+      newSyms       = Map.fromList (fixSymbolAddressesBy2 startAddr textSize (Map.toList syms))
+             -- we skip everything that is not a function
+
+  put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
+ where
+   fixSymbolAddressesBy2 :: ValueSet n => Elf_Addr n -> Elf_Xword n -> [(ElfSymbol n, Elf_Sym n)] -> [(ElfSymbol n, Elf_Sym n)]
+   fixSymbolAddressesBy2 _ _ []                                                                            = []
+   fixSymbolAddressesBy2 startAddr endOff [(e@(ElfSymbol _ ty _ _), st)]                                   = case ty of
+     ST_Func off ->
+       let symbolSize = endOff - fromIntegral off
+           symbolAddr = startAddr + fromIntegral off
+       in [(e, st { st_value = symbolAddr, st_size = symbolSize })]
+     _           -> [(e, st)]
+   fixSymbolAddressesBy2 startAddr endOff (e1@(ElfSymbol _ ty1 _ _, st1):e2@(ElfSymbol _ ty2 _ _, st2):es) = case (ty1, ty2) of
+     (ST_Func off1, ST_Func off2) ->
+       -- @off2@ is the starting point of the second function;
+       -- so our first function goes from @off1@ to @off2@.
+       let symbolSize = fromIntegral $ off2 - off1
+           symbolAddr = startAddr + fromIntegral off1
+       in (fst e1, st1 { st_value = symbolAddr, st_size = symbolSize }) : fixSymbolAddressesBy2 startAddr endOff (e2:es)
+     (ST_Func off1, _)            -> fixSymbolAddressesBy2 startAddr endOff [e1] <> fixSymbolAddressesBy2 startAddr endOff (e2:es)
+     (_, ST_Func off2)            -> e1 : fixSymbolAddressesBy2 startAddr endOff (e2:es)
+     (_, _)                       -> e1 : e2 : fixSymbolAddressesBy2 startAddr endOff es
