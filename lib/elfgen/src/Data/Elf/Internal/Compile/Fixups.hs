@@ -9,7 +9,7 @@ module Data.Elf.Internal.Compile.Fixups
   -- * All fixup steps
 , allFixes, fixupHeaderCount, fixupShstrtabIndex, fixupHeadersOffsets, fixupPHDREntry, fixupSectionNames
 , fixupSectionOffsets, fixupLoadSegments, fixupSymtabStrtabIndex, fixupSymtabShInfo, fixupSymtabOffset
-, fixupSymbolNames
+, fixupSymbolNames, fixupSymbolDefs
 ) where
 
 import Data.Elf.SectionHeader
@@ -75,6 +75,7 @@ allFixes = do
   fixupSymtabShInfo
   fixupSymtabOffset
   fixupSymbolNames
+  fixupSymbolDefs
 
 -- | A fix for headers count in the ELF file header (fields 'e_phnum' and 'e_shnum').
 fixupHeaderCount :: ValueSet n => Fixup n ()
@@ -111,12 +112,13 @@ fixupSymtabStrtabIndex = do
       newSects          = Map.update (const symtabSect) symtab sects
 
   put (FixupEnv fileHeader newSects sectsNames segs syms gen)
- where
-   getName SNull             = ""
-   getName (SProgBits n _ _) = n
-   getName (SNoBits n _ _)   = n
-   getName (SStrTab n _)     = n
-   getName (SSymTab n _)     = n
+
+getName :: SectionHeader n -> String
+getName SNull             = ""
+getName (SProgBits n _ _) = n
+getName (SNoBits n _ _)   = n
+getName (SStrTab n _)     = n
+getName (SSymTab n _)     = n
 
 -- | Fixes (sections/segments) headers offsets in the file header.
 fixupHeadersOffsets :: ValueSet n => Fixup n ()
@@ -332,5 +334,24 @@ fixupSymbolNames = do
               then fetchStringIndex (Text.pack n) (Text.pack <$> c)
               else 0x0
         in sy { st_name = fromIntegral index }
+
+  put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
+
+-- | Sets 'st_shndx' to the @.text@ section index for all function symbols.
+fixupSymbolDefs :: ValueSet n => Fixup n ()
+fixupSymbolDefs = do
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
+
+  -- FIXME: we do not have a way of identifying whether functions (more generally symbols)
+  -- are bound externally (if yes, we should set 'st_shndx' to @0x0@) or internally (if yes,
+  -- we have to set 'st_shndx' to either the @.text@ section index or the @.data@/@.rodata@ section index).
+  -- We will consider that all functions are internally bound to begin with.
+
+  let Just textIndex = elemIndex ".text" (getName <$> Map.keys sects)
+      newSyms        = flip Map.mapWithKey syms \ (ElfSymbol _ ty _ _) st ->
+        case ty of
+          ST_NoType -> st
+          ST_Func _ -> st { st_shndx = fromIntegral textIndex }
+          _         -> st
 
   put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
