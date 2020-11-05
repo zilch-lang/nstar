@@ -39,6 +39,7 @@ compile :: forall (n :: Size) e.
            , Serializable n e (Elf_Ehdr n)
            , Serializable n e (Elf_Phdr n)
            , Serializable n e (Elf_Shdr n)
+           , Serializable n e (Elf_Sym n)
            , CompileFor n ElfHeader Elf_Ehdr
            , CompileFor n ProgramHeader Elf_Phdr
            , CompileFor n SectionHeader Elf_Shdr
