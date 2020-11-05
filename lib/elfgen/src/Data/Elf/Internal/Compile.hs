@@ -12,7 +12,7 @@ import Data.Elf.Internal.Compile.Symbol ()
 import qualified Data.Elf.Internal.Compile.Fixups as Fix (runFixup, allFixes, FixupEnvironment(..))
 import Unsafe.Coerce (unsafeCoerce)
 import Data.Map (Map)
-import qualified Data.Map as Map (fromList, mapKeys, keys, elems, insert)
+import qualified Data.Map as Map (fromList, mapKeys, keys, elems, insert, size)
 import Data.Elf.SectionHeader (SectionHeader(..))
 import Data.Elf.ProgramHeader (ProgramHeader(PPhdr, PLoad), section, pf_r)
 import Data.Elf.FileHeader (ElfHeader)
@@ -26,7 +26,7 @@ import Data.Word (Word8)
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.Elf.Internal.Compile.ForArch
 import qualified Data.ByteString as BS (unpack)
-import Data.Elf.Symbol (ElfSymbol(..))
+import Data.Elf.Symbol
 import Data.Elf.Internal.Symbol (Elf_Sym)
 import Data.Functor ((<&>))
 
@@ -58,10 +58,10 @@ instance ( ValueSet n
         segs      = toSnd (compileFor @n) <$> (PPhdr : PLoad (section "PHDR") pf_r : segments)
                                                         --                      ^^^^ Special identifier, to refer to the PHDR segment
 
-        symbols = fetchSymbols sections
+        symbols = ElfSymbol "" ST_NoType SB_Global SV_Default : fetchSymbols sections
 
         allSectionNames = ".shstrtab" : ".strtab" : Map.keys sectNames
-        allSymbolNames  = symbols <&> \ (ElfSymbol n _ _ _) -> n
+        allSymbolNames  = filter (/= "") $ symbols <&> \ (ElfSymbol n _ _ _) -> n
 
         strtab    = SStrTab ".strtab" allSymbolNames
         shstrtab  = SStrTab ".shstrtab" allSectionNames
@@ -71,10 +71,10 @@ instance ( ValueSet n
                        Map.insert ".strtab" strtab $
                        sectNames
 
-        elfSymbols    = toSnd (compileFor @n) <$> symbols
+        elfSymbols   = toSnd (compileFor @n) <$> symbols
 
     in
-      let Fix.FixupEnv fileHeader sections _ segments _ gen
+      let Fix.FixupEnv fileHeader sections _ segments syms gen
                 = Fix.runFixup Fix.allFixes $
                     Fix.FixupEnv @n
                       elfheader
@@ -84,7 +84,7 @@ instance ( ValueSet n
                       (Map.fromList elfSymbols)
                       mempty
 
-      in Internal.Obj @n fileHeader (Map.elems segments) (Map.elems sections) (BS.unpack gen)
+      in Internal.Obj @n fileHeader (Map.elems segments) (Map.elems sections) (BS.unpack gen) (Map.elems syms)
 
 fetchSectionNamesFrom :: [SectionHeader n] -> Map String (SectionHeader n)
 fetchSectionNamesFrom = Map.fromList . mapMaybe f
