@@ -171,9 +171,10 @@ fixupSectionNames = do
   let newSectsWithUnmodified = Map.union newSects sects
 
   put (FixupEnv fileHeader newSectsWithUnmodified sectsNames segs syms gen)
- where
-   fetchStringIndex = goFetch 0
 
+fetchStringIndex :: Text -> [Text] -> Int
+fetchStringIndex = goFetch 0
+ where
    goFetch :: Int -> Text -> [Text] -> Int
    goFetch n str [] = 0
    goFetch n str (x:xs)
@@ -308,7 +309,7 @@ fixupSymtabOffset = do
   let headerSize   = fromIntegral $ e_ehsize fileHeader
       segmentHSize = fromIntegral $ e_phnum fileHeader * e_phentsize fileHeader
       sectionHSize = fromIntegral $ e_shnum fileHeader * e_shentsize fileHeader
-  let initialSize  = fromIntegral (BS.length gen) + headerSize + segmentHSize + sectionHSize + 1
+  let initialSize  = fromIntegral (BS.length gen) + headerSize + segmentHSize + sectionHSize
        --            ^^^ start at the end of the file
   let Just symtab = Map.lookup ".symtab" sectsNames
       symtabSect  = Map.lookup symtab sects <&> \ s ->
