@@ -1,4 +1,6 @@
-{ pkgs }:
+{ pkgs
+, runReadelf ? false
+}:
 
 let
   lib = pkgs.lib;
@@ -22,14 +24,20 @@ pkgs.mkShell {
 
   buildInputs = with pkgs; [
     glibc
-    binutils
+    binutils-unwrapped
+    gcc-unwrapped
   ];
 
   buildPhase = ''
     (echo "Running \`nsc\`:"; ${nsc} ./test/singleRet.nst) && \
+  ''
+  + (if runReadelf
+     then ''
           (echo -e "\n\nRunning \`readelf\`:"; readelf -a ./test.o) && \
           (echo -e "\n\nRunning \`objdump\`:"; objdump -d -j'.text' ./test.o) && \
-          (echo -e "\n\nTry linking \`test.o\`:"; ld ./test.o ${pkgs.glibc}/lib/crt1.o ${pkgs.glibc}/lib/crti.o -lc -o a.out) && \
-          (echo -e "\n\nExecuting `a.out`:"; ./a.out)
+     '' else "")
+  + ''
+          (echo -e "\n\nTry linking \`test.o\`:"; ld ${pkgs.glibc}/lib/crt1.o ${pkgs.glibc}/lib/crti.o ${pkgs.gcc-unwrapped}/lib/gcc/*/*/crtbegin.o ./test.o ${pkgs.gcc-unwrapped}/lib/gcc/*/*/crtend.o ${pkgs.glibc}/lib/crtn.o -lc -o a.out) && \
+          (echo -e "\n\nExecuting \`a.out\`:"; ./a.out)
   '';
 }
