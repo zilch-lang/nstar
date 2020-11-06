@@ -23,7 +23,7 @@ instance CompileToElf S64 where
   compileToElf arch prog =
     let MInfo opcodes syms = compile arch prog
     in ElfObject
-        (ElfHeader (supportedArchToClass arch) (supportedArchToEncoding arch) OSABI_None 0x0 ET_Exec (supportedArchToArch arch) EV_Current ef_none)
+        (ElfHeader (supportedArchToClass arch) (supportedArchToEncoding arch) OSABI_None 0x0 ET_Rel (supportedArchToArch arch) EV_Current ef_none)
         [PLoad (section ".text") (pf_r .|. pf_x)]
         [ SProgBits ".text" opcodes (shf_alloc .|. shf_execinstr)
         , SSymTab ".symtab" (generateSymbolTableFrom @S64 syms) ]
