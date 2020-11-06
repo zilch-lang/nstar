@@ -32,6 +32,7 @@ import Data.Word (Word8)
 import Unsafe.Coerce (unsafeCoerce)
 import Data.Elf.Symbol
 import Data.Elf.Internal.Symbol
+import Control.Applicative ((<|>))
 
 -- | Associative list between abstract and concrete section header structures.
 type SectionAList n = Map (SectionHeader n) (Elf_Shdr n)
@@ -363,14 +364,16 @@ fixupSymbolDefs = do
   put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
 
 -- | Fixes function symbol addresses (field 'st_value') and code object sizes (field 'st_size').
-fixupFuncSymbolAddresses :: ValueSet n => Fixup n ()
+fixupFuncSymbolAddresses :: forall (n :: Size). ValueSet n => Fixup n ()
 fixupFuncSymbolAddresses = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
   let Just textSect = Map.lookup ".text" sectsNames
       Just text     = Map.lookup textSect sects
-      startAddr     = sh_addr text
+      startAddr     = if isExec then sh_addr text else 0x0
       textSize      = sh_size text
+
+      isExec        = e_type fileHeader == et_exec @n
 
       newSyms       = Map.fromList (fixSymbolAddressesBy2 startAddr textSize (Map.toList syms))
              -- we skip everything that is not a function
@@ -402,10 +405,7 @@ fixupEntryPoint :: ValueSet n => Fixup n ()
 fixupEntryPoint = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
-  let mainSym   = Map.foldrWithKey (\ (ElfSymbol n _ _ _) st sym -> case sym of
-                                       Nothing -> if n == "main" then Just st else Nothing
-                                       Just s  -> sym
-                                   ) Nothing syms
+  let mainSym   = Map.foldrWithKey (\ (ElfSymbol n _ _ _) st sym -> sym <|> if n == "_start" then Just st else Nothing) Nothing syms
   let newHeader = case mainSym of
         Nothing -> fileHeader
         Just ms -> fileHeader { e_entry = st_value ms }
