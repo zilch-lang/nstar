@@ -33,6 +33,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import Data.Elf.Symbol
 import Data.Elf.Internal.Symbol
 import Control.Applicative ((<|>))
+import Control.Monad (unless)
 
 -- | Associative list between abstract and concrete section header structures.
 type SectionAList n = Map (SectionHeader n) (Elf_Shdr n)
@@ -63,8 +64,14 @@ runFixup :: ValueSet n => Fixup n a -> FixupEnvironment n -> FixupEnvironment n
 runFixup = execState
 
 -- | Contains all fixes to do.
-allFixes :: ValueSet n => Fixup n ()
+allFixes :: forall (n :: Size). ValueSet n => Fixup n ()
 allFixes = do
+  FixupEnv fileHeader sects sectsNames _ syms gen <- get
+  let isExec = e_type fileHeader == et_exec @n
+
+  unless isExec do
+    put (FixupEnv fileHeader sects sectsNames mempty syms gen)
+
   fixupHeaderCount
   fixupSymtabStrtabIndex
   fixupShstrtabIndex
@@ -124,16 +131,17 @@ getName (SStrTab n _)     = n
 getName (SSymTab n _)     = n
 
 -- | Fixes (sections/segments) headers offsets in the file header.
-fixupHeadersOffsets :: ValueSet n => Fixup n ()
+fixupHeadersOffsets :: forall (n :: Size). ValueSet n => Fixup n ()
 fixupHeadersOffsets = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
   let phnum     = fromIntegral (e_phnum fileHeader)
       phentsize = fromIntegral (e_phentsize fileHeader)
       phoff     = fromIntegral (e_ehsize fileHeader)    -- we want to have program headers right after the file header
       shoff     = phoff + phnum * phentsize             -- and section headers right after program headers
+      isExec    = e_type fileHeader == et_exec @n
   let newHeader = fileHeader
         { e_shoff = shoff
-        , e_phoff = phoff }
+        , e_phoff = if isExec then phoff else 0x0 }
 
   put (FixupEnv newHeader sects sectsNames segs syms gen)
 
