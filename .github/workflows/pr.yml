@@ -21,6 +21,9 @@ jobs:
           
       - name: Install GHC
         run: stack setup --install-ghc
+        
+      - name: Install required programs
+        run: echo "---- C2HS ----"; stack install c2hs
           
       - name: Build Haskell dependencies
         run: stack build --test --no-run-tests --only-dependencies --no-terminal
