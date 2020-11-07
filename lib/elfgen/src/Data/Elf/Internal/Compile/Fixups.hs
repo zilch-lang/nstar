@@ -206,9 +206,10 @@ fixupSectionOffsets = do
       sectsCount = fromIntegral (e_shnum fileHeader)
       sectsSize  = fromIntegral (e_shentsize fileHeader)
       endSects   = startSects + sectsCount * sectsSize
+      isExec    = e_type fileHeader == et_exec @n
   let startPhys = endSects
 
-  let (newGen, newSects) = generateBinFromSectionsStartingAt @n (Map.toList sects) startPhys
+  let (newGen, newSects) = generateBinFromSectionsStartingAt @n (Map.toList sects) startPhys isExec
   let newGenBin = gen <> newGen
       newSectsModif = Map.union newSects sects
 
@@ -218,19 +219,20 @@ fixupSectionOffsets = do
                                         ValueSet n
                                      => [(SectionHeader n, Elf_Shdr n)]        -- ^ mappings unifying sections
                                      -> Elf_Off n                              -- ^ starting file offset
+                                     -> Bool                                   -- ^ Is the file supposed to be executable?
                                      -> (ByteString, Map (SectionHeader n) (Elf_Shdr n))
-   generateBinFromSectionsStartingAt [] off               = (mempty, mempty)
-   generateBinFromSectionsStartingAt (s@(sh, shd):ss) off =
+   generateBinFromSectionsStartingAt [] _ _                      = (mempty, mempty)
+   generateBinFromSectionsStartingAt (s@(sh, shd):ss) off isExec =
      let (newOff, sectBin, newSects) = case s of
            (SNull, _)           -> (off, mempty, Map.singleton sh shd)
            (SProgBits _ d _, _) ->
              let size       = fromIntegral (length d)
                  packed     = BS.pack d
-                 addr       = defaultStartAddress @n + fromIntegral off
+                 addr       = (if isExec then defaultStartAddress @n + fromIntegral off else 0)
                  updatedShd = shd { sh_offset = off, sh_addr = addr, sh_size = size }
              in (off + fromIntegral size, packed, Map.singleton sh updatedShd)
            (SNoBits _ s _, _)   ->
-             let addr       = defaultStartAddress @n + fromIntegral off
+             let addr       = (if isExec then defaultStartAddress @n + fromIntegral off else 0)
                  updatedShd = shd { sh_offset = off, sh_addr = addr, sh_size = fromIntegral s }
              in (off, mempty, Map.singleton sh updatedShd)
            (SStrTab _ s, _)     ->
@@ -244,7 +246,7 @@ fixupSectionOffsets = do
                --       later, because we lack some information at the current moment (like the data size pointed by a symbol
                --       or even the section it is in)
 
-         (binGen, sects) = generateBinFromSectionsStartingAt ss newOff
+         (binGen, sects) = generateBinFromSectionsStartingAt ss newOff isExec
      in (sectBin <> binGen, Map.union newSects sects)
 
    c2w :: Char -> Word8
