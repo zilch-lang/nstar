@@ -1,6 +1,7 @@
 module Language.NStar.CodeGen.Machine.X64 (compileX64) where
 
 import Language.NStar.CodeGen.Compiler
+import Language.NStar.Syntax.Core hiding (Label)
 import Language.NStar.Typechecker.Core
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
 import Data.Located (unLoc, Located(..))
@@ -13,6 +14,26 @@ import Data.Word (Word8)
 import Data.Bits ((.&.), shiftR)
 import Control.Monad.Writer (tell)
 import Data.Text (Text)
+import Data.Binary.Put
+import qualified Data.ByteString.Lazy as BS (unpack)
+import Data.Char (ord)
+
+-- | REX with only the W bit set, so it indicates 64-bit operand size, but no high registers.
+rexW :: InterOpcode
+rexW = Byte 0x48
+
+-- | Associates registers with their 4-bits encoding.
+--
+--   See <https://wiki.osdev.org/X86-64_Instruction_Encoding#Registers the osdev wiki on registers encoding> for more information.
+registerNumber :: Register -> Word8
+registerNumber RAX = 0x0
+registerNumber RCX = 0x1
+registerNumber RDX = 0x2
+registerNumber RBX = 0x3
+registerNumber RSP = 0x4
+registerNumber RBP = 0x5
+registerNumber RSI = 0x6
+registerNumber RDI = 0x7
 
 compileX64 :: TypedProgram -> Compiler ()
 compileX64 = (fixupAddressesX64 =<<) . compileInterX64
@@ -24,10 +45,32 @@ compileStmtInterX64 :: TypedStatement -> Compiler [InterOpcode]
 compileStmtInterX64 (TLabel name) = pure [Label (unLoc name)]
 compileStmtInterX64 (TInstr i ts) = compileInstrInterX64 (unLoc i) (unLoc <$> ts)
 
+-- Opcode*	        Instruction	        Op/En	64-Bit Mode	Compat/Leg Mode	Description
 compileInstrInterX64 :: Instruction -> [Type] -> Compiler [InterOpcode]
-compileInstrInterX64 RET []   = pure [Byte 0xC3]
-compileInstrInterX64 RET args = internalError $ "Expected [] but got " <> show args <> " as arguments for " <> show RET
-compileInstrInterX64 i args   = error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
+-- C3	                RET	                ZO	Valid	        Valid	                Near return to calling procedure.
+compileInstrInterX64 RET []                                    =
+  pure [Byte 0xC3]
+compileInstrInterX64 RET args                                  =
+  internalError $ "Expected [] but got " <> show args <> " as arguments for " <> show RET
+-- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
+compileInstrInterX64 (MOV src (Reg dst :@ _)) [Unsigned 64, Register 64] =
+  ([rexW, Byte (0xB8 + registerNumber (unLoc dst))] <>) <$> compileExprX64 64 (unLoc src)
+compileInstrInterX64 i args                                    =
+  error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
+
+compileExprX64 :: Integer -> Expr -> Compiler [InterOpcode]
+compileExprX64 n (Imm i) = case (n, unLoc i) of
+  (64, I int) -> pure (Byte <$> int64 int)
+  (64, C c)   -> pure (Byte <$> char8 c)
+-- ^^^^^ all these matches are intentionally left incomplete.
+
+int64 :: Integer -> [Word8]
+int64 = BS.unpack . runPut . putWord64le . fromIntegral
+
+char8 :: Char -> [Word8]
+char8 = BS.unpack . runPut . putWord8 . fromIntegral . ord
+
+---------------------------------------------------------------------------------------------------------------------
 
 fixupAddressesX64 :: [InterOpcode] -> Compiler ()
 fixupAddressesX64 os = fixupAddressesX64Internal (findLabelsAddresses os) os
@@ -37,11 +80,8 @@ fixupAddressesX64 os = fixupAddressesX64Internal (findLabelsAddresses os) os
    fixupAddressesX64Internal labelsAddresses (Byte b:os)    = tell (MInfo [b] mempty) *> fixupAddressesX64Internal labelsAddresses os
    fixupAddressesX64Internal labelsAddresses (Label n:os)   = fixupAddressesX64Internal labelsAddresses os
    fixupAddressesX64Internal labelsAddresses (Jump n:os)    =
-     let addr = maybe (internalError $ "Label " <> show n <> " not found during codegen.") to4BLittleEndian (Map.lookup n labelsAddresses)
+     let addr = maybe (internalError $ "Label " <> show n <> " not found during codegen.") int64 (Map.lookup n labelsAddresses)
      in tell (MInfo addr mempty) *> fixupAddressesX64Internal labelsAddresses os
-
-to4BLittleEndian :: Integer -> [Word8]
-to4BLittleEndian n = fromIntegral <$> [n .&. 0xff, (n .&. 0xff00) `shiftR` 16, (n .&. 0xff0000) `shiftR` 24, (n .&. 0xff000000) `shiftR` 32]
 
 findLabelsAddresses :: [InterOpcode] -> Map Text Integer
 findLabelsAddresses = findLabelsAddressesInternal 0
