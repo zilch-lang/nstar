@@ -1,3 +1,5 @@
+{-# LANGUAGE BinaryLiterals #-}
+
 module Language.NStar.CodeGen.Machine.X64 (compileX64) where
 
 import Language.NStar.CodeGen.Compiler
@@ -17,10 +19,22 @@ import Data.Text (Text)
 import Data.Binary.Put
 import qualified Data.ByteString.Lazy as BS (unpack)
 import Data.Char (ord)
+import Data.Bits ((.&.), (.|.), shiftL)
 
 -- | REX with only the W bit set, so it indicates 64-bit operand size, but no high registers.
 rexW :: InterOpcode
 rexW = Byte 0x48
+
+-- | Creates the ModR/M byte from the mode, the destination register and the source register\/memory.
+modRM :: Word8    -- ^ [0b11]      register-direct addressing mode
+                  --   [otherwise] register-indirect addressing mode
+      -> Word8    -- ^ Destination register encoding, see 'registerNumber' for how to obtain it.
+      -> Word8    -- ^ Source register encoding, see 'registerNumber' for how to obtain it.
+      -> InterOpcode
+modRM mod reg rm = Byte $
+      ((mod .&. 0b11)  `shiftL` 6)
+  .|. ((reg .&. 0b111) `shiftL` 3)
+  .|. ((rm  .&. 0b111) `shiftL` 0)
 
 -- | Associates registers with their 4-bits encoding.
 --
@@ -55,6 +69,10 @@ compileInstrInterX64 RET args                                  =
 -- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
 compileInstrInterX64 (MOV src (Reg dst :@ _)) [Unsigned 64, Register 64] =
   ([rexW, Byte (0xB8 + registerNumber (unLoc dst))] <>) <$> compileExprX64 64 (unLoc src)
+-- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
+compileInstrInterX64 (MOV src (Reg dst :@ _)) [Register 64, Register 64] = do
+  let Reg s :@ _ = src
+  pure [rexW, Byte 0x8B, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc s))]
 compileInstrInterX64 i args                                    =
   error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
 
