@@ -78,5 +78,4 @@ tryCompile flags file = do
       let elfObject = compileToElf X64 p
       let bytes = compile @S64 LE elfObject   -- we want little endian as a test
       Elf.writeFile "./test.o" bytes
-
       exitSuccess
