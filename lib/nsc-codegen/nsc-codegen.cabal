@@ -25,6 +25,7 @@ library
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
   build-depends:
       base >=4.7 && <5
+    , binary
     , bytestring >=0.10
     , containers
     , diagnose
