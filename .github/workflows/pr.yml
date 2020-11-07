@@ -13,6 +13,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        
+      - name: Clean `.cabal` files
+        run: find . -type f -name '*.cabal' -delete
           
    #############################################################################
       
@@ -22,8 +25,14 @@ jobs:
       - name: Install GHC
         run: stack setup --install-ghc
         
-      - name: Install required programs
-        run: echo "---- C2HS ----"; stack install c2hs
+      - name: Install required tools
+        run: | 
+          echo "::group::C2HS"; stack install c2hs
+          echo "::add-path::~/.local/bin"
+          echo "::end-group::"
+          
+          echo "::group::glibc v2.31"; sudo apt-get install libc-dev
+          echo "::end-group::"
           
       - name: Build Haskell dependencies
         run: stack build --test --no-run-tests --only-dependencies --no-terminal
