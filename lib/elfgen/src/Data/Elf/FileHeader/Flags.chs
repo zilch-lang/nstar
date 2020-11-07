@@ -19,8 +19,6 @@ module Data.Elf.FileHeader.Flags
 , ef_arm_eabi_unknown, ef_arm_eabi_ver1, ef_arm_eabi_ver2, ef_arm_eabi_ver3, ef_arm_eabi_ver4, ef_arm_eabi_ver5
   -- * IA-64 specific flags
 , ef_ia_64_abi64, ef_ia_64_arch
-  -- * C-SKY specific flags
-, ef_csky_other, ef_csky_processor, ef_csky_abiv1, ef_csky_abiv2
 ) where
 
 #include <elf.h>
@@ -191,18 +189,3 @@ ef_ia_64_abi64 = Flag {#const EF_IA_64_ABI64#}
 -- | architecture version mask
 ef_ia_64_arch :: ValueSet n => Flag n
 ef_ia_64_arch = Flag {#const EF_IA_64_ARCH#}
-
-
--- C-SKY specific flags
-
-ef_csky_other :: ValueSet n => Flag n
-ef_csky_other = Flag {#const EF_CSKY_OTHER#}
-
-ef_csky_processor :: ValueSet n => Flag n
-ef_csky_processor = Flag {#const EF_CSKY_PROCESSOR#}
-
-ef_csky_abiv1 :: ValueSet n => Flag n
-ef_csky_abiv1 = Flag {#const EF_CSKY_ABIV1#}
-
-ef_csky_abiv2 :: ValueSet n => Flag n
-ef_csky_abiv2 = Flag {#const EF_CSKY_ABIV2#}
