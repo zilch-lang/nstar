@@ -2,6 +2,8 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE BlockArguments #-}
 {-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DataKinds #-}
 
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
@@ -10,6 +12,10 @@ module Main where
 
 import Language.NStar.Syntax (lexFile, parseFile)
 import Language.NStar.Typechecker (typecheck)
+import Language.NStar.CodeGen (SupportedArch(..), compileToElf)
+-- ! Experimental; remove once tested
+import Data.Elf as Elf (compile, Size(..), Endianness(..), writeFile)
+-- ! end
 import Text.Diagnose (printDiagnostic, (<~<))
 import System.IO (stderr, stdout)
 import qualified Data.Text as Text
@@ -65,6 +71,12 @@ tryCompile flags file = do
     Left diag    -> do
       printDiagnostic withColor stderr (diag <~< (file, lines $ Text.unpack content))
       exitFailure
-    Right (_, w) -> do
-      printDiagnostic withColor stderr (w <~< (file, lines $ Text.unpack content))
+    Right (p, _) -> do
+      -- ! Experimental codegen
+      --   For now, only write ELF output in a file named "test.o".
+
+      let elfObject = compileToElf X64 p
+      let bytes = compile @S64 LE elfObject   -- we want little endian as a test
+      Elf.writeFile "./test.o" bytes
+
       exitSuccess
