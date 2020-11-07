@@ -1,0 +1,18 @@
+name: nsc-codegen
+version: !include "../../version.yaml"
+
+library:
+  source-dirs: src
+
+default-extensions: !include "../../default-extensions.yaml"
+
+dependencies:
+- base >=4.7 && <5
+- diagnose
+- bytestring >=0.10
+- mtl
+- nsc-core
+- text
+- containers
+- elfgen
+- binary

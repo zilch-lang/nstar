@@ -55,6 +55,17 @@ jobs:
           
       - name: Install GHC
         run: stack setup --install-ghc
+
+      - name: Install required tools
+        run: | 
+          echo "::group::C2HS"
+          stack install c2hs
+          echo "PATH=~/.local/bin:$PATH" >> $GITHUB_ENV
+          echo "::end-group::"
+          
+          echo "::group::glibc v2.31"
+          sudo apt-get install libc-dev
+          echo "::end-group::"
           
       - name: Build Haskell dependencies
         run: stack build --test --no-run-tests --only-dependencies --no-terminal

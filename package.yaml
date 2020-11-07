@@ -23,6 +23,9 @@ dependencies:
 - nsc-core
 - nsc-parser
 - nsc-typechecker
+- nsc-codegen
+- elfgen
+- bytestring
 
 library:
   source-dirs: src

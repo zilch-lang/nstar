@@ -1,0 +1,28 @@
+name: elfgen
+version: 1.0.0
+
+library:
+  source-dirs: src
+
+default-extensions:
+- LambdaCase
+- BinaryLiterals
+- BlockArguments
+- TypeApplications
+- DataKinds
+- FlexibleInstances
+- MultiParamTypeClasses
+- ScopedTypeVariables
+- TypeFamilies
+- FlexibleContexts
+- UndecidableInstances
+- StandaloneDeriving
+- AllowAmbiguousTypes
+
+dependencies:
+- base >=4.7 && <5
+- bytestring
+- mtl
+- binary
+- containers
+- text
