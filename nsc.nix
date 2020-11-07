@@ -39,5 +39,7 @@ pkgs.mkShell {
   + ''
           (echo -e "\n\nTry linking \`test.o\`:"; ld ${pkgs.glibc}/lib/crt1.o ${pkgs.glibc}/lib/crti.o ${pkgs.gcc-unwrapped}/lib/gcc/*/*/crtbegin.o ./test.o ${pkgs.gcc-unwrapped}/lib/gcc/*/*/crtend.o ${pkgs.glibc}/lib/crtn.o -lc -o a.out) && \
           (echo -e "\n\nExecuting \`a.out\`:"; ./a.out)
+
+     (echo -en "\n\nExit code: "; echo $?)
   '';
 }
