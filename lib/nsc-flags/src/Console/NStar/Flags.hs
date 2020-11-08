@@ -25,9 +25,10 @@ import Control.Monad (join)
 import Data.List (intercalate)
 
 extractFlags :: IO Flags
-extractFlags = execParser opts
+extractFlags = customExecParser preferences opts
   where
     opts = info (cli <**> helper) (fullDesc)
+    preferences = prefs showHelpOnError
 
 cli :: Parser Flags
 cli =
