@@ -74,7 +74,7 @@ symbol' = MPL.symbol' space
 ---------------------------------------------------------------------------------------------------------------------------
 
 -- | Runs the program lexer on a given file, and returns either all the tokens identified in the source, or an error.
-lexFile :: (?lexerFlags :: LexerFlags)                  -- ^ Any command line flag the lexer needs
+lexFile :: (?lexerFlags :: LexerFlags)
         => FilePath                                     -- ^ File name
         -> Text                                         -- ^ File content
         -> Either (Diagnostic [] String Char) [LToken]
@@ -87,7 +87,7 @@ lexProgram :: (?lexerFlags :: LexerFlags) => Lexer [LToken]
 lexProgram = lexeme (pure ()) *> ((<>) <$> tokens <*> ((: []) <$> eof))
   where
     tokens = MP.many . lexeme $ MP.choice
-      [ comment, anySymbol, identifierOrKeyword, literal, eol ]
+      [ comment, identifierOrKeyword, literal, anySymbol, eol ]
 
 -- | Parses an end of line and returns 'EOL'.
 eol :: (?lexerFlags :: LexerFlags) => Lexer LToken
@@ -108,18 +108,20 @@ comment = lexeme $ located (inline MP.<|> multiline)
 
 -- | Parses any symbol like @[@ or @,@.
 anySymbol :: (?lexerFlags :: LexerFlags) => Lexer LToken
-anySymbol = lexeme . located . MP.choice $ sat <$>
-  [ (LParen, "("), (LBrace, "{"), (LBracket, "["), (LAngle, "<")
-  , (RParen, ")"), (RBrace, "}"), (RBracket, "]"), (RAngle, ">")
-  , (Star, "*")
-  , (Dollar, "$")
-  , (Percent, "%")
-  , (Comma, ",")
-  , (DoubleColon, "::"), (Colon, ":")
-  , (Dot, ".")
-  , (Minus, "-") ]
+anySymbol = lexeme . located . MP.choice $ sat <$> symbols
  where
    sat (ret, sym) = ret <$ MPC.string sym
+
+   symbols =
+     [ (LParen, "("), (LBrace, "{"), (LBracket, "["), (LAngle, "<")
+     , (RParen, ")"), (RBrace, "}"), (RBracket, "]"), (RAngle, ">")
+     , (Star, "*")
+     , (Dollar, "$")
+     , (Percent, "%")
+     , (Comma, ",")
+     , (DoubleColon, "::"), (Colon, ":")
+     , (Dot, ".")
+     , (Minus, "-") ]
 
 -- | Tries to parse an identifier. If the result appears to be a keyword, it instead returns a keyword.
 identifierOrKeyword :: (?lexerFlags :: LexerFlags) => Lexer LToken
