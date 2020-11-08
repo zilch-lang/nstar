@@ -12,7 +12,6 @@ library
   exposed-modules:
       Console.NStar.Flags
       Console.NStar.Flags.Internal
-      Console.NStar.Flags.Process
   other-modules:
       Paths_nsc_flags
   hs-source-dirs:
