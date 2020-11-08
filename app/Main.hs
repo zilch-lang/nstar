@@ -32,35 +32,15 @@ main = do
   flags <- extractFlags
   -- print flags
 
-  checkSanity flags
-
   forM_ (files flags) (tryCompile flags)
 
 ------------------------------------------------------------------------------------------------
 
-checkSanity :: CompilerFlags -> IO ()
-checkSanity CFlags{..} = do
-  flip Map.traverseWithKey flags \ n@(fmap toLower -> name) v@(fmap toLower -> val) -> do
-    guard (name `elem` knownConfigFlags)
-      <|> (putStrLn ("Unrecognized configuration flag '" <> n <> "'.") *> exitFailure)
-
-    case name of
-      "color-diagnostics" ->
-        guard (val == "yes" || val == "no")
-          <|> (putStrLn ("Expected either 'yes' or 'no' for configuration flag '" <> n <> "', but got '" <> v <> "'.") *> exitFailure)
-      _ -> error "configuration flag name already filtered out."
-
-  pure ()
-
-knownConfigFlags :: [String]
-knownConfigFlags = [ "color-diagnostics" ]
-
-
-tryCompile :: CompilerFlags -> String -> IO ()
+tryCompile :: Flags -> String -> IO ()
 tryCompile flags file = do
   content <- Text.readFile file
 
-  let withColor = maybe "yes" id (lookupFlag "color-diagnostics" flags) == "yes"
+  let withColor = diagnostic_color (configuration flags)
 
   let ?lexerFlags  = LexerFlags {}
   let ?parserFlags = ParserFlags {}
