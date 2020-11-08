@@ -8,7 +8,7 @@
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
 
-module Main where
+module Main (main) where
 
 import Language.NStar.Syntax (lexFile, parseFile)
 import Language.NStar.Typechecker (typecheck)
@@ -18,11 +18,14 @@ import Data.Elf as Elf (compile, Size(..), Endianness(..), writeFile)
 -- ! end
 import Text.Diagnose (printDiagnostic, (<~<))
 import System.IO (stderr, stdout)
-import qualified Data.Text as Text
-import qualified Data.Text.IO as Text
+import Data.Text (Text)
+import qualified Data.Text as Text (unpack)
+import Data.Text.Encoding (decodeUtf8)
+import System.IO (utf8, hSetEncoding, hGetContents)
 import Console.NStar.Flags
 import Control.Monad (forM_)
 import System.Exit (exitFailure, exitSuccess)
+import Data.ByteString (readFile, ByteString)
 
 main :: IO ()
 main = do
@@ -33,9 +36,9 @@ main = do
 
 ------------------------------------------------------------------------------------------------
 
-tryCompile :: Flags -> String -> IO ()
+tryCompile :: Flags -> FilePath -> IO ()
 tryCompile flags file = do
-  content <- Text.readFile file
+  content <- readFileUtf8 file
 
   let withColor = diagnostic_color (configuration flags)
 
@@ -56,3 +59,13 @@ tryCompile flags file = do
       let bytes = compile @S64 LE elfObject   -- we want little endian as a test
       Elf.writeFile "./test.o" bytes
       exitSuccess
+
+-- | Strictly read a file into a 'ByteString'.
+readFile :: FilePath -> IO ByteString
+readFile = Data.ByteString.readFile
+
+-- | Strictly read a file into a 'Text' using a UTF-8 character
+-- encoding. In the event of a character encoding error, a Unicode
+-- replacement character will be used (a.k.a., @lenientDecode@).
+readFileUtf8 :: FilePath -> IO Text
+readFileUtf8 = fmap decodeUtf8 . Main.readFile

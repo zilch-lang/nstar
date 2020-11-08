@@ -43,6 +43,7 @@ executables:
     - nsc-lib
     - nsc-flags
     - text
+    - bytestring
 
 tests:
   nsc-tests:
