@@ -21,11 +21,8 @@ import System.IO (stderr, stdout)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Console.NStar.Flags
-import Control.Monad (forM_, guard)
-import Control.Applicative ((<|>))
+import Control.Monad (forM_)
 import System.Exit (exitFailure, exitSuccess)
-import Data.Char (toLower)
-import qualified Data.Map as Map
 
 main :: IO ()
 main = do

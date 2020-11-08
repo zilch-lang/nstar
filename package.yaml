@@ -25,7 +25,6 @@ dependencies:
 - nsc-typechecker
 - nsc-codegen
 - elfgen
-- bytestring
 
 library:
   source-dirs: src
@@ -44,7 +43,6 @@ executables:
     - nsc-lib
     - nsc-flags
     - text
-    - containers
 
 tests:
   nsc-tests:
