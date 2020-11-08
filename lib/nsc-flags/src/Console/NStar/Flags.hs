@@ -79,7 +79,7 @@ instance Ord ErrorContext where
 
 instance Mega.ShowErrorComponent ErrorContext where
   showErrorComponent ErrCtx{..} =
-    intercalate " " (drop 1 (lines (Mega.parseErrorTextPretty err))) <> " in configuration definition for key '" <> inFields <> "'\n"
+    fold (drop 1 (lines (Mega.parseErrorTextPretty err))) <> " in configuration definition for key '" <> inFields <> "'"
 
 configFlags :: Mega.Parsec ErrorContext String (Map String (Maybe String))
 configFlags = uncurry Map.singleton <$> Mega.choice
