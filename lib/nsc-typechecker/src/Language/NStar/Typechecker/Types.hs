@@ -31,11 +31,12 @@ import Console.NStar.Flags (TypecheckerFlags(..))
 
 
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
-typecheck :: (?tcFlags :: TypecheckerFlags) => Program -> Either (Diagnostic s String m) (TypedProgram, Diagnostic s String m)
-typecheck p = second (second toDiag) $
+typecheck :: (?tcFlags :: TypecheckerFlags) => Program -> Either (Diagnostic s String m) (TypedProgram)
+typecheck p = --second (second toDiag) $
+              second fst $
               first toDiagnostic $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty mempty Nothing)))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
-        toDiag = foldl ((. fromTypecheckError) . (<++>)) diagnostic
+        --toDiag = foldl ((. fromTypecheckError) . (<++>)) diagnostic
 
 --------------------------------------------------------
 
