@@ -12,6 +12,7 @@ module Main (main) where
 
 import Language.NStar.Syntax (lexFile, parseFile)
 import Language.NStar.Typechecker (typecheck)
+import Language.NStar.Branchchecker (branchcheck)
 import Language.NStar.CodeGen (SupportedArch(..), compileToElf)
 -- ! Experimental; remove once tested
 import Data.Elf as Elf (compile, Size(..), Endianness(..), writeFile)
@@ -46,12 +47,17 @@ tryCompile flags file = do
   let ?parserFlags = ParserFlags {}
   let ?tcFlags     = TypecheckerFlags {}
 
-  let result = lexFile file content >>= parseFile file >>= typecheck
+  let result = do
+        tks  <- lexFile file content
+        ast  <- parseFile file tks
+        tast <- typecheck ast
+        branchcheck tast
+        pure tast
   case result of
     Left diag    -> do
       printDiagnostic withColor stderr (diag <~< (file, lines $ Text.unpack content))
       exitFailure
-    Right (p, _) -> do
+    Right p     -> do
       -- ! Experimental codegen
       --   For now, only write ELF output in a file named "test.o".
 
