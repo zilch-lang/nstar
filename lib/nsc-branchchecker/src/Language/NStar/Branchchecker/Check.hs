@@ -83,12 +83,16 @@ checkJumpgraphForConsistency = do
 checkCallsHaveRet :: Checker ()
 checkCallsHaveRet = do
   graph <- gets snd
-  let allCalls = filter (\ (j, _, _) -> j == Call) (Graph.edgeList graph)
+  let edges    = Graph.edgeList graph
+  let allCalls = filter (\ (j, _, _) -> j == Call) edges
 
-  unless (null allCalls) do
-    let c@(_, _, r):_ = allCalls
-    -- the first call is ALWAYS the call from _start to main
-    let remaining     = execState (checks r graph) [c]
+
+  unless (null edges || null allCalls) do
+    let (_, _, r):_ = edges
+    -- the first edge is the root of the whole jump graph
+    -- this is ideal because we have to start from the root
+    -- (because it's a directed graph)
+    let remaining     = execState (checks r graph) []
     case remaining of
       []          -> pure ()
       (_, _, c):_ -> throwError (NonReturningCall c)
