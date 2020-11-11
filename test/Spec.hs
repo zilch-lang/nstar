@@ -10,6 +10,7 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Language.NStar.Syntax (lexFile, parseFile)
 import Language.NStar.Typechecker (typecheck)
+import Language.NStar.Branchchecker (branchcheck)
 import Data.List (isInfixOf)
 import Text.Diagnose ((<~<), prettyText)
 import Data.Bifunctor (first)
@@ -19,6 +20,7 @@ data Error
   = Lx
   | Ps
   | Tc
+  | Bc
   | Any
   | No
  deriving Eq
@@ -27,6 +29,7 @@ instance Show Error where
   show Lx = "lexing"
   show Ps = "parsing"
   show Tc = "type-checking"
+  show Bc = "branch-checking"
   show Any = "any"
   show No = "no"
 
@@ -59,6 +62,7 @@ check file = do
         if | "error_lx_" `isInfixOf` file -> Lx
            | "error_ps_" `isInfixOf` file -> Ps
            | "error_tc_" `isInfixOf` file -> Tc
+           | "error_bc_" `isInfixOf` file -> Bc
            | "error_" `isInfixOf` file    -> Any
            | otherwise                    -> No
 
@@ -70,6 +74,7 @@ check file = do
         tokens <- first (, Lx) $ lexFile file content
         ast <- first (, Ps) $ parseFile file tokens
         ast <- first (, Tc) $ typecheck ast
+        _ <- first (, Bc) $ branchcheck ast
         pure ast
 
   specify file $
