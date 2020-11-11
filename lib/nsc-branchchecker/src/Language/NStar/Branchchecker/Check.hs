@@ -29,7 +29,20 @@ branchcheckProgram :: TypedProgram -> Checker ()
 branchcheckProgram (TProgram stts) = do
   -- set current scope to Nothing
   forM_ stts registerEdges
+
+  graph <- gets snd
+  let newGraph =
+        if programContainsMain stts
+        then graph
+        else Graph.removeEdge "_start" "main" graph
+  modify (second (const newGraph))
+  -- Remove the edge from "_start" to "main" if our AST does not contain a `main` label.
+  -- Else it causes problems like not branch-checking on an empty file.
+
   checkJumpgraphForConsistency
+  where
+    programContainsMain []                          = False
+    programContainsMain ((TLabel (l :@ _) :@ _):ss) = l == "main" || programContainsMain ss
 
 registerEdges :: Located TypedStatement -> Checker ()
 registerEdges (TLabel name :@ _) =
