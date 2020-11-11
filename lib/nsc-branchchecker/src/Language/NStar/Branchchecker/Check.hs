@@ -22,27 +22,26 @@ import Internal.Error (internalError)
 type Checker a = StateT (Maybe (Located Text), JumpGraph) (Except BranchcheckerError) a
 
 branchcheck :: TypedProgram -> Either (Diagnostic s String m) ()
-branchcheck p = first toDiagnostic $ runExcept (evalStateT (branchcheckProgram p) (Nothing, "_start"-<Call>-"main"))
-  where toDiagnostic = (diagnostic <++>) . fromBranchcheckerError                              --  ^^^^^^^^^^^ "a-<i>-b" really means "a -i-> b"
+branchcheck p = first toDiagnostic $ runExcept (evalStateT (branchcheckProgram p) (Nothing, Graph.empty))
+  where toDiagnostic = (diagnostic <++>) . fromBranchcheckerError
 
 branchcheckProgram :: TypedProgram -> Checker ()
 branchcheckProgram (TProgram stts) = do
-  -- set current scope to Nothing
-  forM_ stts registerEdges
-
   graph <- gets snd
-  let newGraph =
-        if programContainsMain stts
-        then graph
-        else Graph.removeEdge "_start" "main" graph
+  let newGraph = maybe graph (\ m -> (("_start" @ dummyPos)-<Call>-m) `Graph.overlay` graph) (programMain stts)
+                                                      --  ^^^^^^^^^^^ "a-<i>-b" really means "a -i-> b"
   modify (second (const newGraph))
   -- Remove the edge from "_start" to "main" if our AST does not contain a `main` label.
   -- Else it causes problems like not branch-checking on an empty file.
 
+  forM_ stts registerEdges
+
   checkJumpgraphForConsistency
   where
-    programContainsMain []                          = False
-    programContainsMain ((TLabel (l :@ _) :@ _):ss) = l == "main" || programContainsMain ss
+    programMain []                            = Nothing
+    programMain ((TLabel l@(n :@ _) :@ _):ss) = (if n == "main" then Just l else Nothing) <|> programMain ss
+
+    dummyPos = Position (1, 1) (1, 2) ""
 
 registerEdges :: Located TypedStatement -> Checker ()
 registerEdges (TLabel name :@ _) =
