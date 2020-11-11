@@ -14,10 +14,10 @@ data ConfigurationFlags
   deriving (Show)
 
 instance Semigroup ConfigurationFlags where
-  ConfigFlags dc1 <> ConfigFlags dc2 = ConfigFlags (dc1 || dc2)
+  ConfigFlags dc1 <> ConfigFlags dc2 = ConfigFlags (dc1 && dc2)
 
 instance Monoid ConfigurationFlags where
-  mempty = ConfigFlags False
+  mempty = ConfigFlags True
 
 -------------------------------------------------------------------------------
 

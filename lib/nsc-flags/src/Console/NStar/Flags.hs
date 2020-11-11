@@ -42,7 +42,7 @@ config = do
   fl <- option (eitherReader parseConfigFlag)
                (short 'f' <> metavar "OPTION[=VALUE]" <> hidden <> help "See available configuration OPTIONs at <https://github.com/zilch-lang/nsc/blob/develop/docs/compiler-options.md>" <> completeWith configKeys)
   pure $ mempty
-    { diagnostic_color = maybe False fromYesNo (join $ Map.lookup "color-diagnostics" fl) }
+    { diagnostic_color = maybe True fromYesNo (join $ Map.lookup "color-diagnostics" fl) }
   where
     configKeys =
       [ "color-diagnostics" ]
