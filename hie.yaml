@@ -20,3 +20,5 @@ cradle:
       component: "nsc-lib:test:nsc-tests"
     - path: "./lib/elfgen/src"
       component: "elfgen:lib"
+    - path: "./lib/nsc-branchchecker"
+      component: "nsc-branchchecker:lib"
