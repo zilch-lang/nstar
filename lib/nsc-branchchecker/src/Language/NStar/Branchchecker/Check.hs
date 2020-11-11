@@ -104,5 +104,8 @@ checkCallsHaveRet = do
           checks s (Graph.removeEdge root s g)
         Ret -> do
           pop
-    pop = gets tail >>= put
+    pop = do
+      get >>= \ case
+        []  -> pure ()
+        _:s -> put s
     push = modify . (:)
