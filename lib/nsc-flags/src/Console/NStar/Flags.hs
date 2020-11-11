@@ -31,24 +31,28 @@ extractFlags = customExecParser preferences opts
     preferences = prefs showHelpOnError
 
 cli :: Parser Flags
-cli =
-  Flags
+cli = do
+  f <- Flags
     <$> many (argument str (metavar "FILES..."))
     <*> (mconcat <$> many config)
+  pure f
 
 config :: Parser ConfigurationFlags
 config = do
-  fl <- option (eitherReader parseConfigFlag) (short 'f' <> metavar "OPTION[=VALUE]" <> hidden <> help "Sets the configuration key OPTION to the optional value VALUE")
-  configOptions
+  fl <- option (eitherReader parseConfigFlag)
+               (short 'f' <> metavar "OPTION[=VALUE]" <> hidden <> help "See available configuration OPTIONs at <https://github.com/zilch-lang/nsc/blob/develop/docs/compiler-options.md>" <> completeWith configKeys)
   pure $ mempty
     { diagnostic_color = maybe False fromYesNo (join $ Map.lookup "color-diagnostics" fl) }
+  where
+    configKeys =
+      [ "color-diagnostics" ]
 
 configOptions :: Parser ()
 configOptions = subparser $ commandGroup "Available configuration (option -f):" <> hidden <> fold
   [ command "color-diagnostics=<yes|no>" (noop $ progDesc "Whether to enable colored errors/messages" <> footer "Defaults to 'no' if unspecified")
   ]
   where
-    noop = info (option disabled idm)
+    noop = info (option (readerError "This should never be printed!") idm)
 
 
 
