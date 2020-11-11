@@ -3,8 +3,9 @@ module Language.NStar.Branchchecker.FlowGraph
 
 import Algebra.Graph.Labelled.AdjacencyMap (AdjacencyMap)
 import Data.Text (Text)
+import Data.Located (Located)
 
-type JumpGraph = AdjacencyMap JumpStyle Text
+type JumpGraph = AdjacencyMap JumpStyle (Located Text)
 
 data JumpStyle
   = Jump

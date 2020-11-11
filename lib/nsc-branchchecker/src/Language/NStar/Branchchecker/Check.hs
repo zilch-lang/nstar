@@ -18,6 +18,7 @@ import qualified Data.Set as Set
 import Control.Monad.Reader
 import Debug.Trace (traceShow)
 import Internal.Error (internalError)
+import Control.Applicative ((<|>))
 
 type Checker a = StateT (Maybe (Located Text), JumpGraph) (Except BranchcheckerError) a
 
@@ -28,7 +29,7 @@ branchcheck p = first toDiagnostic $ runExcept (evalStateT (branchcheckProgram p
 branchcheckProgram :: TypedProgram -> Checker ()
 branchcheckProgram (TProgram stts) = do
   graph <- gets snd
-  let newGraph = maybe graph (\ m -> (("_start" @ dummyPos)-<Call>-m) `Graph.overlay` graph) (programMain stts)
+  let newGraph = maybe graph (\ m -> (("_start" :@ dummyPos)-<Call>-m) `Graph.overlay` graph) (programMain stts)
                                                       --  ^^^^^^^^^^^ "a-<i>-b" really means "a -i-> b"
   modify (second (const newGraph))
   -- Remove the edge from "_start" to "main" if our AST does not contain a `main` label.
@@ -49,7 +50,7 @@ registerEdges (TLabel name :@ _) =
 registerEdges (TInstr i _ :@ p) = case unLoc i of
   RET -> do
     (lbl, graph) <- get
-    let Just (label :@ _) = lbl
+    let Just label = lbl
 
     -- fetch upwards the last call that got to the current label
     -- and insert an edge for each of the parents of those calls.
@@ -62,7 +63,7 @@ registerEdges (TInstr i _ :@ p) = case unLoc i of
   -- other instruction do not act on the control flow.
   _ -> pure ()
 
-fetchAllCallParents :: Text -> JumpGraph -> [Text]
+fetchAllCallParents :: Located Text -> JumpGraph -> [Located Text]
 fetchAllCallParents root graph =
   let predec  = Graph.preSet root graph
       labels  = Set.toList predec <&> \ p -> (p, Graph.edgeLabel p root graph)
@@ -89,8 +90,8 @@ checkCallsHaveRet = do
     -- the first call is ALWAYS the call from _start to main
     let remaining     = execState (checks r graph) [c]
     case remaining of
-      []           -> pure ()
-      (_, _, c):rs -> throwError (NonReturningCall (c :@ Position (1, 1) (1, 5) "test"))
+      []          -> pure ()
+      (_, _, c):_ -> throwError (NonReturningCall c)
   where
     checks root g = do
       let succs  = Graph.postSet root g
