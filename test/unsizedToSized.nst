@@ -1,0 +1,5 @@
+k: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s }::s, %rax: *s64 }
+   jmp l<s64, s>
+
+l: forall (a: Ta) (s: Ts). { %rax: *a, %rsp: sptr *{ %rsp: sptr s }::s }
+   ret

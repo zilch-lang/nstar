@@ -1,0 +1,5 @@
+f: forall (s: Ts). { %rsp: sptr s }
+   jmp g<s64>
+
+g: forall (s: Ts). { %rsp: sptr s64::s }
+  
