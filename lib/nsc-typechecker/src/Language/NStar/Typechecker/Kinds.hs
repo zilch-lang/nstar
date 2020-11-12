@@ -7,7 +7,7 @@
   Stability: experimental
 -}
 
-module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds) where
+module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds, kindcheckType) where
 
 {-
 
