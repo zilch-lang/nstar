@@ -41,6 +41,7 @@ branchcheckProgram (TProgram stts) = do
   where
     programMain []                            = Nothing
     programMain ((TLabel l@(n :@ _) :@ _):ss) = (if n == "main" then Just l else Nothing) <|> programMain ss
+    programMain (_:ss)                        = programMain ss
 
     dummyPos = Position (1, 1) (1, 2) ""
 
