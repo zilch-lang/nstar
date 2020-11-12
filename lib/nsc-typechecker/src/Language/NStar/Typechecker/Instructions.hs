@@ -12,13 +12,19 @@ import Language.NStar.Syntax.Core (Expr(..), Immediate(..))
 import Data.Located (Located(..), unLoc, getPos, Position)
 import qualified Data.Map as Map
 import Control.Monad.State (gets)
-import Control.Monad.Except (throwError, catchError)
+import Control.Monad.Except (liftEither, throwError, catchError)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Maybe (fromJust)
 import Data.Foldable (fold)
 import Console.NStar.Flags (TypecheckerFlags(..))
+import Internal.Error (internalError)
+import qualified Language.NStar.Typechecker.Env as Env (lookup)
+import Control.Monad (forM)
+import Data.Bifunctor (first)
+import Language.NStar.Typechecker.Kinds (unifyKinds, kindcheckType, runKindchecker)
+import Control.Monad (forM_)
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker [Located Type]
 tc_ret p = do
@@ -111,20 +117,46 @@ tc_mov (src :@ p1) (dest :@ p2) p = do
     _ -> error $ "Missing `mov` typechecking implementation for '" <> show src <> "' and '" <> show dest <> "'."
 
 tc_jmp :: (?tcFlags :: TypecheckerFlags) => Located Expr -> [Located Type] -> Position -> Typechecker [Located Type]
-tc_jmp (to :@ p1) tys p = do
+tc_jmp (Name n :@ p1) tys p = do
   -- Preconditions to check before jumping:
   --
   -- - the context we want to jump to shares a subset of the current context.
   --   so essentially the condition is: @newContext ⊆ currentContext@
   -- - the address we want to jump too (via a label, at least for now) has to exist in the scope
-  --   (the current file or one of the imported files, unless the symbols is marked as "dynamic" or "static").
+  --   (the current file or one of the imported files, unless the symbols is marked as "dynamic").
   -- - type applications must hold (most of it is basic kind checking to see if the types are actually in
   --   valid places).
   --   so we have to be able to unify the given specialisation and a relaxed version of the target context where
   --   type variables are substituted (we really need to check that the kind of the type variable at position N
   --   unifies with the kind of the specialisation at the index N).
 
+  typeEnv <- gets (typeEnvironment . snd)
+  labelCtx <- maybe (throwError (UnknownLabel n)) pure (Env.lookup n typeEnv)
+  let (typeVars, ctx) = fetchRigidTypevars labelCtx
+      nbOfSpec        = length tys
+      nbOfTVars       = length typeVars
+  case nbOfSpec `compare` nbOfTVars of
+    LT -> throwError (CannotInferSpecialization nbOfSpec nbOfTVars p)
+    GT -> throwError (TooMuchSpecialization nbOfSpec nbOfTVars p)
+    EQ -> pure ()
+
+  kindCtx <- gets (currentKindContext . snd)
+  specKinds <- forM tys \ ty -> do
+    liftEither $ first FromReport (runKindchecker (kindcheckType kindCtx ty))
+
+  let toUnify = zip (snd <$> typeVars) specKinds
+  forM_ toUnify \ (k1, k2) ->
+    liftEither $ first FromReport (runKindchecker (unifyKinds k1 k2))
+
+  typeCtx <- gets (currentTypeContext . snd)
+  catchError (unify (Record typeCtx :@ p) ctx)
+             (throwError . CannotJumpBecauseOf p)
+
   pure []
+  where
+    fetchRigidTypevars (ForAll binds ty :@ _) = (binds, ty)
+    fetchRigidTypevars ty                     = ([], ty)
+tc_jmp (t :@ p1) tys p = internalError $ "Cannot handle jump to non-label expression " <> show t
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
