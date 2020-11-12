@@ -291,4 +291,10 @@ parseJmp :: (?parserFlags :: ParserFlags) => Parser Instruction
 parseJmp =
   parseSymbol Jmp *>
     (JMP <$> located parseLabel
-         <*> MP.option [] (betweenAngles (MP.many (located parseType))))
+         <*> MP.option [] (betweenAngles (located ty `MP.sepBy` parseSymbol Comma)))
+  where
+    ty = MP.choice
+      [ unLoc <$> MP.try parseStackType
+      , unLoc <$> MP.try (betweenParens parseStackType)
+      , parseType
+      ]
