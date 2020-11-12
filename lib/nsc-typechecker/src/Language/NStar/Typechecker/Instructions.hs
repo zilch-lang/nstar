@@ -112,9 +112,17 @@ tc_mov (src :@ p1) (dest :@ p2) p = do
 
 tc_jmp :: (?tcFlags :: TypecheckerFlags) => Located Expr -> [Located Type] -> Position -> Typechecker [Located Type]
 tc_jmp (to :@ p1) tys p = do
-
-
-
+  -- Preconditions to check before jumping:
+  --
+  -- - the context we want to jump to shares a subset of the current context.
+  --   so essentially the condition is: @newContext ⊆ currentContext@
+  -- - the address we want to jump too (via a label, at least for now) has to exist in the scope
+  --   (the current file or one of the imported files, unless the symbols is marked as "dynamic" or "static").
+  -- - type applications must hold (most of it is basic kind checking to see if the types are actually in
+  --   valid places).
+  --   so we have to be able to unify the given specialisation and a relaxed version of the target context where
+  --   type variables are substituted (we really need to check that the kind of the type variable at position N
+  --   unifies with the kind of the specialisation at the index N).
 
   pure []
 
