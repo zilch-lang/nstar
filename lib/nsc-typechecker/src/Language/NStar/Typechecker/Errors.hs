@@ -33,6 +33,7 @@ data TypecheckError
   | ContextIsMissingOnReturn Position Position (Set (Located Register))
   | FromReport (Report String)
   | RegisterNotFoundInContext Register Position (Set (Located Register))
+  | UnknownLabel (Located Text)
 
 -- | Transforms a typechcking error into a report.
 fromTypecheckError :: TypecheckError -> Report String
@@ -47,6 +48,7 @@ fromTypecheckError (ToplevelReturn p)                          = returnAtTopLeve
 fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)       = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
 fromTypecheckError (FromReport r)                              = r
 fromTypecheckError (RegisterNotFoundInContext r p ctx)         = registerNotFoundInContext r p (Set.toList ctx)
+fromTypecheckError (UnknownLabel (n :@ p))                     = unknownLabel n p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -143,4 +145,11 @@ registerNotFoundInContext r p ctx =
     [ (p, This "")
     , (p, Where $ "Bound register" <> (if length ctx /= 1 then "s" else "") <> " at this point: " <> intercalate ", " (show . prettyText <$> ctx))
     , (p, Maybe "Try to set this register with a `mov`, or add it to the context of the nearest label.") ]
+    []
+
+unknownLabel :: Text -> Position -> Report String
+unknownLabel name callPos =
+  reportError ("Trying to jump to the label '" <> Text.unpack name <> "' but it has not been found in the file.")
+    [ (p, This "Label not found in file")
+    , (p, Maybe "Did you forget to declare its linkage type?") ]
     []
