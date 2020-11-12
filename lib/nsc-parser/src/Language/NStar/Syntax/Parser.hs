@@ -163,7 +163,9 @@ parseTypedLabel = lexeme $
 parseInstructionCall :: (?parserFlags :: ParserFlags) => Parser Statement
 parseInstructionCall = MP.choice $ fmap Instr <$>
   [ parseMov
-  , parseRet ]
+  , parseRet
+  , parseJmp
+  ]
 
 ------------------------------------------------------------------------------------------------------------
 
@@ -283,3 +285,10 @@ parseMov =
 -- | Parses a @ret@ instruction.
 parseRet :: (?parserFlags :: ParserFlags) => Parser Instruction
 parseRet = RET <$ parseSymbol Ret
+
+-- | Parses a @jmp@ instruction.
+parseJmp :: (?parserFlags :: ParserFlags) => Parser Instruction
+parseJmp =
+  parseSymbol Jmp *>
+    (JMP <$> located parseLabel
+         <*> MP.option [] (betweenAngles (MP.many (located parseType))))

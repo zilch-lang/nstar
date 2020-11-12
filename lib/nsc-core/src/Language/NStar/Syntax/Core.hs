@@ -113,6 +113,10 @@ data Instruction where
       -> Instruction
   -- | @ret@ returns the value in @'RAX'@ to the caller.
   RET :: Instruction
+  -- | @jmp@ alters the control flow by unconditionally jumping to the given address.
+  JMP :: Located Expr
+      -> [Located Type]
+      -> Instruction
 
   -- TODO: add more instructions
 
@@ -173,6 +177,8 @@ data Token where
   Mov :: Token
   -- | The @ret@ instruction
   Ret :: Token
+  -- | The @jmp@ instruction
+  Jmp :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@
