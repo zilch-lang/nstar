@@ -114,4 +114,5 @@ typecheckInstruction i p = do
     case i of
       RET         -> tc_ret p
       MOV src dst -> tc_mov src dst p
+      JMP lbl tys -> tc_jmp lbl tys p
       _           -> error $ "Unrecognized instruction '" <> show i <> "'."

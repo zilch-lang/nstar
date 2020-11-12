@@ -110,6 +110,14 @@ tc_mov (src :@ p1) (dest :@ p2) p = do
       pure [Register 64 :@ p1, Register 64 :@ p2] -- TODO: fetch actual size of register
     _ -> error $ "Missing `mov` typechecking implementation for '" <> show src <> "' and '" <> show dest <> "'."
 
+tc_jmp :: (?tcFlags :: TypecheckerFlags) => Located Expr -> [Located Type] -> Position -> Typechecker [Located Type]
+tc_jmp (to :@ p1) tys p = do
+
+
+
+
+  pure []
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
