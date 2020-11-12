@@ -150,7 +150,7 @@ tc_jmp (Name n :@ p1) tys p = do
 
   let sub = Subst (Map.fromList (zip (fromVar . fst <$> typeVars) tys))
   typeCtx <- gets (currentTypeContext . snd)
-  catchError (unify (Record typeCtx :@ p) (sub `apply` relax ctx))
+  catchError (unify (sub `apply` relax ctx) (Record typeCtx :@ p))
              (throwError . CannotJumpBecauseOf p)
 
   pure []
