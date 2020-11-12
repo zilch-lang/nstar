@@ -49,8 +49,9 @@ instance PrettyText Register where
       f RSP = "rsp"
 
 instance PrettyText Instruction where
-  prettyText (MOV s d) = text "mov" <+> prettyText s <> comma <+> prettyText d
-  prettyText (RET)     = text "ret"
+  prettyText (MOV s d)     = text "mov" <+> prettyText s <> comma <+> prettyText d
+  prettyText (RET)         = text "ret"
+  prettyText (JMP lbl tys) = text "jmp" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
 
 instance PrettyText Expr where
   prettyText (Imm i) = prettyText i
