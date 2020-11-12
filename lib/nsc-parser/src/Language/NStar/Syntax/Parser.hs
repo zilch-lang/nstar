@@ -70,7 +70,7 @@ parseFile = first (megaparsecBundleToDiagnostic "Parse error on input") .: MP.ru
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program
 parseProgram = noise *> (Program <$> MP.many instructions) <* parseEOF
-  where instructions = located (parseTypedLabel MP.<|> parseInstructionCall) <* (parseEOL MP.<|> parseEOF)
+  where instructions = located (parseTypedLabel MP.<|> parseInstructionCall) <* (() <$ MP.many parseEOL MP.<|> parseEOF)
         noise = lexeme (pure ()) *> MP.many (lexeme (MP.try parseEOL))
 
 -- | Parses the end of file. There is no guarantee that any parser will try to parse something after the end of file.
