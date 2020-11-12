@@ -65,3 +65,6 @@ instance Substitutable Type where
           keys []                     = []
           keys ((Var v :@ _, _) : xs) = v : keys xs
           keys ((t :@ _, _) : _)      = error ("Trying to get name of non-type variable '" <> show t <> "'")
+
+instance Substitutable Kind where
+  apply _ k = k
