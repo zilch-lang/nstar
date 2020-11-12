@@ -19,6 +19,7 @@ import Control.Monad.Reader
 import Debug.Trace (traceShow)
 import Internal.Error (internalError)
 import Control.Applicative ((<|>))
+import Language.NStar.Syntax.Core hiding (Token(..))
 
 type Checker a = StateT (Maybe (Located Text), JumpGraph) (Except BranchcheckerError) a
 
@@ -60,7 +61,13 @@ registerEdges (TInstr i _ :@ p) = case unLoc i of
     modify (second (const newGraph))
 
     pure ()
+  JMP (Name toLabel :@ _) _ -> do
+    (lbl, graph) <- get
+    let Just currentLabel = lbl
+        newGraph = graph `Graph.overlay` (currentLabel-<Jump>-toLabel)
+    modify (second (const newGraph))
 
+    pure ()
   -- other instruction do not act on the control flow.
   _ -> pure ()
 
