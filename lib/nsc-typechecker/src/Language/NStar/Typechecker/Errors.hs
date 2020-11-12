@@ -150,6 +150,6 @@ registerNotFoundInContext r p ctx =
 unknownLabel :: Text -> Position -> Report String
 unknownLabel name callPos =
   reportError ("Trying to jump to the label '" <> Text.unpack name <> "' but it has not been found in the file.")
-    [ (p, This "Label not found in file")
-    , (p, Maybe "Did you forget to declare its linkage type?") ]
+    [ (callPos, This "Label not found in file")
+    , (callPos, Maybe "Did you forget to declare its linkage type?") ]
     []
