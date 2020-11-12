@@ -88,7 +88,7 @@ checkCallsHaveRet = do
 
 
   unless (null edges || null allCalls) do
-    let (_, _, r):_ = edges
+    let (_, r, _):_ = edges
     -- the first edge is the root of the whole jump graph
     -- this is ideal because we have to start from the root
     -- (because it's a directed graph)
