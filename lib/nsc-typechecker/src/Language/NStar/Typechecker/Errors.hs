@@ -34,21 +34,25 @@ data TypecheckError
   | FromReport (Report String)
   | RegisterNotFoundInContext Register Position (Set (Located Register))
   | UnknownLabel (Located Text)
+  | CannotInferSpecialization Int Int Position
+  | TooMuchSpecialization Int Int Position
 
 -- | Transforms a typechcking error into a report.
 fromTypecheckError :: TypecheckError -> Report String
-fromTypecheckError (Uncoercible (t1 :@ p1) (t2 :@ p2))         = uncoercibleTypes (t1, p1) (t2, p2)
-fromTypecheckError (InfiniteType (t :@ p1) (v :@ p2))          = infiniteType (t, p1) (v, p2)
-fromTypecheckError (NoReturnAddress p ctx)                     = retWithoutReturnAddress p ctx
-fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2)) = recordDomainsDoNotSubset (m1, p1) (m2, p2)
-fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))     = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
-                                                                                   --      ^^^^^^^^^^^^^^^^^^^^^^^^
-                                                                                   -- This is just to insert a newline between error
-fromTypecheckError (ToplevelReturn p)                          = returnAtTopLevel p
-fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)       = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
-fromTypecheckError (FromReport r)                              = r
-fromTypecheckError (RegisterNotFoundInContext r p ctx)         = registerNotFoundInContext r p (Set.toList ctx)
-fromTypecheckError (UnknownLabel (n :@ p))                     = unknownLabel n p
+fromTypecheckError (Uncoercible (t1 :@ p1) (t2 :@ p2))          = uncoercibleTypes (t1, p1) (t2, p2)
+fromTypecheckError (InfiniteType (t :@ p1) (v :@ p2))           = infiniteType (t, p1) (v, p2)
+fromTypecheckError (NoReturnAddress p ctx)                      = retWithoutReturnAddress p ctx
+fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2))  = recordDomainsDoNotSubset (m1, p1) (m2, p2)
+fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))      = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
+                                                                                    --      ^^^^^^^^^^^^^^^^^^^^^^^^
+                                                                                    -- This is just to insert a newline between error
+fromTypecheckError (ToplevelReturn p)                           = returnAtTopLevel p
+fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)        = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
+fromTypecheckError (FromReport r)                               = r
+fromTypecheckError (RegisterNotFoundInContext r p ctx)          = registerNotFoundInContext r p (Set.toList ctx)
+fromTypecheckError (UnknownLabel (n :@ p))                      = unknownLabel n p
+fromTypecheckError (CannotInferSpecialization nbGot nbExpect p) = cannotInferSpecialization nbGot nbExpect p
+fromTypecheckError (TooMuchSpecialization ng ne p)              = tooMuchSpecialization ng ne p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -152,4 +156,16 @@ unknownLabel name callPos =
   reportError ("Trying to jump to the label '" <> Text.unpack name <> "' but it has not been found in the file.")
     [ (callPos, This "Label not found in file")
     , (callPos, Maybe "Did you forget to declare its linkage type?") ]
+    []
+
+cannotInferSpecialization :: Int -> Int -> Position -> Report String
+cannotInferSpecialization nbGot nbExpected p =
+  reportError ("Cannot infer type variable specialization for the missing " <> show (nbExpected - nbGot) <> " type parameters.")
+    [ (p, This $ "Expected " <> show nbExpected <> " type parameters") ]
+    [ hint "Type inference in not yet available when specializing type parameters. You have to specify all of them by hand for now." ]
+
+tooMuchSpecialization :: Int -> Int -> Position -> Report String
+tooMuchSpecialization nbGot nbExpected p =
+  reportError ("Specialized label only has " <> show nbExpected <> " type parameters but was expected to have " <> show nbGot <> ".")
+    [ (p, This "Too much type parameters given") ]
     []
