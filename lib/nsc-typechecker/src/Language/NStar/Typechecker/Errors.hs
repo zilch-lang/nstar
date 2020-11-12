@@ -36,6 +36,7 @@ data TypecheckError
   | UnknownLabel (Located Text)
   | CannotInferSpecialization Int Int Position
   | TooMuchSpecialization Int Int Position
+  | CannotJumpBecauseOf Position TypecheckError
 
 -- | Transforms a typechcking error into a report.
 fromTypecheckError :: TypecheckError -> Report String
@@ -53,6 +54,7 @@ fromTypecheckError (RegisterNotFoundInContext r p ctx)          = registerNotFou
 fromTypecheckError (UnknownLabel (n :@ p))                      = unknownLabel n p
 fromTypecheckError (CannotInferSpecialization nbGot nbExpect p) = cannotInferSpecialization nbGot nbExpect p
 fromTypecheckError (TooMuchSpecialization ng ne p)              = tooMuchSpecialization ng ne p
+fromTypecheckError (CannotJumpBecauseOf p err)                  = cannotJumpAt p <> reportWarning "\n" [] [] <> fromTypecheckError err
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -168,4 +170,10 @@ tooMuchSpecialization :: Int -> Int -> Position -> Report String
 tooMuchSpecialization nbGot nbExpected p =
   reportError ("Specialized label only has " <> show nbExpected <> " type parameters but was expected to have " <> show nbGot <> ".")
     [ (p, This "Too much type parameters given") ]
+    []
+
+cannotJumpAt :: Position -> Report String
+cannotJumpAt p =
+  reportError "Cannot jump to the label because of the following error:"
+    [ (p, This "Jumping was forbidden here") ]
     []
