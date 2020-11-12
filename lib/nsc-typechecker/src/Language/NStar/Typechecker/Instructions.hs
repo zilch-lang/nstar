@@ -148,14 +148,18 @@ tc_jmp (Name n :@ p1) tys p = do
   forM_ toUnify \ (k1, k2) ->
     liftEither $ first FromReport (runKindchecker (unifyKinds k1 k2))
 
+  let sub = Subst (Map.fromList (zip (fromVar . fst <$> typeVars) tys))
   typeCtx <- gets (currentTypeContext . snd)
-  catchError (unify (Record typeCtx :@ p) ctx)
+  catchError (unify (Record typeCtx :@ p) (sub `apply` relax ctx))
              (throwError . CannotJumpBecauseOf p)
 
   pure []
   where
     fetchRigidTypevars (ForAll binds ty :@ _) = (binds, ty)
     fetchRigidTypevars ty                     = ([], ty)
+
+    fromVar (Var n :@ _) = n
+    fromVar t            = internalError $ "Cannot get name of non type-variable " <> show t
 tc_jmp (t :@ p1) tys p = internalError $ "Cannot handle jump to non-label expression " <> show t
 
 ---------------------------------------------------------------------------------------------------------------------------------------
@@ -235,3 +239,14 @@ bind (var, p1) (ty, p2)
   | otherwise             = pure (Subst (Map.singleton var (ty :@ p2)))
  where
    occursCheck v t = v `Set.member` freeVars t
+
+relax :: Located Type -> Located Type
+relax (t :@ p) = relaxType t :@ p
+  where
+    relaxType (Cons t1 t2) = Cons (relax t1) (relax t2)
+    relaxType (Var n)      = FVar n
+    relaxType (Record ms)  = Record (relax <$> ms)
+    relaxType (Ptr t)      = Ptr (relax t)
+    relaxType (SPtr t)     = SPtr (relax t)
+    relaxType (ForAll _ t) = unLoc $ relax t
+    relaxType t            = t
