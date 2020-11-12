@@ -1,0 +1,6 @@
+f: { %rax: u64 }
+   jmp g
+
+g: {}
+   mov 0, %rax
+   jmp f
