@@ -29,6 +29,8 @@ import Data.Typeable (Typeable)
 newtype Program
   = Program [Located Statement]  -- ^ A program is a possibily empty list of statements
 
+deriving instance Show Program
+
 -- | A statement is either
 data Statement where
   -- | A typed label

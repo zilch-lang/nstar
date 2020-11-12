@@ -14,10 +14,21 @@ import qualified Data.Text as Text
 import Data.Located (unLoc, Located)
 import qualified Data.Map as Map
 
+instance PrettyText Program where
+  prettyText (Program stts) =
+    vsep (fmap prettyText stts)
+
+instance PrettyText Statement where
+  prettyText (Label name ty) = prettyText name <> colon <+> prettyText ty
+  prettyText (Instr i)       = prettyText i
+
 instance PrettyText Kind where
   prettyText T8 = text "T8"
   prettyText Ta = text "Ta"
   prettyText Ts = text "Ts"
+
+instance PrettyText Text.Text where
+  prettyText t = text (Text.unpack t)
 
 instance PrettyText t => PrettyText (Located t) where
   prettyText = prettyText . unLoc
@@ -34,7 +45,7 @@ instance PrettyText Type where
   prettyText (Record maps) = encloseSep lbrace rbrace comma (Map.foldlWithKey f [] maps)
     where f list reg ty = (prettyText reg <+> colon <+> prettyText ty) : list
   prettyText (ForAll binds ty) = text "forall" <+> hsep (output <$> binds) <> dot <+> prettyText ty
-    where output (var, kind) = prettyText var <+> colon <+> prettyText kind
+    where output (var, kind) = parens $ prettyText var <+> colon <+> prettyText kind
 
 instance PrettyText Register where
   prettyText = (text "%" <>) . text . f
