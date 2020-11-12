@@ -32,3 +32,6 @@ insert k v (Env m) = Env (Map.insert k v m)
 
 fromList :: [(Located Text, Located t)] -> Env t
 fromList = Env . Map.fromList
+
+lookup :: Located Text -> Env t -> Maybe t
+lookup k (Env m) = Map.lookup k m
