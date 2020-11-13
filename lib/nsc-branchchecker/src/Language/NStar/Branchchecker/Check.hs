@@ -29,22 +29,26 @@ branchcheck p = first toDiagnostic $ runExcept (evalStateT (branchcheckProgram p
 
 branchcheckProgram :: TypedProgram -> Checker ()
 branchcheckProgram (TProgram stts) = do
-  graph <- gets snd
-  let newGraph = maybe graph (\ m -> (("_start" :@ dummyPos)-<Call>-m) `Graph.overlay` graph) (programMain stts)
-                                                      --  ^^^^^^^^^^^ "a-<i>-b" really means "a -i-> b"
-  modify (second (const newGraph))
-  -- Remove the edge from "_start" to "main" if our AST does not contain a `main` label.
-  -- Else it causes problems like not branch-checking on an empty file.
-
+  forM_ stts registerAllLabelsAsVertices
   forM_ stts registerEdges
 
   checkJumpgraphForConsistency
-  where
-    programMain []                            = Nothing
-    programMain ((TLabel l@(n :@ _) :@ _):ss) = (if n == "main" then Just l else Nothing) <|> programMain ss
-    programMain (_:ss)                        = programMain ss
 
-    dummyPos = Position (1, 1) (1, 2) ""
+dummyPos :: Position
+dummyPos = Position (1, 1) (1, 2) ""
+
+registerAllLabelsAsVertices :: Located TypedStatement -> Checker ()
+registerAllLabelsAsVertices (TLabel name :@ _) = do
+  graph <- gets snd
+  let newGraph =
+        if name == ("main" :@ dummyPos)
+        then graph `Graph.overlay` (("_start" :@ dummyPos)-<Call>-name)
+        else graph
+          -- Register the edge from "_start" to "main" if our AST contains a `main` label.
+          -- Else it causes problems like not branch-checking on an empty file.
+  let ngraph = newGraph `Graph.overlay` Graph.vertex name
+  modify (second (const ngraph))
+registerAllLabelsAsVertices _ = pure ()
 
 registerEdges :: Located TypedStatement -> Checker ()
 registerEdges (TLabel name :@ _) =
@@ -57,7 +61,10 @@ registerEdges (TInstr i _ :@ p) = case unLoc i of
     -- fetch upwards the last call that got to the current label
     -- and insert an edge for each of the parents of those calls.
     let parents  = fetchAllCallParents label graph
-        newGraph = foldl' (\ g p -> Graph.overlay g (label-<Ret>-p)) graph parents
+        newGraph =
+          if not (null parents)
+          then foldl' (\ g p -> Graph.overlay g (label-<Ret>-p)) graph parents
+          else graph `Graph.overlay` (label-<Ret>-("@_unknown" :@ dummyPos))
     modify (second (const newGraph))
 
     pure ()
@@ -85,6 +92,7 @@ fetchAllCallParents root graph =
 checkJumpgraphForConsistency :: Checker ()
 checkJumpgraphForConsistency = do
   checkCallsHaveRet
+  checkNoControlFlowLeak
 
   pure ()
 
@@ -121,3 +129,13 @@ checkCallsHaveRet = do
         []  -> pure ()
         _:s -> put s
     push = modify . (:)
+
+checkNoControlFlowLeak :: Checker ()
+checkNoControlFlowLeak = do
+  graph <- gets snd
+  let vertices = Set.filter (/= ("@_unknown" :@ dummyPos)) $ Graph.vertexSet graph
+  forM_ vertices \ v -> do
+    let succs = Graph.postSet v graph
+
+    when (null succs) do
+      throwError (ControlFlowLeak v v)
