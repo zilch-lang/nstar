@@ -139,3 +139,4 @@ checkNoControlFlowLeak = do
 
     when (null succs) do
       throwError (ControlFlowLeak v v)
+    -- TODO: we will have to also check whether it MAY leak, for example on a conditional jump.
