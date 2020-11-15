@@ -136,6 +136,7 @@ identifierOrKeyword = lexeme $ located do
       "mov"    -> Mov
       "ret"    -> Ret
       "jmp"    -> Jmp
+      "call"   -> Call
       -- Registers
       "rax"    -> Rax
       "rbx"    -> Rbx

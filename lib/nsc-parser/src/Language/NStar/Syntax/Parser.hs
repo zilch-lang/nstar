@@ -165,6 +165,7 @@ parseInstructionCall = MP.choice $ fmap Instr <$>
   [ parseMov
   , parseRet
   , parseJmp
+  , parseCall
   ]
 
 ------------------------------------------------------------------------------------------------------------
@@ -291,10 +292,17 @@ parseJmp :: (?parserFlags :: ParserFlags) => Parser Instruction
 parseJmp =
   parseSymbol Jmp *>
     (JMP <$> located parseLabel
-         <*> MP.option [] (betweenAngles (located ty `MP.sepBy` parseSymbol Comma)))
-  where
-    ty = MP.choice
-      [ unLoc <$> MP.try parseStackType
-      , unLoc <$> MP.try (betweenParens parseStackType)
-      , parseType
-      ]
+         <*> MP.option [] (betweenAngles (parseSpecialization `MP.sepBy` parseSymbol Comma)))
+
+parseSpecialization :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseSpecialization = located $ MP.choice
+  [ unLoc <$> MP.try parseStackType
+  , unLoc <$> MP.try (betweenParens parseStackType)
+  , parseType
+  ]
+
+parseCall :: (?parserFlags :: ParserFlags) => Parser Instruction
+parseCall =
+  parseSymbol Call *>
+    (CALL <$> located parseLabel
+          <*> MP.option [] (betweenAngles (parseSpecialization `MP.sepBy` parseSymbol Comma)))
