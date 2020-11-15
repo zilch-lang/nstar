@@ -20,6 +20,7 @@ import Data.Binary.Put
 import qualified Data.ByteString.Lazy as BS (unpack)
 import Data.Char (ord)
 import Data.Bits ((.&.), (.|.), shiftL)
+import Debug.Trace (traceShow)
 
 -- | REX with only the W bit set, so it indicates 64-bit operand size, but no high registers.
 rexW :: InterOpcode
@@ -73,6 +74,9 @@ compileInstrInterX64 (MOV src (Reg dst :@ _)) [Unsigned 64, Register 64] =
 compileInstrInterX64 (MOV src (Reg dst :@ _)) [Register 64, Register 64] = do
   let Reg s :@ _ = src
   pure [rexW, Byte 0x8B, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc s))]
+-- E9 cd	        JMP rel32	        D	Valid	        Valid	                Jump near, relative, RIP = RIP + 32-bit displacement sign extended to 64-bits
+compileInstrInterX64 (JMP (Name n :@ _) _) []                              =
+  pure [Byte 0xE9, Jump (unLoc n)]
 compileInstrInterX64 i args                                    =
   error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
 
@@ -85,21 +89,24 @@ compileExprX64 n (Imm i) = case (n, unLoc i) of
 int64 :: Integer -> [Word8]
 int64 = BS.unpack . runPut . putWord64le . fromIntegral
 
+int32 :: Integer -> [Word8]
+int32 = BS.unpack . runPut . putWord32le . fromIntegral
+
 char8 :: Char -> [Word8]
 char8 = BS.unpack . runPut . putWord8 . fromIntegral . ord
 
 ---------------------------------------------------------------------------------------------------------------------
 
 fixupAddressesX64 :: [InterOpcode] -> Compiler ()
-fixupAddressesX64 os = fixupAddressesX64Internal (findLabelsAddresses os) os
+fixupAddressesX64 os = fixupAddressesX64Internal (findLabelsAddresses os) os 0
  where
-   fixupAddressesX64Internal :: Map Text Integer -> [InterOpcode] -> Compiler ()
-   fixupAddressesX64Internal labelsAddresses []             = tell (MInfo [] labelsAddresses)
-   fixupAddressesX64Internal labelsAddresses (Byte b:os)    = tell (MInfo [b] mempty) *> fixupAddressesX64Internal labelsAddresses os
-   fixupAddressesX64Internal labelsAddresses (Label n:os)   = fixupAddressesX64Internal labelsAddresses os
-   fixupAddressesX64Internal labelsAddresses (Jump n:os)    =
-     let addr = maybe (internalError $ "Label " <> show n <> " not found during codegen.") int64 (Map.lookup n labelsAddresses)
-     in tell (MInfo addr mempty) *> fixupAddressesX64Internal labelsAddresses os
+   fixupAddressesX64Internal :: Map Text Integer -> [InterOpcode] -> Integer -> Compiler ()
+   fixupAddressesX64Internal labelsAddresses [] _             = tell (MInfo [] labelsAddresses)
+   fixupAddressesX64Internal labelsAddresses (Byte b:os) i    = tell (MInfo [b] mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 1)
+   fixupAddressesX64Internal labelsAddresses (Label n:os) i   = fixupAddressesX64Internal labelsAddresses os i
+   fixupAddressesX64Internal labelsAddresses (Jump n:os) i    = do
+     let addr = maybe (internalError $ "Label " <> show n <> " not found during codegen.") (int32 . (subtract (i + 4))) (Map.lookup n labelsAddresses)
+     tell (MInfo addr mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 4)
 
 findLabelsAddresses :: [InterOpcode] -> Map Text Integer
 findLabelsAddresses = findLabelsAddressesInternal 0
@@ -107,5 +114,5 @@ findLabelsAddresses = findLabelsAddressesInternal 0
     findLabelsAddressesInternal :: Integer -> [InterOpcode] -> Map Text Integer
     findLabelsAddressesInternal n []            = mempty
     findLabelsAddressesInternal n (Byte _:os)   = findLabelsAddressesInternal (n + 1) os
-    findLabelsAddressesInternal n (Label l:os)  = Map.insert l n (findLabelsAddressesInternal (n + 4) os)
+    findLabelsAddressesInternal n (Label l:os)  = Map.insert l n (findLabelsAddressesInternal n os)
     findLabelsAddressesInternal n (Jump l:os)   = findLabelsAddressesInternal (n + 4) os
