@@ -60,3 +60,4 @@ tests:
     - hspec
     - text
     - Glob
+    - spoon

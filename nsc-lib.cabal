@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e500bf6b721b431565db51137d990b1c97243630226093ca14f15687e99f3f0f
+-- hash: 6275f0c1f86d35f8f4fee8f94322598ef8431a1c6ba00cd5150769fe528ac5bb
 
 name:           nsc-lib
 version:        0.0.1.0
@@ -92,5 +92,6 @@ test-suite nsc-tests
     , nsc-lib
     , nsc-parser
     , nsc-typechecker
+    , spoon
     , text
   default-language: Haskell2010
