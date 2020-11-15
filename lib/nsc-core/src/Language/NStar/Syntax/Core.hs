@@ -119,6 +119,11 @@ data Instruction where
   JMP :: Located Expr
       -> [Located Type]
       -> Instruction
+  -- | @call@ alters the control flow by pushing the current address onto the stack and jumping
+  --   to the given address (either as a label or in a register).
+  CALL :: Located Expr
+       -> [Located Type]
+       -> Instruction
 
   -- TODO: add more instructions
 
@@ -181,6 +186,8 @@ data Token where
   Ret :: Token
   -- | The @jmp@ instruction
   Jmp :: Token
+  -- | The @call@ instruction
+  Call :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@
