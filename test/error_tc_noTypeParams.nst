@@ -1,0 +1,4 @@
+w: { %rax: u64 }
+   jmp k<>
+
+k: forall (a: T8). { %rbx: a }

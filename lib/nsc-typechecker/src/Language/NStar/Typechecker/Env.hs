@@ -13,6 +13,7 @@ module Language.NStar.Typechecker.Env
 , union
 , insert
 , fromList
+, Language.NStar.Typechecker.Env.lookup
 ) where
 
 import Data.Map (Map)
@@ -32,3 +33,6 @@ insert k v (Env m) = Env (Map.insert k v m)
 
 fromList :: [(Located Text, Located t)] -> Env t
 fromList = Env . Map.fromList
+
+lookup :: Located Text -> Env t -> Maybe (Located t)
+lookup k (Env m) = Map.lookup k m

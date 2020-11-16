@@ -1,0 +1,5 @@
+f: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s}::s }
+   jmp g<s>
+
+g: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s }::s }
+   jmp f<s>

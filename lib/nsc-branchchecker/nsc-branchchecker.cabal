@@ -4,23 +4,26 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 
-name:           nsc-flags
+name:           nsc-branchchecker
 version:        0.0.1.0
 build-type:     Simple
 
 library
   exposed-modules:
-      Console.NStar.Flags
-      Console.NStar.Flags.Internal
+      Language.NStar.Branchchecker.Check
+      Language.NStar.Branchchecker.Errors
+      Language.NStar.Branchchecker.FlowGraph
   other-modules:
-      Paths_nsc_flags
+      Paths_nsc_branchchecker
   hs-source-dirs:
       src
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
   build-depends:
-      base >=4.7 && <5
+      algebraic-graphs
+    , base >=4.7 && <5
     , containers
-    , extra
-    , megaparsec
-    , optparse-applicative
+    , diagnose
+    , mtl
+    , nsc-core
+    , text
   default-language: Haskell2010

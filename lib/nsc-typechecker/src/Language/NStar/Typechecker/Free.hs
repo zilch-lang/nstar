@@ -38,7 +38,7 @@ instance Free Type where
   freeVars (Ptr t1)          = freeVars t1
   freeVars (SPtr t1)         = freeVars t1
   freeVars (ForAll binds ty) = freeVars ty Set.\\ freeVars (fst <$> binds)
-  freeVars (Record fields)   = Map.foldr ((<>) . freeVars) mempty fields
+  freeVars (Record fields _) = Map.foldr ((<>) . freeVars) mempty fields
   freeVars (Var _)           = mempty
   freeVars (Signed _)        = mempty
   freeVars (Unsigned _)      = mempty

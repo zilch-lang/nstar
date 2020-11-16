@@ -1,0 +1,5 @@
+f: { %rax: s64 }
+   jmp g
+
+g: { %rax: *s64 }
+   mov 0, %rbx

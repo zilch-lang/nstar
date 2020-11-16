@@ -1,0 +1,7 @@
+main: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s, %rax: s64 }::s }
+      call g<*{ %rsp: sptr s, %rax: s64 }::s>
+      ret
+
+g: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s, %rax: s64 }::s }
+   mov 0, %rax
+   ret

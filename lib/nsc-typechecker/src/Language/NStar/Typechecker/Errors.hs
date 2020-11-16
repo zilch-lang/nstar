@@ -33,20 +33,30 @@ data TypecheckError
   | ContextIsMissingOnReturn Position Position (Set (Located Register))
   | FromReport (Report String)
   | RegisterNotFoundInContext Register Position (Set (Located Register))
+  | UnknownLabel (Located Text)
+  | CannotInferSpecialization Int Int Position
+  | TooMuchSpecialization Int Int Position
+  | CannotJumpBecauseOf Position TypecheckError
+  | MissingRegistersInContext [Register] Position
 
 -- | Transforms a typechcking error into a report.
 fromTypecheckError :: TypecheckError -> Report String
-fromTypecheckError (Uncoercible (t1 :@ p1) (t2 :@ p2))         = uncoercibleTypes (t1, p1) (t2, p2)
-fromTypecheckError (InfiniteType (t :@ p1) (v :@ p2))          = infiniteType (t, p1) (v, p2)
-fromTypecheckError (NoReturnAddress p ctx)                     = retWithoutReturnAddress p ctx
-fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2)) = recordDomainsDoNotSubset (m1, p1) (m2, p2)
-fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))     = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
-                                                                                   --      ^^^^^^^^^^^^^^^^^^^^^^^^
-                                                                                   -- This is just to insert a newline between error
-fromTypecheckError (ToplevelReturn p)                          = returnAtTopLevel p
-fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)       = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
-fromTypecheckError (FromReport r)                              = r
-fromTypecheckError (RegisterNotFoundInContext r p ctx)         = registerNotFoundInContext r p (Set.toList ctx)
+fromTypecheckError (Uncoercible (t1 :@ p1) (t2 :@ p2))          = uncoercibleTypes (t1, p1) (t2, p2)
+fromTypecheckError (InfiniteType (t :@ p1) (v :@ p2))           = infiniteType (t, p1) (v, p2)
+fromTypecheckError (NoReturnAddress p ctx)                      = retWithoutReturnAddress p ctx
+fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2))  = recordDomainsDoNotSubset (m1, p1) (m2, p2)
+fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))      = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
+                                                                                    --      ^^^^^^^^^^^^^^^^^^^^^^^^
+                                                                                    -- This is just to insert a newline between error
+fromTypecheckError (ToplevelReturn p)                           = returnAtTopLevel p
+fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)        = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
+fromTypecheckError (FromReport r)                               = r
+fromTypecheckError (RegisterNotFoundInContext r p ctx)          = registerNotFoundInContext r p (Set.toList ctx)
+fromTypecheckError (UnknownLabel (n :@ p))                      = unknownLabel n p
+fromTypecheckError (CannotInferSpecialization nbGot nbExpect p) = cannotInferSpecialization nbGot nbExpect p
+fromTypecheckError (TooMuchSpecialization ng ne p)              = tooMuchSpecialization ng ne p
+fromTypecheckError (CannotJumpBecauseOf p err)                  = cannotJumpAt p <> reportWarning "\n" [] [] <> fromTypecheckError err
+fromTypecheckError (MissingRegistersInContext rs p)             = missingRegistersInContext rs p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -78,7 +88,7 @@ infiniteType (ty, p1) (var, p2) =
 -- | Happens when the union of the keys of the first map and of the second map is not equal to the keys of the first map.
 recordDomainsDoNotSubset :: (m ~ Map (Located Register) (Located Type)) => (m, Position) -> (m, Position) -> Report String
 recordDomainsDoNotSubset (m1, p1) (m2, p2) =
-  reportError ("All keys in '" <> show (prettyText $ Record m1) <> "' are not present in '" <> show (prettyText $ Record m2) <> "'")
+  reportError ("All keys in '" <> show (prettyText $ Record m1 False) <> "' are not present in '" <> show (prettyText $ Record m2 False) <> "'")
     [ (p1, This "") ]
     []
 
@@ -86,7 +96,7 @@ recordDomainsDoNotSubset (m1, p1) (m2, p2) =
 recordValuesDoNotUnify :: (m ~ Map (Located Register) (Located Type)) => (m, Position) -> (m, Position) -> Report String
 recordValuesDoNotUnify (m1, p1) (m2, p2) =
   reportError ("Record types cannot be coerced because at least one of their common fields cannot be coerced to each other.")
-    [ (p1, Where ("'" <> show (prettyText (Record m1)) <> "' cannot be coerced to '" <> show (prettyText (Record m2)) <> "'")) ]
+    [ (p1, Where ("'" <> show (prettyText (Record m1 False)) <> "' cannot be coerced to '" <> show (prettyText (Record m2 False)) <> "'")) ]
     [ hint "Visit <https://github.com/nihil-lang/nsc/blob/develop/docs/type-coercion.md> to learn about type coercion in N*." ]
 
 -- | Happens when a @ret@ instruction is not in a function. This also means that the instruction has no enclosing scope.
@@ -143,4 +153,35 @@ registerNotFoundInContext r p ctx =
     [ (p, This "")
     , (p, Where $ "Bound register" <> (if length ctx /= 1 then "s" else "") <> " at this point: " <> intercalate ", " (show . prettyText <$> ctx))
     , (p, Maybe "Try to set this register with a `mov`, or add it to the context of the nearest label.") ]
+    []
+
+unknownLabel :: Text -> Position -> Report String
+unknownLabel name callPos =
+  reportError ("Trying to jump to the label '" <> Text.unpack name <> "' but it has not been found in the file.")
+    [ (callPos, This "Label not found in file")
+    , (callPos, Maybe "Did you forget to declare its linkage type?") ]
+    []
+
+cannotInferSpecialization :: Int -> Int -> Position -> Report String
+cannotInferSpecialization nbGot nbExpected p =
+  reportError ("Cannot infer type variable specialization for the missing " <> show (nbExpected - nbGot) <> " type parameters.")
+    [ (p, This $ "Expected " <> show nbExpected <> " type parameters") ]
+    [ hint "Type inference in not yet available when specializing type parameters. You have to specify all of them by hand for now." ]
+
+tooMuchSpecialization :: Int -> Int -> Position -> Report String
+tooMuchSpecialization nbGot nbExpected p =
+  reportError ("Specialized label only has " <> show nbExpected <> " type parameters but was expected to have " <> show nbGot <> ".")
+    [ (p, This "Too much type parameters given") ]
+    []
+
+cannotJumpAt :: Position -> Report String
+cannotJumpAt p =
+  reportError "Cannot jump to the label because of the following error:"
+    [ (p, This "Jumping was forbidden here") ]
+    []
+
+missingRegistersInContext :: [Register] -> Position -> Report String
+missingRegistersInContext rs p =
+  reportError ("Context is missing some register binds")
+    [ (p, This ("Missing registers: " <> intercalate ", " (show . prettyText <$> rs))) ]
     []

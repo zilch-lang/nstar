@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilies #-}
+
 {-|
   Module: Language.NStar.Typechecker.Kinds
   Copyright: (c) Mesabloo, 2020
@@ -5,7 +7,7 @@
   Stability: experimental
 -}
 
-module Language.NStar.Typechecker.Kinds (kindcheck) where
+module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds, kindcheckType) where
 
 {-
 
@@ -32,6 +34,7 @@ import qualified Data.Map as Map
 import Control.Applicative (liftA2)
 import Language.NStar.Typechecker.Errors
 import Console.NStar.Flags (TypecheckerFlags(..))
+import Language.NStar.Typechecker.Subst
 
 type Kindchecker a = Except KindcheckError a
 
@@ -43,8 +46,11 @@ data KindcheckError
 
 --------------------------------------------------------------------------------------------
 
+runKindchecker :: (?tcFlags :: TypecheckerFlags) => Kindchecker a -> Either (Report String) a
+runKindchecker = first fromKindcheckError . runExcept
+
 kindcheck :: (?tcFlags :: TypecheckerFlags) => Located Type -> Either (Report String) ()
-kindcheck = second (const ()) . first fromKindcheckError . runExcept . kindcheckType mempty
+kindcheck = second (const ()) . runKindchecker . kindcheckType mempty
 
 fromKindcheckError :: KindcheckError -> Report String
 fromKindcheckError (NotAStackType (k :@ p1) p2)   = kindIsNotAStackKind k p1 p2
@@ -67,7 +73,7 @@ kindcheckType ctx (Cons t1@(_ :@ p1) t2@(_ :@ p2) :@ p)  = do
   liftA2 (*>) (requireDataType p1) (requireSized p1) =<< kindcheckType ctx t1
   requireStackType p2 =<< kindcheckType ctx t2
   pure (Ts :@ p)
-kindcheckType ctx (Record mappings :@ p)                 =
+kindcheckType ctx (Record mappings _ :@ p)               =
   (Ta :@ p) <$ Map.traverseWithKey handleTypeFromRegister mappings
        -- FIXME: Kind checking does not take into account the size of the types, so if they are sized, they all are 8-bytes big at the moment.
  where handleTypeFromRegister (RSP :@ _) ty@(_ :@ p) = requireStackType p =<< kindcheckType ctx ty
@@ -77,39 +83,47 @@ kindcheckType _ (Register _ :@ p)                        = pure (T8 :@ p)
 
 --------------------------------------------------------------------------------------------
 
--- | Checks whether a kind indicates a stack type, or not.
-isStackType :: Located Kind -> Bool
-isStackType (Ts :@ _) = True
-isStackType _         = False
+unifyKinds :: (?tcFlags :: TypecheckerFlags, k ~ Located Kind) => k -> k -> Kindchecker (Subst k)
+unifyKinds (k1 :@ p1) (k2 :@ p2) = case (k1, k2) of
+  (Ts, Ts) -> pure mempty
+  (T8, T8) -> pure mempty
+  (Ta, T8) -> pure mempty
+  (Ta, Ta) -> pure mempty
+----------------------------------------------------------------------------------------
+  (Ts, _) -> throwError (NotAStackType (k2 :@ p2) p2)
+  (T8, Ta) -> throwError (NotSized (k2 :@ p2) p2)
+  (T8, _) -> throwError (NotADataType (k2 :@ p2) p2)
+  (Ta, _) -> throwError (NotADataType (k2 :@ p2) p2)
 
--- | Checks whether a kind indicates a data type, or not.
---
---   @'isDataType' = 'not' '.' 'isStackType'@
-isDataType :: Located Kind -> Bool
-isDataType = not . isStackType
 
--- | Checks whether a kind relates to some sized data or not.
-isSized :: Located Kind -> Bool
-isSized (T8 :@ _) = True
-isSized _         = False
+
+
+
+
+-----------------------------------------------------------------------------------------------
 
 -- | Requires a kind to be indicating of a stack type.
 --
 --   Essentially a wrapper around 'isStackType', but in the 'Kindchecker' monad.
 requireStackType :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
-requireStackType p k | isStackType k = pure ()
-                     | otherwise     = throwError (NotAStackType k p)
+requireStackType p k = () <$ unifyKinds (Ts :@ p) k
 
 -- | Requires a kind to be indicating of a data type.
 --
 --   Essentially a wrapper around 'isDataType', but in the 'Kindchecker' monad.
 requireDataType :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
-requireDataType p k | isDataType k = pure ()
-                    | otherwise    = throwError (NotADataType k p)
+requireDataType p k = do
+  let s1 = runExcept (unifyKinds (T8 :@ p) k)
+  case s1 of
+    Left e -> do
+      let s2 = runExcept (unifyKinds (Ta :@ p) k)
+      case s2 of
+        Left e -> throwError e
+        Right x -> pure ()
+    Right x -> pure ()
 
 -- | Requires a kind to be sized.
 --
 --   Essentially a wrapper around 'isSized', but in the 'Kindchecker' monad.
 requireSized :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
-requireSized p k | isSized k = pure ()
-                 | otherwise = throwError (NotSized k p)
+requireSized p k = () <$ unifyKinds (T8 :@ p) k

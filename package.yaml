@@ -23,9 +23,9 @@ dependencies:
 - nsc-core
 - nsc-parser
 - nsc-typechecker
+- nsc-branchchecker
 - nsc-codegen
 - elfgen
-- bytestring
 
 library:
   source-dirs: src
@@ -44,7 +44,7 @@ executables:
     - nsc-lib
     - nsc-flags
     - text
-    - containers
+    - bytestring
 
 tests:
   nsc-tests:
@@ -60,3 +60,4 @@ tests:
     - hspec
     - text
     - Glob
+    - spoon

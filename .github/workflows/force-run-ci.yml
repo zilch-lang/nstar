@@ -1,0 +1,81 @@
+on: [push]
+    
+name: nsc forced CI
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build nsc
+    if: "contains(toJSON(github.event.commits.*.message), '[force-run-ci]')"   # if any commit contains "[force-run-ci]"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        
+    # Setup cache
+      - name: Cache stack global package database
+        id:   stack-global-package-db
+        uses: actions/cache@v2
+        continue-on-error: true
+        with:
+          path: ~/.stack
+          key: ${{ runner.os }}-stack-global-${{ hashFiles('**.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-global
+            ${{ runner.os }}-stack
+            
+      - name: Cache stack-installed programs in ~/.local/bin
+        id:   stack-programs
+        uses: actions/cache@v2
+        continue-on-error: true
+        with:
+          path: ~/.local/bin
+          key: ${{ runner.os }}-stack-programs-${{ hashFiles('**.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-programs
+            ${{ runner.os }}-local-bin
+            
+      - name: Cache **/.stack-work
+        id:   stack-caches
+        uses: actions/cache@v2
+        continue-on-error: true
+        with:
+          path: |
+            .stack-work
+            lib/*/.stack-work
+          key: ${{ runner.os }}-stack-work-${{ hashFiles('**.yaml') }}
+          restore-keys: ${{ runner.os }}-stack-work
+          
+   #############################################################################
+      
+      - name: Install Stack
+        run: stack --version
+          
+      - name: Install GHC
+        run: stack setup --install-ghc
+
+      - name: Install required tools
+        run: | 
+          echo "::group::C2HS"
+          stack install c2hs
+          echo "PATH=~/.local/bin:$PATH" >> $GITHUB_ENV
+          echo "::end-group::"
+          
+          echo "::group::glibc v2.31"
+          sudo apt-get install libc-dev
+          echo "::end-group::"
+          
+      - name: Build Haskell dependencies
+        run: stack build --test --no-run-tests --only-dependencies --no-terminal
+      
+      - name: Build NSC
+        id: build-nsc
+        run: stack build --test --no-run-tests --ghc-options=-fforce-recomp --ghc-options=-split-sections --ghc-options=-fdiagnostics-color=always
+          # --ghc-options=-fdefer-diagnostics
+          
+      - name: Run tests
+        run: stack test
+          
+      - name: Test doc generation
+        continue-on-error: true
+        if: steps.build-nsc.outcome == 'success'    # it's useless to test doc generation if the code doesn't compile
+        run: stack build --haddock --no-haddock-deps --no-haddock-hyperlink-source --haddock-arguments="--no-print-missing-docs"

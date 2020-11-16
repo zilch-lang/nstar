@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 {-|
   Module: Language.NStar.Typechecker.Core
@@ -32,3 +33,5 @@ data TypedStatement where
                                  --
                                  -- Note: we take a list of types because all instructions do not necessarily share the same number of arguments
          -> TypedStatement
+
+deriving instance Show TypedStatement

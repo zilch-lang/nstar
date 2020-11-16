@@ -70,7 +70,7 @@ parseFile = first (megaparsecBundleToDiagnostic "Parse error on input") .: MP.ru
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program
 parseProgram = noise *> (Program <$> MP.many instructions) <* parseEOF
-  where instructions = located (parseTypedLabel MP.<|> parseInstructionCall) <* (parseEOL MP.<|> parseEOF)
+  where instructions = located (parseTypedLabel MP.<|> parseInstructionCall) <* (() <$ MP.many parseEOL MP.<|> parseEOF)
         noise = lexeme (pure ()) *> MP.many (lexeme (MP.try parseEOL))
 
 -- | Parses the end of file. There is no guarantee that any parser will try to parse something after the end of file.
@@ -157,13 +157,16 @@ sepBy1 p sep = (:) <$> p <*> MP.many (sep *> p)
 parseTypedLabel :: (?parserFlags :: ParserFlags) => Parser Statement
 parseTypedLabel = lexeme $
   Label <$> (parseIdentifier <* parseSymbol Colon)
-        <*> located (parseForallType parseRecordType MP.<|> parseRecordType)
+        <*> located (parseForallType (parseRecordType True) MP.<|> parseRecordType True)
 
 -- | Parses an instruction call from the N*'s instruction set.
 parseInstructionCall :: (?parserFlags :: ParserFlags) => Parser Statement
 parseInstructionCall = MP.choice $ fmap Instr <$>
   [ parseMov
-  , parseRet ]
+  , parseRet
+  , parseJmp
+  , parseCall
+  ]
 
 ------------------------------------------------------------------------------------------------------------
 
@@ -180,7 +183,7 @@ parseForallType pty =
 -- | Parses a non-stack type. To parse a stack type, see 'parseStackType'.
 parseType :: (?parserFlags :: ParserFlags) => Parser Type
 parseType = lexeme $ MP.choice
-  [ parseRecordType
+  [ parseRecordType True
   , parseSignedType
   , parseUnsignedType
   , parsePointerType
@@ -190,8 +193,8 @@ parseType = lexeme $ MP.choice
   ]
 
 -- | Parses a record type.
-parseRecordType :: (?parserFlags :: ParserFlags) => Parser Type
-parseRecordType = Record . Map.fromList <$> betweenBraces (field `sepBy` parseSymbol Comma)
+parseRecordType :: (?parserFlags :: ParserFlags) => Bool -> Parser Type
+parseRecordType open = flip Record open . Map.fromList <$> betweenBraces (field `sepBy` parseSymbol Comma)
   where
     field = (,) <$> (located parseRegister <* parseSymbol Colon) <*> located parseType
 
@@ -283,3 +286,23 @@ parseMov =
 -- | Parses a @ret@ instruction.
 parseRet :: (?parserFlags :: ParserFlags) => Parser Instruction
 parseRet = RET <$ parseSymbol Ret
+
+-- | Parses a @jmp@ instruction.
+parseJmp :: (?parserFlags :: ParserFlags) => Parser Instruction
+parseJmp =
+  parseSymbol Jmp *>
+    (JMP <$> located parseLabel
+         <*> MP.option [] (betweenAngles (parseSpecialization `MP.sepBy` parseSymbol Comma)))
+
+parseSpecialization :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseSpecialization = located $ MP.choice
+  [ unLoc <$> MP.try parseStackType
+  , unLoc <$> MP.try (betweenParens parseStackType)
+  , parseType
+  ]
+
+parseCall :: (?parserFlags :: ParserFlags) => Parser Instruction
+parseCall =
+  parseSymbol Call *>
+    (CALL <$> located parseLabel
+          <*> MP.option [] (betweenAngles (parseSpecialization `MP.sepBy` parseSymbol Comma)))
