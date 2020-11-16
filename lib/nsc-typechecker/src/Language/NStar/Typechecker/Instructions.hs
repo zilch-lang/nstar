@@ -177,7 +177,7 @@ tc_call (Name n :@ p1) tys p = do
   -- - the label we jump to exists (so it's in the current file or statically/dynamically bound).
   -- - type application kinds have to be able to be unified with those of the target context, and the current context
   --   has to be a subset of the target specialized context.
-  -- - the target label has to have the current context on top of its stack (@%rsp@, @%esp@ or anything else)
+  -- - the target label has to have a return context on top of its stack (@%rsp@, @%esp@ or anything else)
   --   or abstract it away through specialization.
   --
   -- \* Postconditions:
@@ -186,7 +186,57 @@ tc_call (Name n :@ p1) tys p = do
   -- - the new context should have the stack set to the stack in the specialized context, stripped off the
   --   top return address (context pointer).
 
+  -- check all the jump preconditions
+
+  typeEnv <- gets (typeEnvironment . snd)
+  labelCtx <- maybe (throwError (UnknownLabel n)) pure (Env.lookup n typeEnv)
+  let (typeVars, ctx) = fetchRigidTypevars labelCtx
+      nbOfSpec        = length tys
+      nbOfTVars       = length typeVars
+  case nbOfSpec `compare` nbOfTVars of
+    LT -> throwError (CannotInferSpecialization nbOfSpec nbOfTVars p)
+    GT -> throwError (TooMuchSpecialization nbOfSpec nbOfTVars p)
+    EQ -> pure ()
+
+  kindCtx <- gets (currentKindContext . snd)
+  specKinds <- forM tys \ ty -> do
+    liftEither $ first FromReport (runKindchecker (kindcheckType kindCtx ty))
+
+  let toUnify = zip (snd <$> typeVars) specKinds
+  forM_ toUnify \ (k1, k2) ->
+    liftEither $ first FromReport (runKindchecker (unifyKinds k1 k2))
+
+  let sub = Subst (Map.fromList (zip (fromVar . fst <$> typeVars) tys))
+  typeCtx <- gets (currentTypeContext . snd)
+  let ctxTy = sub `apply` relax ctx
+
+  let addContextOnTop Nothing   = Just (SPtr (Ptr (Record mempty True :@ p) :@ p) :@ p)
+      addContextOnTop (Just ty) = case ty of
+        SPtr stack :@ p3 -> Just $ SPtr (Cons (Ptr (Record mempty True :@ p) :@ p) stack :@ p) :@ p3
+        t :@ _           -> internalError $ "Trying to add a return context on top of a non-stack type " <> show t
+  let newTypeCtx = Map.alter addContextOnTop (RSP :@ p) typeCtx
+  let targetCtx = Record newTypeCtx False :@ p
+
+  catchError (unify ctxTy targetCtx)
+             (throwError . CannotJumpBecauseOf p)
+
+  -- check all postconditions
+
+  let popContextOffStack (SPtr (Cons ctx _ :@ _) :@ _) = ctx
+      popContextOffStack t                             = internalError $ "Cannot pop stack or non-stack type " <> show t
+
+      Record ctx _ :@ _               = ctxTy
+      Ptr (Record newCtx _ :@ _) :@ _ = popContextOffStack (fromJust $ Map.lookup (RSP :@ p) ctx)
+
+  setCurrentTypeContext newCtx
+
   pure []
+  where
+    fetchRigidTypevars (ForAll binds ty :@ _) = (binds, ty)
+    fetchRigidTypevars ty                     = ([], ty)
+
+    fromVar (Var n :@ _) = n
+    fromVar t            = internalError $ "Cannot get name of non type-variable " <> show t
 tc_call (t :@ p1) ty sp = internalError $ "Cannot handle call to non-label expression " <> show t
 
 ---------------------------------------------------------------------------------------------------------------------------------------
