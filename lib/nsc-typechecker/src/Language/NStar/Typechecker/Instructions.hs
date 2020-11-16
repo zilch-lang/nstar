@@ -1,5 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiWayIf #-}
 
 module Language.NStar.Typechecker.Instructions where
 
@@ -226,16 +227,13 @@ unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
   (t, FVar v) -> bind (v, p2) (t, p1)
   -- FIXME: Handle records properly
   (Record m1, Record m2) -> do
-    -- @m2@ should contain at least all the keys in @m1@:
     let k1 = Map.keysSet m1
         k2 = Map.keysSet m2
-    if not (k1 `Set.isSubsetOf` k2)
-    then throwError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2))
-    else do
-      -- All the values from the keys of @m1@ in @m2@ should be 'unify'able with the values in @m1@:
-      let doUnify k v = catchError (unify v (m2 Map.! k)) (\ e -> throwError $ RecordUnify e (m1 :@ p1) (m2 :@ p2))
-      subs <- fold <$> Map.traverseWithKey doUnify m1
-      pure subs
+    let common = k1 `Set.intersection` k2
+        ext1 = k2 `Set.difference` common
+        ext2 = k1 `Set.difference` common
+    subs <- fold <$> forM (Set.toList common) \ k -> unify (m1 Map.! k) (m2 Map.! k)
+    pure subs
   -- A stack constructor can be unified to another stack constructor if
   -- both stack head and stack tail of each stack can be unified.
   (Cons t1 t3, Cons t2 t4) -> unifyMany [t1, t3] [t2, t4]
