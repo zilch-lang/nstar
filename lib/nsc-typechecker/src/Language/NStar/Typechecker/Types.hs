@@ -31,11 +31,12 @@ import Console.NStar.Flags (TypecheckerFlags(..))
 
 
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
-typecheck :: (?tcFlags :: TypecheckerFlags) => Program -> Either (Diagnostic s String m) (TypedProgram, Diagnostic s String m)
-typecheck p = second (second toDiag) $
+typecheck :: (?tcFlags :: TypecheckerFlags) => Program -> Either (Diagnostic s String m) (TypedProgram)
+typecheck p = --second (second toDiag) $
+              second fst $
               first toDiagnostic $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty mempty Nothing)))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
-        toDiag = foldl ((. fromTypecheckError) . (<++>)) diagnostic
+        --toDiag = foldl ((. fromTypecheckError) . (<++>)) diagnostic
 
 --------------------------------------------------------
 
@@ -99,8 +100,8 @@ typecheckStatement (Label name ty :@ p) = do
    removeForallQuantifierIfAny (unLoc -> ForAll b ty) = (b, ty)
    removeForallQuantifierIfAny ty                     = (mempty, ty)
 
-   toRegisterMap (unLoc -> Record m) = m
-   toRegisterMap (unLoc -> t)        = error $ "Cannot retrieve register mappings from non-record type '" <> show t <> "'"
+   toRegisterMap (unLoc -> Record m _) = m
+   toRegisterMap (unLoc -> t)          = error $ "Cannot retrieve register mappings from non-record type '" <> show t <> "'"
 
    toVarName (Var v :@ _) = v
    toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
@@ -111,6 +112,8 @@ typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Positio
 typecheckInstruction i p = do
   uncurry TInstr . (i :@ p ,) <$>
     case i of
-      RET         -> tc_ret p
-      MOV src dst -> tc_mov src dst p
+      RET          -> tc_ret p
+      MOV src dst  -> tc_mov src dst p
+      JMP lbl tys  -> tc_jmp lbl tys p
+      CALL lbl tys -> tc_call lbl tys p
       _           -> error $ "Unrecognized instruction '" <> show i <> "'."

@@ -56,7 +56,7 @@ instance Substitutable Type where
   apply _ t@(Register _)            = t
   apply s (Cons t1 t2)              = Cons (apply s t1) (apply s t2)
   apply (Subst s) t@(FVar v)        = fromMaybe t (unLoc <$> Map.lookup v s)
-  apply s (Record rts)              = Record (apply s <$> rts)
+  apply s (Record rts o)            = Record (apply s <$> rts) o
   apply s (Ptr t)                   = Ptr (apply s t)
   apply s (SPtr t)                  = SPtr (apply s t)
   apply (Subst s) (ForAll binds ty) = ForAll binds (apply newS ty)
@@ -65,3 +65,6 @@ instance Substitutable Type where
           keys []                     = []
           keys ((Var v :@ _, _) : xs) = v : keys xs
           keys ((t :@ _, _) : _)      = error ("Trying to get name of non-type variable '" <> show t <> "'")
+
+instance Substitutable Kind where
+  apply _ k = k

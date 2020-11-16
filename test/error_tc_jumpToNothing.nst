@@ -1,0 +1,2 @@
+f: {}
+   jmp a_label_that_doesnt_exist

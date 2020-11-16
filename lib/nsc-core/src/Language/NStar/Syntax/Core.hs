@@ -29,6 +29,8 @@ import Data.Typeable (Typeable)
 newtype Program
   = Program [Located Statement]  -- ^ A program is a possibily empty list of statements
 
+deriving instance Show Program
+
 -- | A statement is either
 data Statement where
   -- | A typed label
@@ -59,6 +61,7 @@ data Type where
        -> Type
   -- | Record type
   Record :: Map (Located Register) (Located Type)          -- ^ A mapping from 'Register's to their expected 'Type's
+         -> Bool                                           -- ^ Is the record opened or closed?
          -> Type
   -- | Pointer to a normal type
   Ptr :: Located Type
@@ -113,6 +116,15 @@ data Instruction where
       -> Instruction
   -- | @ret@ returns the value in @'RAX'@ to the caller.
   RET :: Instruction
+  -- | @jmp@ alters the control flow by unconditionally jumping to the given address.
+  JMP :: Located Expr
+      -> [Located Type]
+      -> Instruction
+  -- | @call@ alters the control flow by pushing the current address onto the stack and jumping
+  --   to the given address (either as a label or in a register).
+  CALL :: Located Expr
+       -> [Located Type]
+       -> Instruction
 
   -- TODO: add more instructions
 
@@ -173,6 +185,10 @@ data Token where
   Mov :: Token
   -- | The @ret@ instruction
   Ret :: Token
+  -- | The @jmp@ instruction
+  Jmp :: Token
+  -- | The @call@ instruction
+  Call :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@
