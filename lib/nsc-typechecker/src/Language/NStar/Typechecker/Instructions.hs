@@ -225,13 +225,16 @@ unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
   -- Free type variables can be bound to anything as long as it does not create an infinite type.
   (FVar v, t) -> bind (v, p1) (t, p2)
   (t, FVar v) -> bind (v, p2) (t, p1)
-  -- FIXME: Handle records properly
+  -- Contexts are coercible if the intersection of their registers are all coercible.
+  -- We treat contexts as if they are open row records (so @{ a }@ really means @{ a | row }@).
   (Record m1, Record m2) -> do
     let k1 = Map.keysSet m1
         k2 = Map.keysSet m2
     let common = k1 `Set.intersection` k2
         ext1 = k2 `Set.difference` common
         ext2 = k1 `Set.difference` common
+        -- NOTE: at the moment we are ignoring record extensions, because they have no purpose in our typechecking
+        -- we might want to use them for whatever reason, maybe not to just discard them.
     subs <- fold <$> forM (Set.toList common) \ k -> unify (m1 Map.! k) (m2 Map.! k)
     pure subs
   -- A stack constructor can be unified to another stack constructor if
