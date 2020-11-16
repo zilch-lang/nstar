@@ -61,6 +61,7 @@ data Type where
        -> Type
   -- | Record type
   Record :: Map (Located Register) (Located Type)          -- ^ A mapping from 'Register's to their expected 'Type's
+         -> Bool                                           -- ^ Is the record opened or closed?
          -> Type
   -- | Pointer to a normal type
   Ptr :: Located Type
