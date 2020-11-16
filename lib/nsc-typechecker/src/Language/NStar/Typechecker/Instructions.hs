@@ -26,6 +26,7 @@ import Control.Monad (forM)
 import Data.Bifunctor (first)
 import Language.NStar.Typechecker.Kinds (unifyKinds, kindcheckType, runKindchecker)
 import Control.Monad (forM_)
+import Data.Functor ((<&>))
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker [Located Type]
 tc_ret p = do
@@ -58,9 +59,8 @@ tc_ret p = do
   let minimalCtx = Record (Map.singleton (RSP :@ p) (SPtr (Cons (Ptr (Record mempty True :@ p) :@ p) stackVar :@ p) :@ p)) True :@ p
   currentCtx <- gets (currentTypeContext . snd)
 
-  catchError (unify minimalCtx (Record currentCtx True :@ p))
+  catchError (unify (Record currentCtx False :@ p) minimalCtx)
              (const $ throwError (NoReturnAddress p currentCtx))
-
 
   let removeStackTop (SPtr (Cons _ t :@ _) :@ p1) = SPtr t :@ p1
       removeStackTop (t :@ _)                     = error $ "Cannot extract stack top of type '" <> show t <> "'"
@@ -68,15 +68,18 @@ tc_ret p = do
       getStackTop (SPtr (Cons t _ :@ _) :@ _) = t
       getStackTop (t :@ _)                    = error $ "Cannot extract stack top of type '" <> show t <> "'"
 
-  let returnShouldBe = Ptr (Record (Map.adjust removeStackTop (RSP :@ p) currentCtx) True :@ p) :@ p
+  let returnShouldBe = Ptr (Record (Map.adjust removeStackTop (RSP :@ p) currentCtx) False :@ p) :@ p
       returnCtx = getStackTop $ fromJust (Map.lookup (RSP :@ p) currentCtx)
 
   let changeErrorIfMissingKey (DomainsDoNotSubtype (m1 :@ _) (m2 :@ _)) =
         ContextIsMissingOnReturn p (getPos returnCtx) (Map.keysSet m1 Set.\\ Map.keysSet m2)
+      changeErrorIfMissingKey (MissingRegistersInContext rs p)          =
+        ContextIsMissingOnReturn p (getPos returnCtx) (Set.fromList ((:@ p) <$> rs))
       changeErrorIfMissingKey e                                         = e
 
   catchError (unify returnCtx returnShouldBe)
              (throwError . changeErrorIfMissingKey)
+
   pure []
 
 
@@ -151,7 +154,7 @@ tc_jmp (Name n :@ p1) tys p = do
 
   let sub = Subst (Map.fromList (zip (fromVar . fst <$> typeVars) tys))
   typeCtx <- gets (currentTypeContext . snd)
-  catchError (unify (sub `apply` relax ctx) (Record typeCtx True :@ p))
+  catchError (unify (sub `apply` relax ctx) (Record typeCtx False :@ p))
              (throwError . CannotJumpBecauseOf p)
 
   pure []
@@ -226,17 +229,25 @@ unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
   (FVar v, t) -> bind (v, p1) (t, p2)
   (t, FVar v) -> bind (v, p2) (t, p1)
   -- Contexts are coercible if the intersection of their registers are all coercible.
-  -- We treat contexts as if they are open row records (so @{ a }@ really means @{ a | row }@).
   (Record m1 o1, Record m2 o2) -> do
     let k1 = Map.keysSet m1
         k2 = Map.keysSet m2
     let common = k1 `Set.intersection` k2
-        ext1 = k2 `Set.difference` common
-        ext2 = k1 `Set.difference` common
-        -- NOTE: at the moment we are ignoring record extensions, because they have no purpose in our typechecking
-        -- we might want to use them for whatever reason, maybe not to just discard them.
+        other1 = k1 Set.\\ common
+        other2 = k2 Set.\\ common
+
+    let computeExtension :: Bool -> [Located Register] -> Position -> Typechecker (Subst (Located Type))
+        computeExtension _ [] _     = pure mempty
+        computeExtension False fs p = throwError (MissingRegistersInContext (unLoc <$> fs) p)
+        computeExtension _ fs p     = do
+          let newFields = Map.fromList (fs <&> \ k -> (k, m1 Map.! k))
+          pure mempty
+
     subs <- fold <$> forM (Set.toList common) \ k -> unify (m1 Map.! k) (m2 Map.! k)
-    pure subs
+    sub1 <- computeExtension o2 (Set.toList other1) p2
+    sub2 <- computeExtension o1 (Set.toList other2) p1
+
+    pure (sub1 <> sub2 <> subs)
   -- A stack constructor can be unified to another stack constructor if
   -- both stack head and stack tail of each stack can be unified.
   (Cons t1 t3, Cons t2 t4) -> unifyMany [t1, t3] [t2, t4]
