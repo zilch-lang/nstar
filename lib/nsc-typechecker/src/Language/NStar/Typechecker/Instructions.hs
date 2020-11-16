@@ -162,6 +162,29 @@ tc_jmp (Name n :@ p1) tys p = do
     fromVar t            = internalError $ "Cannot get name of non type-variable " <> show t
 tc_jmp (t :@ p1) tys p = internalError $ "Cannot handle jump to non-label expression " <> show t
 
+tc_call :: (?tcFlags :: TypecheckerFlags) => Located Expr -> [Located Type] -> Position -> Typechecker [Located Type]
+tc_call (Name n :@ p1) tys p = do
+  -- Typechecking a @call@ instruction is a little bit harder than typechecking a @jmp@ instruction.
+  -- Reason is that there are more preconditions, and there are also postconditions.
+  --
+  -- \* Preconditions:
+  --
+  -- - the jump context is a subset of the current context (modulo specialization).
+  -- - the label we jump to exists (so it's in the current file or statically/dynamically bound).
+  -- - type application kinds have to be able to be unified with those of the target context, and the current context
+  --   has to be a subset of the target specialized context.
+  -- - the target label has to have the current context on top of its stack (@%rsp@, @%esp@ or anything else)
+  --   or abstract it away through specialization.
+  --
+  -- \* Postconditions:
+  --
+  -- - the new current context is the context found at the top of the specialized target context's stack.
+  -- - the new context should have the stack set to the stack in the specialized context, stripped off the
+  --   top return address (context pointer).
+
+  pure []
+tc_call (t :@ p1) ty sp = internalError $ "Cannot handle call to non-label expression " <> show t
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

@@ -112,7 +112,8 @@ typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Positio
 typecheckInstruction i p = do
   uncurry TInstr . (i :@ p ,) <$>
     case i of
-      RET         -> tc_ret p
-      MOV src dst -> tc_mov src dst p
-      JMP lbl tys -> tc_jmp lbl tys p
+      RET          -> tc_ret p
+      MOV src dst  -> tc_mov src dst p
+      JMP lbl tys  -> tc_jmp lbl tys p
+      CALL lbl tys -> tc_call lbl tys p
       _           -> error $ "Unrecognized instruction '" <> show i <> "'."
