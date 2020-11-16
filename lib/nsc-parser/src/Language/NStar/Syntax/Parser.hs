@@ -183,7 +183,7 @@ parseForallType pty =
 -- | Parses a non-stack type. To parse a stack type, see 'parseStackType'.
 parseType :: (?parserFlags :: ParserFlags) => Parser Type
 parseType = lexeme $ MP.choice
-  [ parseRecordType False
+  [ parseRecordType True
   , parseSignedType
   , parseUnsignedType
   , parsePointerType
