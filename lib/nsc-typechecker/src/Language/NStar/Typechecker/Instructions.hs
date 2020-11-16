@@ -55,10 +55,10 @@ tc_ret p = do
 
 
   stackVar <- freshVar "@" p
-  let minimalCtx = Record (Map.singleton (RSP :@ p) (SPtr (Cons (Ptr (Record mempty :@ p) :@ p) stackVar :@ p) :@ p)) :@ p
+  let minimalCtx = Record (Map.singleton (RSP :@ p) (SPtr (Cons (Ptr (Record mempty True :@ p) :@ p) stackVar :@ p) :@ p)) True :@ p
   currentCtx <- gets (currentTypeContext . snd)
 
-  catchError (unify minimalCtx (Record currentCtx :@ p))
+  catchError (unify minimalCtx (Record currentCtx True :@ p))
              (const $ throwError (NoReturnAddress p currentCtx))
 
 
@@ -68,7 +68,7 @@ tc_ret p = do
       getStackTop (SPtr (Cons t _ :@ _) :@ _) = t
       getStackTop (t :@ _)                    = error $ "Cannot extract stack top of type '" <> show t <> "'"
 
-  let returnShouldBe = Ptr (Record (Map.adjust removeStackTop (RSP :@ p) currentCtx) :@ p) :@ p
+  let returnShouldBe = Ptr (Record (Map.adjust removeStackTop (RSP :@ p) currentCtx) True :@ p) :@ p
       returnCtx = getStackTop $ fromJust (Map.lookup (RSP :@ p) currentCtx)
 
   let changeErrorIfMissingKey (DomainsDoNotSubtype (m1 :@ _) (m2 :@ _)) =
@@ -151,7 +151,7 @@ tc_jmp (Name n :@ p1) tys p = do
 
   let sub = Subst (Map.fromList (zip (fromVar . fst <$> typeVars) tys))
   typeCtx <- gets (currentTypeContext . snd)
-  catchError (unify (sub `apply` relax ctx) (Record typeCtx :@ p))
+  catchError (unify (sub `apply` relax ctx) (Record typeCtx True :@ p))
              (throwError . CannotJumpBecauseOf p)
 
   pure []
@@ -227,7 +227,7 @@ unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
   (t, FVar v) -> bind (v, p2) (t, p1)
   -- Contexts are coercible if the intersection of their registers are all coercible.
   -- We treat contexts as if they are open row records (so @{ a }@ really means @{ a | row }@).
-  (Record m1, Record m2) -> do
+  (Record m1 o1, Record m2 o2) -> do
     let k1 = Map.keysSet m1
         k2 = Map.keysSet m2
     let common = k1 `Set.intersection` k2
@@ -267,10 +267,10 @@ bind (var, p1) (ty, p2)
 relax :: Located Type -> Located Type
 relax (t :@ p) = relaxType t :@ p
   where
-    relaxType (Cons t1 t2) = Cons (relax t1) (relax t2)
-    relaxType (Var n)      = FVar n
-    relaxType (Record ms)  = Record (relax <$> ms)
-    relaxType (Ptr t)      = Ptr (relax t)
-    relaxType (SPtr t)     = SPtr (relax t)
-    relaxType (ForAll _ t) = unLoc $ relax t
-    relaxType t            = t
+    relaxType (Cons t1 t2)  = Cons (relax t1) (relax t2)
+    relaxType (Var n)       = FVar n
+    relaxType (Record ms o) = Record (relax <$> ms) o
+    relaxType (Ptr t)       = Ptr (relax t)
+    relaxType (SPtr t)      = SPtr (relax t)
+    relaxType (ForAll _ t)  = unLoc $ relax t
+    relaxType t             = t

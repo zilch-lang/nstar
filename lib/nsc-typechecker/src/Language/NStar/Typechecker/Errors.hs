@@ -86,7 +86,7 @@ infiniteType (ty, p1) (var, p2) =
 -- | Happens when the union of the keys of the first map and of the second map is not equal to the keys of the first map.
 recordDomainsDoNotSubset :: (m ~ Map (Located Register) (Located Type)) => (m, Position) -> (m, Position) -> Report String
 recordDomainsDoNotSubset (m1, p1) (m2, p2) =
-  reportError ("All keys in '" <> show (prettyText $ Record m1) <> "' are not present in '" <> show (prettyText $ Record m2) <> "'")
+  reportError ("All keys in '" <> show (prettyText $ Record m1 False) <> "' are not present in '" <> show (prettyText $ Record m2 False) <> "'")
     [ (p1, This "") ]
     []
 
@@ -94,7 +94,7 @@ recordDomainsDoNotSubset (m1, p1) (m2, p2) =
 recordValuesDoNotUnify :: (m ~ Map (Located Register) (Located Type)) => (m, Position) -> (m, Position) -> Report String
 recordValuesDoNotUnify (m1, p1) (m2, p2) =
   reportError ("Record types cannot be coerced because at least one of their common fields cannot be coerced to each other.")
-    [ (p1, Where ("'" <> show (prettyText (Record m1)) <> "' cannot be coerced to '" <> show (prettyText (Record m2)) <> "'")) ]
+    [ (p1, Where ("'" <> show (prettyText (Record m1 False)) <> "' cannot be coerced to '" <> show (prettyText (Record m2 False)) <> "'")) ]
     [ hint "Visit <https://github.com/nihil-lang/nsc/blob/develop/docs/type-coercion.md> to learn about type coercion in N*." ]
 
 -- | Happens when a @ret@ instruction is not in a function. This also means that the instruction has no enclosing scope.

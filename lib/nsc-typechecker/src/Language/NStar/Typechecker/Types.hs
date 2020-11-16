@@ -100,8 +100,8 @@ typecheckStatement (Label name ty :@ p) = do
    removeForallQuantifierIfAny (unLoc -> ForAll b ty) = (b, ty)
    removeForallQuantifierIfAny ty                     = (mempty, ty)
 
-   toRegisterMap (unLoc -> Record m) = m
-   toRegisterMap (unLoc -> t)        = error $ "Cannot retrieve register mappings from non-record type '" <> show t <> "'"
+   toRegisterMap (unLoc -> Record m _) = m
+   toRegisterMap (unLoc -> t)          = error $ "Cannot retrieve register mappings from non-record type '" <> show t <> "'"
 
    toVarName (Var v :@ _) = v
    toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
