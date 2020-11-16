@@ -75,6 +75,11 @@ registerEdges (TInstr i _ :@ p) = case unLoc i of
     modify (second (const newGraph))
 
     pure ()
+  CALL (Name toLabel :@ _) _ -> do
+    (lbl, graph) <- get
+    let Just currentLabel = lbl
+        newGraph = graph `Graph.overlay` (currentLabel-<Call>-toLabel)
+    modify (second (const newGraph))
   -- other instruction do not act on the control flow.
   _ -> pure ()
 
