@@ -157,7 +157,7 @@ sepBy1 p sep = (:) <$> p <*> MP.many (sep *> p)
 parseTypedLabel :: (?parserFlags :: ParserFlags) => Parser Statement
 parseTypedLabel = lexeme $
   Label <$> (parseIdentifier <* parseSymbol Colon)
-        <*> located (parseForallType parseRecordType MP.<|> parseRecordType)
+        <*> located (parseForallType (parseRecordType True) MP.<|> parseRecordType True)
 
 -- | Parses an instruction call from the N*'s instruction set.
 parseInstructionCall :: (?parserFlags :: ParserFlags) => Parser Statement
@@ -183,7 +183,7 @@ parseForallType pty =
 -- | Parses a non-stack type. To parse a stack type, see 'parseStackType'.
 parseType :: (?parserFlags :: ParserFlags) => Parser Type
 parseType = lexeme $ MP.choice
-  [ parseRecordType
+  [ parseRecordType False
   , parseSignedType
   , parseUnsignedType
   , parsePointerType
@@ -193,8 +193,8 @@ parseType = lexeme $ MP.choice
   ]
 
 -- | Parses a record type.
-parseRecordType :: (?parserFlags :: ParserFlags) => Parser Type
-parseRecordType = Record . Map.fromList <$> betweenBraces (field `sepBy` parseSymbol Comma)
+parseRecordType :: (?parserFlags :: ParserFlags) => Bool -> Parser Type
+parseRecordType open = flip Record open . Map.fromList <$> betweenBraces (field `sepBy` parseSymbol Comma)
   where
     field = (,) <$> (located parseRegister <* parseSymbol Colon) <*> located parseType
 
