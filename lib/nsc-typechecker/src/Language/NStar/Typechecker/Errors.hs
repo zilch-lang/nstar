@@ -37,6 +37,7 @@ data TypecheckError
   | CannotInferSpecialization Int Int Position
   | TooMuchSpecialization Int Int Position
   | CannotJumpBecauseOf Position TypecheckError
+  | MissingRegistersInContext [Register] Position
 
 -- | Transforms a typechcking error into a report.
 fromTypecheckError :: TypecheckError -> Report String
@@ -55,6 +56,7 @@ fromTypecheckError (UnknownLabel (n :@ p))                      = unknownLabel n
 fromTypecheckError (CannotInferSpecialization nbGot nbExpect p) = cannotInferSpecialization nbGot nbExpect p
 fromTypecheckError (TooMuchSpecialization ng ne p)              = tooMuchSpecialization ng ne p
 fromTypecheckError (CannotJumpBecauseOf p err)                  = cannotJumpAt p <> reportWarning "\n" [] [] <> fromTypecheckError err
+fromTypecheckError (MissingRegistersInContext rs p)             = missingRegistersInContext rs p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -176,4 +178,10 @@ cannotJumpAt :: Position -> Report String
 cannotJumpAt p =
   reportError "Cannot jump to the label because of the following error:"
     [ (p, This "Jumping was forbidden here") ]
+    []
+
+missingRegistersInContext :: [Register] -> Position -> Report String
+missingRegistersInContext rs p =
+  reportError ("Context is missing some register binds")
+    [ (p, This ("Missing registers: " <> intercalate ", " (show . prettyText <$> rs))) ]
     []
