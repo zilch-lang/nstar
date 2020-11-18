@@ -1,7 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE EmptyDataDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
 
@@ -22,11 +18,8 @@ import qualified Text.Megaparsec as MP
 import qualified Text.Megaparsec.Char.Lexer as MPL
 import Language.NStar.Syntax.Core
 import Language.NStar.Syntax.Internal
-import Language.NStar.Syntax.Hints (Hintable(..))
-import Text.Diagnose (Diagnostic, hint, Report, reportWarning, diagnostic, (<++>))
+import Text.Diagnose (Diagnostic, diagnostic, (<++>))
 import Data.Bifunctor (bimap, second)
-import Data.Data (Data)
-import Data.Typeable (Typeable)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Located (Located(..), unLoc)
@@ -34,28 +27,9 @@ import qualified Data.Map as Map (fromList)
 import Console.NStar.Flags (ParserFlags(..))
 import Control.Monad.Writer (WriterT, runWriterT)
 import Data.Foldable (foldl')
+import Language.NStar.Syntax.Errors
 
 type Parser a = WriterT [ParseWarning] (MP.Parsec SemanticError [LToken]) a
-
-data SemanticError
-  = NoSuchRegister Token
-  deriving (Eq, Ord, Data, Typeable)
-
-data ParseWarning
-
-fromParseWarning :: ParseWarning -> Report String
-fromParseWarning _ = reportWarning "" [] []
-
-instance Show SemanticError where
-  show (NoSuchRegister t) = "unrecognized register " <> showToken t
-
-instance MP.ShowErrorComponent SemanticError where
-  showErrorComponent = show
-
-instance Hintable SemanticError String where
-  hints (NoSuchRegister _) =
-    [ hint "Registers are fixed depending on the target architecture."
-    , hint "Registers available in different architectures are documented here: <https://github.com/nihil-lang/nsc/blob/develop/docs/registers.md>." ]
 
 lexeme :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
 lexeme = MPL.lexeme (MPL.space MP.empty inlineComment multilineComment)

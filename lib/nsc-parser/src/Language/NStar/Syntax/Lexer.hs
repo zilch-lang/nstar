@@ -3,10 +3,6 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 {-|
   Module: Language.NStar.Syntax.Lexer
@@ -21,7 +17,6 @@ module Language.NStar.Syntax.Lexer
 
 import Language.NStar.Syntax.Core (Token(..), LToken)
 import Language.NStar.Syntax.Internal (located, megaparsecBundleToDiagnostic)
-import Language.NStar.Syntax.Hints (Hintable(..))
 import qualified Text.Megaparsec as MP
 import qualified Text.Megaparsec.Char as MPC
 import qualified Text.Megaparsec.Char.Lexer as MPL
@@ -29,37 +24,15 @@ import Data.Text (Text)
 import qualified Data.Text as Text (pack, toLower)
 import Data.Char (isSpace)
 import Data.Function ((&))
-import Text.Diagnose (Diagnostic, hint, Report, diagnostic, (<++>), reportWarning)
+import Text.Diagnose (Diagnostic, diagnostic, (<++>))
 import Data.Bifunctor (first, second, bimap)
-import Data.Data (Data)
-import Data.Typeable (Typeable)
 import Control.Applicative (liftA2)
 import Console.NStar.Flags (LexerFlags(..))
 import Control.Monad.Writer (WriterT, runWriterT)
 import Data.Foldable (foldl')
+import Language.NStar.Syntax.Errors
 
 type Lexer a = WriterT [LexicalWarning] (MP.Parsec LexicalError Text) a
-
--- | The type of possible custom lexical errors, detected during lexing.
-data LexicalError
-  = UnrecognizedEscapeSequence  -- ^ An escape sequence as not been recognized or is not valid
-  deriving (Ord, Eq, Typeable, Data, Read)
-
-data LexicalWarning
-
-fromLexicalWarning :: LexicalWarning -> Report String
-fromLexicalWarning _ = reportWarning "" [] []
-
-instance Show LexicalError where
-  show UnrecognizedEscapeSequence = "unrecognized character escape sequence"
-
-instance MP.ShowErrorComponent LexicalError where
-  showErrorComponent = show
-
-instance Hintable LexicalError String where
-  hints UnrecognizedEscapeSequence =
-    [hint "Valid escape sequences are all documented at <https://github.com/nihil-lang/nsc/blob/develop/docs/escape-sequences.md>."]
-
 
 -- | @space@ only parses any whitespace (not accounting for newlines and vertical tabs) and discards them.
 space :: (?lexerFlags :: LexerFlags) => Lexer ()
