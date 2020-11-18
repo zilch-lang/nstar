@@ -3,11 +3,16 @@ module Language.NStar.Branchchecker.Errors where
 import Data.Located
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Text.Diagnose (Report, Marker(..), hint, reportError, prettyText)
+import Text.Diagnose (Report, Marker(..), hint, reportError, prettyText, reportWarning)
 
 data BranchcheckerError
   = ControlFlowLeak (Located Text) (Located Text)
   | NonReturningCall (Located Text)
+
+data BranchcheckerWarning
+
+fromBranchcheckerWarning :: BranchcheckerWarning -> Report String
+fromBranchcheckerWarning _ = reportWarning "" [] []
 
 fromBranchcheckerError :: BranchcheckerError -> Report String
 fromBranchcheckerError (ControlFlowLeak (from :@ p1) (to :@ p2)) = controlFlowLeak (from, p1) (to, p2)

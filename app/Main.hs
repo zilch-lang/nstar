@@ -58,7 +58,8 @@ tryCompile flags file = do
         liftIO (printDiagnostic withColor stderr (parseWarnings <~< fileContent))
         (tast, tcWarnings)   <- liftEither $ typecheck ast
         liftIO (printDiagnostic withColor stderr (tcWarnings <~< fileContent))
-        liftEither $ branchcheck tast
+        bcWarnings           <- liftEither $ branchcheck tast
+        liftIO (printDiagnostic withColor stderr (bcWarnings <~< fileContent))
         pure tast
   case result of
     Left diag    -> do
