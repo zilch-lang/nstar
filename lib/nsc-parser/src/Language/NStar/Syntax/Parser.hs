@@ -23,8 +23,8 @@ import qualified Text.Megaparsec.Char.Lexer as MPL
 import Language.NStar.Syntax.Core
 import Language.NStar.Syntax.Internal
 import Language.NStar.Syntax.Hints (Hintable(..))
-import Text.Diagnose (Diagnostic, hint)
-import Data.Bifunctor (first)
+import Text.Diagnose (Diagnostic, hint, Report, reportWarning, diagnostic, (<++>))
+import Data.Bifunctor (bimap, second)
 import Data.Data (Data)
 import Data.Typeable (Typeable)
 import Data.Text (Text)
@@ -32,12 +32,19 @@ import qualified Data.Text as Text
 import Data.Located (Located(..), unLoc)
 import qualified Data.Map as Map (fromList)
 import Console.NStar.Flags (ParserFlags(..))
+import Control.Monad.Writer (WriterT, runWriterT)
+import Data.Foldable (foldl')
 
-type Parser a = MP.Parsec SemanticError [LToken] a
+type Parser a = WriterT [ParseWarning] (MP.Parsec SemanticError [LToken]) a
 
 data SemanticError
   = NoSuchRegister Token
   deriving (Eq, Ord, Data, Typeable)
+
+data ParseWarning
+
+fromParseWarning :: ParseWarning -> Report String
+fromParseWarning _ = reportWarning "" [] []
 
 instance Show SemanticError where
   show (NoSuchRegister t) = "unrecognized register " <> showToken t
@@ -63,9 +70,9 @@ lexeme = MPL.lexeme (MPL.space MP.empty inlineComment multilineComment)
 -------------------------------------------------------------------------------------------------
 
 -- | Turns a list of tokens into an AST, as long as tokens are well ordered. Else, it throws an error.
-parseFile :: (?parserFlags :: ParserFlags) => FilePath -> [LToken] -> Either (Diagnostic [] String Char) Program
-parseFile = first (megaparsecBundleToDiagnostic "Parse error on input") .: MP.runParser parseProgram
-  where (.:) = (.) . (.)
+parseFile :: (?parserFlags :: ParserFlags) => FilePath -> [LToken] -> Either (Diagnostic [] String Char) (Program, Diagnostic [] String Char)
+parseFile file tokens = bimap (megaparsecBundleToDiagnostic "Parse error on input") (second toDiagnostic) $ MP.runParser (runWriterT parseProgram) file tokens
+  where toDiagnostic = foldl' (<++>) diagnostic . fmap fromParseWarning
 
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program

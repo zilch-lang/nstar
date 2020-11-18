@@ -18,7 +18,7 @@ import Control.Monad.State
 import Language.NStar.Typechecker.Core
 import Language.NStar.Syntax.Core hiding (Token(..))
 import Data.Located
-import Data.Bifunctor (first, second)
+import Data.Bifunctor (first, second, bimap)
 import Control.Monad.Except
 import Text.Diagnose hiding (Kind)
 import Language.NStar.Typechecker.Errors
@@ -28,15 +28,13 @@ import Language.NStar.Typechecker.Kinds (kindcheck)
 import Language.NStar.Typechecker.Instructions
 import Language.NStar.Typechecker.TC
 import Console.NStar.Flags (TypecheckerFlags(..))
-
+import Data.Foldable (foldl')
 
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
-typecheck :: (?tcFlags :: TypecheckerFlags) => Program -> Either (Diagnostic s String m) (TypedProgram)
-typecheck p = --second (second toDiag) $
-              second fst $
-              first toDiagnostic $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty mempty Nothing)))
+typecheck :: (?tcFlags :: TypecheckerFlags) => Program -> Either (Diagnostic s String m) (TypedProgram, Diagnostic s String m)
+typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty mempty Nothing)))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
-        --toDiag = foldl ((. fromTypecheckError) . (<++>)) diagnostic
+        toDiagnostic' = foldl' (<++>) diagnostic . fmap fromTypecheckWarning
 
 --------------------------------------------------------
 

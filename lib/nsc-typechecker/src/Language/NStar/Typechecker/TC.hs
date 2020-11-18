@@ -12,9 +12,9 @@ import Data.Located (Located)
 import Data.Text (Text)
 import Language.NStar.Typechecker.Core
 import Data.Bifunctor (first, second)
-import Language.NStar.Typechecker.Errors (TypecheckError)
+import Language.NStar.Typechecker.Errors (TypecheckError, TypecheckWarning)
 
-type Typechecker a = StateT (Integer, Context) (WriterT [TypecheckError] (Except TypecheckError)) a
+type Typechecker a = StateT (Integer, Context) (WriterT [TypecheckWarning] (Except TypecheckError)) a
 
 -- | The data type of contexts in typechecking.
 data Context

@@ -27,6 +27,8 @@ import Console.NStar.Flags
 import Control.Monad (forM_)
 import System.Exit (exitFailure, exitSuccess)
 import Data.ByteString (readFile, ByteString)
+import Control.Monad.IO.Class (MonadIO(..))
+import Control.Monad.Except (runExceptT, liftEither)
 
 main :: IO ()
 main = do
@@ -47,15 +49,20 @@ tryCompile flags file = do
   let ?parserFlags = ParserFlags {}
   let ?tcFlags     = TypecheckerFlags {}
 
-  let result = do
-        tks  <- lexFile file content
-        ast  <- parseFile file tks
-        tast <- typecheck ast
-        branchcheck tast
+  let fileContent = (file, lines $ Text.unpack content)
+
+  result <- runExceptT do
+        (tks, lexWarnings)    <- liftEither $ lexFile file content
+        liftIO (printDiagnostic withColor stderr (lexWarnings <~< fileContent))
+        (ast, parseWarnings)  <- liftEither $ parseFile file tks
+        liftIO (printDiagnostic withColor stderr (parseWarnings <~< fileContent))
+        (tast, tcWarnings)   <- liftEither $ typecheck ast
+        liftIO (printDiagnostic withColor stderr (tcWarnings <~< fileContent))
+        liftEither $ branchcheck tast
         pure tast
   case result of
     Left diag    -> do
-      printDiagnostic withColor stderr (diag <~< (file, lines $ Text.unpack content))
+      printDiagnostic withColor stderr (diag <~< fileContent)
       exitFailure
     Right p     -> do
       -- ! Experimental codegen

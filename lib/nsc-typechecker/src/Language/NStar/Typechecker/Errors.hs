@@ -39,6 +39,11 @@ data TypecheckError
   | CannotJumpBecauseOf Position TypecheckError
   | MissingRegistersInContext [Register] Position
 
+data TypecheckWarning
+
+fromTypecheckWarning :: TypecheckWarning -> Report String
+fromTypecheckWarning _ = reportWarning "" [] []
+
 -- | Transforms a typechcking error into a report.
 fromTypecheckError :: TypecheckError -> Report String
 fromTypecheckError (Uncoercible (t1 :@ p1) (t2 :@ p2))          = uncoercibleTypes (t1, p1) (t2, p2)

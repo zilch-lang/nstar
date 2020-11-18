@@ -45,6 +45,7 @@ executables:
     - nsc-flags
     - text
     - bytestring
+    - mtl
 
 tests:
   nsc-tests:

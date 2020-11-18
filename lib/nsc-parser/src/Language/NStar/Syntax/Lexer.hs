@@ -29,19 +29,26 @@ import Data.Text (Text)
 import qualified Data.Text as Text (pack, toLower)
 import Data.Char (isSpace)
 import Data.Function ((&))
-import Text.Diagnose (Diagnostic, hint)
-import Data.Bifunctor (first)
+import Text.Diagnose (Diagnostic, hint, Report, diagnostic, (<++>), reportWarning)
+import Data.Bifunctor (first, second, bimap)
 import Data.Data (Data)
 import Data.Typeable (Typeable)
 import Control.Applicative (liftA2)
 import Console.NStar.Flags (LexerFlags(..))
+import Control.Monad.Writer (WriterT, runWriterT)
+import Data.Foldable (foldl')
 
-type Lexer a = MP.Parsec LexicalError Text a
+type Lexer a = WriterT [LexicalWarning] (MP.Parsec LexicalError Text) a
 
 -- | The type of possible custom lexical errors, detected during lexing.
 data LexicalError
   = UnrecognizedEscapeSequence  -- ^ An escape sequence as not been recognized or is not valid
   deriving (Ord, Eq, Typeable, Data, Read)
+
+data LexicalWarning
+
+fromLexicalWarning :: LexicalWarning -> Report String
+fromLexicalWarning _ = reportWarning "" [] []
 
 instance Show LexicalError where
   show UnrecognizedEscapeSequence = "unrecognized character escape sequence"
@@ -77,9 +84,11 @@ symbol' = MPL.symbol' space
 lexFile :: (?lexerFlags :: LexerFlags)
         => FilePath                                     -- ^ File name
         -> Text                                         -- ^ File content
-        -> Either (Diagnostic [] String Char) [LToken]
-lexFile = first (megaparsecBundleToDiagnostic "Lexical error on input") .: MP.runParser lexProgram
-  where (.:) = (.) . (.)
+        -> Either (Diagnostic [] String Char) ([LToken], Diagnostic [] String Char)
+lexFile file input =
+  bimap (megaparsecBundleToDiagnostic "Lexical error on input") (second toDiagnostic) $ MP.runParser (runWriterT lexProgram) file input
+  where
+    toDiagnostic warns = foldl' (<++>) diagnostic (fromLexicalWarning <$> warns)
 
 
 -- | Transforms a source code into a non-empty list of tokens (accounting for 'EOF').

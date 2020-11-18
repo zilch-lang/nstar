@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 084f3acdafab570278fb04d3d622c40d9f1115a17a16b03fe3e84e22474c3b6a
+-- hash: ef7c225bcaf9d6cc9a1dddffb0acc01b9a918bab697575e74f0984b2ee4a6735
 
 name:           nsc-parser
 version:        0.0.1.0
@@ -27,6 +27,7 @@ library
     , containers >=0.6
     , diagnose
     , megaparsec >=8.0
+    , mtl
     , nsc-core
     , nsc-flags
     , text >=1.2 && <1.4
