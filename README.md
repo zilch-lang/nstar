@@ -1,6 +1,6 @@
 # N\*
 
-[![stars](https://img.shields.io/github/stars/nihil-lang/nsc?color=%23fdaa33&style=for-the-badge)](https://github.com/nihil-lang/nsc/stargazers)    [![forks](https://img.shields.io/github/forks/nihil-lang/nsc?color=%23654321&label=Forks&style=for-the-badge)](https://github.com/nihil-lang/nsc/network/members)
+[![stars](https://img.shields.io/github/stars/zilch-lang/nsc?color=%23fdaa33&style=for-the-badge)](https://github.com/zilch-lang/nsc/stargazers)    [![forks](https://img.shields.io/github/forks/zilch-lang/nsc?color=%23654321&label=Forks&style=for-the-badge)](https://github.com/zilch-lang/nsc/network/members)
 
 N\* is a low-level typed assembly language meant to be used as a compiler target language.
 It is very low-level, and features zero-cost abstractions such as structures, unions or even types.
