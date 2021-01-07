@@ -22,7 +22,7 @@ Make sure to conform to the license before requesting any change!
 ## Code examples
 
 N\* is not yet production-ready, thus example codes are lacking.
-It is also pretty unstable, so examples in the [./examples](directory) will change at some point.
+It is also pretty unstable, so examples in the [examples](./examples) directory will change at some point.
 
 ## License
 
