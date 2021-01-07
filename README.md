@@ -1,13 +1,30 @@
-<img src="./assets/icon.png" alt="N-star icon" align=right width=128px />
-
 # N\*
 
 [![stars](https://img.shields.io/github/stars/nihil-lang/nsc?color=%23fdaa33&style=for-the-badge)](https://github.com/nihil-lang/nsc/stargazers)    [![forks](https://img.shields.io/github/forks/nihil-lang/nsc?color=%23654321&label=Forks&style=for-the-badge)](https://github.com/nihil-lang/nsc/network/members)
 
-## Description
+N\* is a low-level typed assembly language meant to be used as a compiler target language.
+It is very low-level, and features zero-cost abstractions such as structures, unions or even types.
 
-N* is a typed assembly language (TAL for short) used as a compilation target for the [nihil programming language](https://github.com/nihil-lang). It features automatic memory management, an easy to understand type system as well as zero-cost abstractions like structures and unions.
+## Compiling
 
-## Examples
+Make sure that you have [stack](https://docs.haskellstack.org/en/stable/README/) in your path.
 
-Some code examples can be found in the [examples](./examples) directory.
+Then type `stack build` and `stack exec -- <command-line arguments>`.
+
+The first command will build nsc, the compiler for N\*, and the second one will run it with the given command-line arguments.
+
+## Hacking on the source code
+
+The codebase is written almost entirely in Haskell at the moment, but a rewriting in Zilch is planned for when Zilch will be production-ready and complete enough to be used on its own.
+
+Make sure to conform to the license before requesting any change!
+
+## Code examples
+
+N\* is not yet production-ready, thus example codes are lacking.
+It is also pretty unstable, so examples in the [./examples](directory) will change at some point.
+
+## License
+
+&copy; Ghilain Bergeron (Mesabloo) and collaborators.
+This work is licensed under the BSD-3 license.
