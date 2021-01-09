@@ -10,7 +10,7 @@
 
 module Main (main) where
 
-import Language.NStar.Syntax (lexFile, parseFile)
+import Language.NStar.Syntax (lexFile, parseFile, postProcessAST)
 import Language.NStar.Typechecker (typecheck)
 import Language.NStar.Branchchecker (branchcheck)
 import Language.NStar.CodeGen (SupportedArch(..), compileToElf)
@@ -56,9 +56,10 @@ tryCompile flags file = do
         liftIO (printDiagnostic withColor stderr (lexWarnings <~< fileContent))
         (ast, parseWarnings)  <- liftEither $ parseFile file tks
         liftIO (printDiagnostic withColor stderr (parseWarnings <~< fileContent))
-        (tast, tcWarnings)   <- liftEither $ typecheck ast
+        ast                   <- pure $ postProcessAST ast
+        (tast, tcWarnings)    <- liftEither $ typecheck ast
         liftIO (printDiagnostic withColor stderr (tcWarnings <~< fileContent))
-        bcWarnings           <- liftEither $ branchcheck tast
+        bcWarnings            <- liftEither $ branchcheck tast
         liftIO (printDiagnostic withColor stderr (bcWarnings <~< fileContent))
         pure tast
   case result of
