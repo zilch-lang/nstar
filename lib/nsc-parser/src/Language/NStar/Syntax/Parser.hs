@@ -51,7 +51,7 @@ parseFile file tokens = bimap (megaparsecBundleToDiagnostic "Parse error on inpu
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program
 parseProgram = noise *> (Program <$> MP.many instructions) <* parseEOF
-  where instructions = located (parseTypedLabel MP.<|> parseInstructionCall) <* (() <$ MP.many parseEOL MP.<|> parseEOF)
+  where instructions = located (parseTypedLabel MP.<|> fmap Instr parseInstruction) <* eol
         noise = lexeme (pure ()) *> MP.many (lexeme (MP.try parseEOL))
 
 -- | Parses the end of file. There is no guarantee that any parser will try to parse something after the end of file.
@@ -134,15 +134,21 @@ sepBy1 :: (?parserFlags :: ParserFlags) => Parser a -> Parser b -> Parser [a]
 sepBy1 p sep = (:) <$> p <*> MP.many (sep *> p)
 
 
+-----------------------------------
+
+eol :: (?parserFlags :: ParserFlags) => Parser ()
+eol = lexeme (pure ()) *> (() <$ MP.many parseEOL)
+
 -- | Parses a typed label.
 parseTypedLabel :: (?parserFlags :: ParserFlags) => Parser Statement
 parseTypedLabel = lexeme $
   Label <$> (parseIdentifier <* parseSymbol Colon)
-        <*> located (parseForallType (parseRecordType True) MP.<|> parseRecordType True)
+        <*> (located (parseForallType (parseRecordType True) MP.<|> parseRecordType True) <* eol)
+        <*> MP.manyTill (located parseInstruction <* eol) (MP.lookAhead (MP.try (() <$ parseTypedLabel MP.<|> parseEOF)))
 
 -- | Parses an instruction call from the N*'s instruction set.
-parseInstructionCall :: (?parserFlags :: ParserFlags) => Parser Statement
-parseInstructionCall = MP.choice $ fmap Instr <$>
+parseInstruction :: (?parserFlags :: ParserFlags) => Parser Instruction
+parseInstruction = MP.choice
   [ parseMov
   , parseRet
   , parseJmp

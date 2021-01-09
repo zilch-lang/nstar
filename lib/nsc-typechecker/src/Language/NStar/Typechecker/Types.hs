@@ -45,7 +45,7 @@ typecheckProgram :: (?tcFlags :: TypecheckerFlags) => Program -> Typechecker Typ
 typecheckProgram p@(Program []) = pure (TProgram [])
 typecheckProgram (Program stts) = do
   registerAllLabels stts
-  res <- TProgram <$> mapM typecheckStatement stts
+  res <- TProgram . mconcat <$> mapM typecheckStatement stts
 
   -- Check that the type of `main` is actually usable, and that states
   -- can be guaranteed at compile time.
@@ -75,11 +75,11 @@ typecheckProgram (Program stts) = do
 --   worsening the overall complexity of the typechecking.
 registerAllLabels :: (?tcFlags :: TypecheckerFlags) => [Located Statement] -> Typechecker ()
 registerAllLabels = mapM_ addLabelType . filter isLabel
-  where isLabel (unLoc -> Label _ _) = True
-        isLabel _                    = False
+  where isLabel (unLoc -> Label _ _ _) = True
+        isLabel _                      = False
 
-        addLabelType (unLoc -> Label name ty) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
-        addLabelType (unLoc -> t)             = error ("Adding type of non-label '" <> show t <> "' is impossible.")
+        addLabelType (unLoc -> Label name ty _) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
+        addLabelType (unLoc -> t)               = error ("Adding type of non-label '" <> show t <> "' is impossible.")
 
 -- | Typechecks a statement.
 --
@@ -87,13 +87,16 @@ registerAllLabels = mapM_ addLabelType . filter isLabel
 --   and add kind bindings of the @forall@ if there is one.
 --
 --   When it's an instruction, just typecheck the instruction accordingly.
-typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> Typechecker (Located TypedStatement)
-typecheckStatement (Label name ty :@ p) = do
+typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> Typechecker [Located TypedStatement]
+typecheckStatement (Label name ty is :@ p) = do
   let (binders, record) = removeForallQuantifierIfAny ty
   setCurrentTypeContext (toRegisterMap record)
   setCurrentKindContext (Map.fromList $ first toVarName <$> binders)
   setLabel name
-  pure (TLabel name :@ p)
+
+  instrs <- forM is \ (i :@ p) -> (:@ p) <$> typecheckInstruction i p
+
+  pure $ [TLabel name :@ p] <> instrs
  where
    removeForallQuantifierIfAny (unLoc -> ForAll b ty) = (b, ty)
    removeForallQuantifierIfAny ty                     = (mempty, ty)
@@ -103,8 +106,7 @@ typecheckStatement (Label name ty :@ p) = do
 
    toVarName (Var v :@ _) = v
    toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
-typecheckStatement (Instr i :@ p)       = do
-  (:@ p) <$> typecheckInstruction i p
+typecheckStatement (Instr i :@ p)         = pure . (:@ p) <$> typecheckInstruction i p
 
 typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Position -> Typechecker TypedStatement
 typecheckInstruction i p = do

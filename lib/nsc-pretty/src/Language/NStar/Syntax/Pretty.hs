@@ -19,8 +19,8 @@ instance PrettyText Program where
     vsep (fmap prettyText stts)
 
 instance PrettyText Statement where
-  prettyText (Label name ty) = prettyText name <> colon <+> prettyText ty
-  prettyText (Instr i)       = prettyText i
+  prettyText (Label name ty is) = prettyText name <> colon <+> prettyText ty <> line <> vsep (fmap prettyText is)
+  prettyText (Instr i)          = prettyText i
 
 instance PrettyText Kind where
   prettyText T8 = text "T8"
@@ -60,9 +60,10 @@ instance PrettyText Register where
       f SP = "sp"
 
 instance PrettyText Instruction where
-  prettyText (MOV s d)     = text "mov" <+> prettyText s <> comma <+> prettyText d
-  prettyText (RET)         = text "ret"
-  prettyText (JMP lbl tys) = text "jmp" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
+  prettyText (MOV s d)      = text "mov" <+> prettyText s <> comma <+> prettyText d
+  prettyText (RET)          = text "ret"
+  prettyText (JMP lbl tys)  = text "jmp" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
+  prettyText (CALL lbl tys) = text "call" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
 
 instance PrettyText Expr where
   prettyText (Imm i) = prettyText i

@@ -36,6 +36,7 @@ data Statement where
   -- | A typed label
   Label :: Located Text           -- ^ The label's name. It may not be empty
         -> Located Type           -- ^ The "label's type", describing the minimal type expected when jumping to this label
+        -> [Located Instruction]  -- ^ The label's associated instructions
         -> Statement
   -- | An instruction call
   Instr :: Instruction -> Statement
