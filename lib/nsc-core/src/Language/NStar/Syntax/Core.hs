@@ -96,13 +96,10 @@ deriving instance Show Kind
 deriving instance Eq Kind
 
 data Register where
-  -- | 64 bits single-value registers
-  RAX, RBX, RCX, RDX, RDI, RSI, RBP :: Register
-  -- | 64 bits stack registers
-  RSP :: Register
-  {- We do not permit using registers like %rip, %flags, etc.
-     Those are used internally by some instructions.
-  -}
+  -- | General purpose register
+  R0, R1, R2, R3, R4, R5 :: Register
+  -- | Pointer register
+  SP, BP :: Register
 
 deriving instance Show Register
 deriving instance Eq Register
@@ -179,7 +176,7 @@ data Token where
   Id :: Text -> Token
   -- Registers
   -- | Registers reserved words
-  Rax, Rbx, Rcx, Rdx, Rdi, Rsi, Rsp, Rbp :: Token
+  R0', R1', R2', R3', R4', R5', SP', BP' :: Token
   -- Instructions
   -- | The @mov@ instruction
   Mov :: Token

@@ -76,7 +76,7 @@ kindcheckType ctx (Cons t1@(_ :@ p1) t2@(_ :@ p2) :@ p)  = do
 kindcheckType ctx (Record mappings _ :@ p)               =
   (Ta :@ p) <$ Map.traverseWithKey handleTypeFromRegister mappings
        -- FIXME: Kind checking does not take into account the size of the types, so if they are sized, they all are 8-bytes big at the moment.
- where handleTypeFromRegister (RSP :@ _) ty@(_ :@ p) = requireStackType p =<< kindcheckType ctx ty
+ where handleTypeFromRegister (SP :@ _) ty@(_ :@ p) = requireStackType p =<< kindcheckType ctx ty
        handleTypeFromRegister _ ty@(_ :@ p)          = liftA2 (*>) (requireDataType p) (requireSized p) =<< kindcheckType ctx ty
 kindcheckType _ (Register _ :@ p)                        = pure (T8 :@ p)
      -- NOTE: just a kind placeholder. rN types never appear after parsing.

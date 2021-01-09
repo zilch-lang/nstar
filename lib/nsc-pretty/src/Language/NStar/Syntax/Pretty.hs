@@ -50,14 +50,14 @@ instance PrettyText Type where
 instance PrettyText Register where
   prettyText = (text "%" <>) . text . f
     where
-      f RAX = "rax"
-      f RBX = "rbx"
-      f RCX = "rcx"
-      f RDX = "rdx"
-      f RSI = "rsi"
-      f RDI = "rdi"
-      f RBP = "rbp"
-      f RSP = "rsp"
+      f R0 = "r0"
+      f R1 = "r1"
+      f R2 = "r2"
+      f R3 = "r3"
+      f R4 = "r4"
+      f R5 = "r5"
+      f BP = "bp"
+      f SP = "sp"
 
 instance PrettyText Instruction where
   prettyText (MOV s d)     = text "mov" <+> prettyText s <> comma <+> prettyText d

@@ -120,14 +120,14 @@ identifierOrKeyword = lexeme $ located do
       "jmp"    -> Jmp
       "call"   -> Call
       -- Registers
-      "rax"    -> Rax
-      "rbx"    -> Rbx
-      "rcx"    -> Rcx
-      "rdx"    -> Rdx
-      "rdi"    -> Rdi
-      "rsi"    -> Rsi
-      "rsp"    -> Rsp
-      "rbp"    -> Rbp
+      "r0"     -> R0'
+      "r1"     -> R1'
+      "r2"     -> R2'
+      "r3"     -> R3'
+      "r4"     -> R4'
+      "r5"     -> R5'
+      "sp"     -> SP'
+      "bp"     -> BP'
       -- Keywords
       "forall" -> Forall
       "sptr"   -> Sptr

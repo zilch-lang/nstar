@@ -41,14 +41,14 @@ modRM mod reg rm = Byte $
 --
 --   See <https://wiki.osdev.org/X86-64_Instruction_Encoding#Registers the osdev wiki on registers encoding> for more information.
 registerNumber :: Register -> Word8
-registerNumber RAX = 0x0
-registerNumber RCX = 0x1
-registerNumber RDX = 0x2
-registerNumber RBX = 0x3
-registerNumber RSP = 0x4
-registerNumber RBP = 0x5
-registerNumber RSI = 0x6
-registerNumber RDI = 0x7
+registerNumber R0 = 0x0  -- rax
+registerNumber R1 = 0x1  -- rcx
+registerNumber R2 = 0x2  -- rdx
+registerNumber R3 = 0x3  -- rbx
+registerNumber SP = 0x4  -- rsp
+registerNumber BP = 0x5  -- rbp
+registerNumber R4 = 0x6  -- rsi
+registerNumber R5 = 0x7  -- rdi
 
 compileX64 :: TypedProgram -> Compiler ()
 compileX64 = (fixupAddressesX64 =<<) . compileInterX64

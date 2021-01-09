@@ -79,14 +79,14 @@ parseSymbol t1 = MP.label (showToken t1) . lexeme $ MP.satisfy \ (t2 :@ _) -> t2
 parseRegister :: (?parserFlags :: ParserFlags) => Parser Register
 parseRegister = MP.label "a register" $ parseSymbol Percent *> reg
   where reg = MP.choice
-          [ RAX <$ parseSymbol Rax
-          , RBX <$ parseSymbol Rbx
-          , RCX <$ parseSymbol Rcx
-          , RDX <$ parseSymbol Rdx
-          , RSI <$ parseSymbol Rsi
-          , RDI <$ parseSymbol Rdi
-          , RSP <$ parseSymbol Rsp
-          , RBP <$ parseSymbol Rbp
+          [ R0 <$ parseSymbol R0'
+          , R1 <$ parseSymbol R1'
+          , R2 <$ parseSymbol R2'
+          , R3 <$ parseSymbol R3'
+          , R4 <$ parseSymbol R4'
+          , R5 <$ parseSymbol R5'
+          , SP <$ parseSymbol SP'
+          , BP <$ parseSymbol BP'
           , MP.lookAhead MP.anySingle >>= MP.customFailure . NoSuchRegister . unLoc ]
 
 parseInteger :: (?parserFlags :: ParserFlags) => Parser (Located Integer)

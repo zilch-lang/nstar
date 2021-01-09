@@ -56,7 +56,7 @@ tc_ret p = do
 
 
   stackVar <- freshVar "@" p
-  let minimalCtx = Record (Map.singleton (RSP :@ p) (SPtr (Cons (Ptr (Record mempty True :@ p) :@ p) stackVar :@ p) :@ p)) True :@ p
+  let minimalCtx = Record (Map.singleton (SP :@ p) (SPtr (Cons (Ptr (Record mempty True :@ p) :@ p) stackVar :@ p) :@ p)) True :@ p
   currentCtx <- gets (currentTypeContext . snd)
 
   catchError (unify (Record currentCtx False :@ p) minimalCtx)
@@ -68,8 +68,8 @@ tc_ret p = do
       getStackTop (SPtr (Cons t _ :@ _) :@ _) = t
       getStackTop (t :@ _)                    = error $ "Cannot extract stack top of type '" <> show t <> "'"
 
-  let returnShouldBe = Ptr (Record (Map.adjust removeStackTop (RSP :@ p) currentCtx) False :@ p) :@ p
-      returnCtx = getStackTop $ fromJust (Map.lookup (RSP :@ p) currentCtx)
+  let returnShouldBe = Ptr (Record (Map.adjust removeStackTop (SP :@ p) currentCtx) False :@ p) :@ p
+      returnCtx = getStackTop $ fromJust (Map.lookup (SP :@ p) currentCtx)
 
   let changeErrorIfMissingKey (DomainsDoNotSubtype (m1 :@ _) (m2 :@ _)) =
         ContextIsMissingOnReturn p (getPos returnCtx) (Map.keysSet m1 Set.\\ Map.keysSet m2)
@@ -214,7 +214,7 @@ tc_call (Name n :@ p1) tys p = do
       addContextOnTop (Just ty) = case ty of
         SPtr stack :@ p3 -> Just $ SPtr (Cons (Ptr (Record mempty True :@ p) :@ p) stack :@ p) :@ p3
         t :@ _           -> internalError $ "Trying to add a return context on top of a non-stack type " <> show t
-  let newTypeCtx = Map.alter addContextOnTop (RSP :@ p) typeCtx
+  let newTypeCtx = Map.alter addContextOnTop (SP :@ p) typeCtx
   let targetCtx = Record newTypeCtx False :@ p
 
   catchError (unify ctxTy targetCtx)
@@ -226,7 +226,7 @@ tc_call (Name n :@ p1) tys p = do
       popContextOffStack t                             = internalError $ "Cannot pop stack or non-stack type " <> show t
 
       Record ctx _ :@ _               = ctxTy
-      Ptr (Record newCtx _ :@ _) :@ _ = popContextOffStack (fromJust $ Map.lookup (RSP :@ p) ctx)
+      Ptr (Record newCtx _ :@ _) :@ _ = popContextOffStack (fromJust $ Map.lookup (SP :@ p) ctx)
 
   setCurrentTypeContext newCtx
 

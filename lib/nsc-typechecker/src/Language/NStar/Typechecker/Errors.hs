@@ -12,7 +12,7 @@
 module Language.NStar.Typechecker.Errors where
 
 import Text.Diagnose (Report, Marker(..), hint, reportError, reportWarning, prettyText)
-import Language.NStar.Typechecker.Core (Type(Record), Register(RSP), Kind)
+import Language.NStar.Typechecker.Core (Type(Record), Register(SP), Kind)
 import Data.Located (Position(..), Located(..))
 import Language.NStar.Typechecker.Pretty()
 import Data.Map (Map)
@@ -78,7 +78,7 @@ retWithoutReturnAddress p ctx =
                    | otherwise         -> "No stack found at this point") ]
     []
  where
-   rsp = Map.lookup (RSP :@ dummyPos) ctx
+   rsp = Map.lookup (SP :@ dummyPos) ctx
    dummyPos = Position (1, 1) (1, 1) "dummy"
 
 -- | Happens when we try to create a substitution like @a ~ [a]@, where a given free type variable would be infinitely replaced,
