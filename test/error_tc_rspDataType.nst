@@ -1,1 +1,3 @@
+section code {
 main: forall (a: Ta). { %sp: sptr a }
+}

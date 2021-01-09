@@ -1,5 +1,7 @@
-unsafe ret
-unsafe { ret }
-unsafe {
-       ret
+section code {
+    unsafe ret
+    unsafe { ret }
+    unsafe {
+        ret
+    }
 }

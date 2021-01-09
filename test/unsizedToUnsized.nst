@@ -1,5 +1,7 @@
+section code {
 f: forall (a: Ta) (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
    jmp g<a, s>
 
 g: forall (b: Ta) (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
    ret
+}
