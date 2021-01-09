@@ -36,10 +36,12 @@ data Statement where
   -- | A typed label
   Label :: Located Text           -- ^ The label's name. It may not be empty
         -> Located Type           -- ^ The "label's type", describing the minimal type expected when jumping to this label
-        -> [Located Instruction]  -- ^ The label's associated instructions
+        -> [Located Statement]    -- ^ The label's associated instructions
         -> Statement
   -- | An instruction call
   Instr :: Instruction -> Statement
+  -- | An unsafe block
+  Unsafe :: [Located Statement] -> Statement
 
 deriving instance Show Statement
 
@@ -214,6 +216,8 @@ data Token where
   Forall :: Token
   -- | \"@sptr@\" stack pointer quantifier
   Sptr :: Token
+  -- | \"@unsafe@\" block
+  UnSafe :: Token
   -- Comments
   -- | A comment starting with "@#@" and spanning until the end of the current line
   InlineComment :: Text        -- ^ The content of the comment
