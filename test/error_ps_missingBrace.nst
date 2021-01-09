@@ -1,0 +1,2 @@
+unsafe {
+       mov 0, %r0

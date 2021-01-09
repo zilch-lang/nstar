@@ -131,6 +131,7 @@ identifierOrKeyword = lexeme $ located do
       -- Keywords
       "forall" -> Forall
       "sptr"   -> Sptr
+      "unsafe" -> UnSafe
       -- Identifier
       _        -> Id w
 

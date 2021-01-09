@@ -50,9 +50,8 @@ parseFile file tokens = bimap (megaparsecBundleToDiagnostic "Parse error on inpu
 
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program
-parseProgram = noise *> (Program <$> MP.many instructions) <* parseEOF
-  where instructions = located (parseTypedLabel MP.<|> fmap Instr parseInstruction) <* eol
-        noise = lexeme (pure ()) *> MP.many (lexeme (MP.try parseEOL))
+parseProgram = MP.optional eol *> (Program <$> MP.many instructions) <* parseEOF
+  where instructions = located (parseUnsafeBlock <* eol MP.<|> parseTypedLabel MP.<|> parseInstruction <* eol)
 
 -- | Parses the end of file. There is no guarantee that any parser will try to parse something after the end of file.
 --   This has to be dealt with on our own. No more token should be available after consuming the end of file.
@@ -137,23 +136,33 @@ sepBy1 p sep = (:) <$> p <*> MP.many (sep *> p)
 -----------------------------------
 
 eol :: (?parserFlags :: ParserFlags) => Parser ()
-eol = lexeme (pure ()) *> (() <$ MP.many parseEOL)
+eol = lexeme (pure ()) *> (MP.lookAhead parseEOF MP.<|> MP.skipSome (lexeme parseEOL))
 
 -- | Parses a typed label.
 parseTypedLabel :: (?parserFlags :: ParserFlags) => Parser Statement
 parseTypedLabel = lexeme $
   Label <$> (parseIdentifier <* parseSymbol Colon)
         <*> (located (parseForallType (parseRecordType True) MP.<|> parseRecordType True) <* eol)
-        <*> MP.manyTill (located parseInstruction <* eol) (MP.lookAhead (MP.try (() <$ parseTypedLabel MP.<|> parseEOF)))
+        <*> MP.manyTill (located (parseUnsafeBlock MP.<|> parseInstruction) <* eol)
+                        (MP.lookAhead (parseEOF MP.<|> MP.try (() <$ parseTypedLabel)))
 
 -- | Parses an instruction call from the N*'s instruction set.
-parseInstruction :: (?parserFlags :: ParserFlags) => Parser Instruction
-parseInstruction = MP.choice
+parseInstruction :: (?parserFlags :: ParserFlags) => Parser Statement
+parseInstruction = lexeme $ Instr <$> MP.choice
   [ parseMov
   , parseRet
   , parseJmp
   , parseCall
   ]
+
+parseUnsafeBlock :: (?parserFlags :: ParserFlags) => Parser Statement
+parseUnsafeBlock = lexeme $ fmap Unsafe $ parseSymbol UnSafe *> MP.choice
+  [ betweenBraces (MP.optional eol *> MP.choice
+                   [ pure <$> located parseInstruction <* MP.optional eol
+                   , MP.many (located (parseTypedLabel MP.<|> parseInstruction) <* eol) ])
+  , pure <$> located parseInstruction
+  ]
+
 
 ------------------------------------------------------------------------------------------------------------
 

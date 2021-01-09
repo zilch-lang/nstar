@@ -45,7 +45,7 @@ typecheckProgram :: (?tcFlags :: TypecheckerFlags) => Program -> Typechecker Typ
 typecheckProgram p@(Program []) = pure (TProgram [])
 typecheckProgram (Program stts) = do
   registerAllLabels stts
-  res <- TProgram . mconcat <$> mapM typecheckStatement stts
+  res <- TProgram . mconcat <$> mapM (flip typecheckStatement False) stts
 
   -- Check that the type of `main` is actually usable, and that states
   -- can be guaranteed at compile time.
@@ -87,16 +87,16 @@ registerAllLabels = mapM_ addLabelType . filter isLabel
 --   and add kind bindings of the @forall@ if there is one.
 --
 --   When it's an instruction, just typecheck the instruction accordingly.
-typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> Typechecker [Located TypedStatement]
-typecheckStatement (Label name ty is :@ p) = do
+typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> Bool -> Typechecker [Located TypedStatement]
+typecheckStatement (Label name ty is :@ p) isUnsafe = do
   let (binders, record) = removeForallQuantifierIfAny ty
   setCurrentTypeContext (toRegisterMap record)
   setCurrentKindContext (Map.fromList $ first toVarName <$> binders)
   setLabel name
 
-  instrs <- forM is \ (i :@ p) -> (:@ p) <$> typecheckInstruction i p
+  instrs <- forM is (flip typecheckStatement isUnsafe)
 
-  pure $ [TLabel name :@ p] <> instrs
+  pure $ [TLabel name :@ p] <> mconcat instrs
  where
    removeForallQuantifierIfAny (unLoc -> ForAll b ty) = (b, ty)
    removeForallQuantifierIfAny ty                     = (mempty, ty)
@@ -106,14 +106,15 @@ typecheckStatement (Label name ty is :@ p) = do
 
    toVarName (Var v :@ _) = v
    toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
-typecheckStatement (Instr i :@ p)         = pure . (:@ p) <$> typecheckInstruction i p
+typecheckStatement (Instr i :@ p) isUnsafe        = pure . (:@ p) <$> typecheckInstruction i p isUnsafe
+typecheckStatement (Unsafe is :@ p) _             = mconcat <$> forM is (flip typecheckStatement True)
 
-typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Position -> Typechecker TypedStatement
-typecheckInstruction i p = do
+typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Position -> Bool -> Typechecker TypedStatement
+typecheckInstruction i p unsafe = do
   uncurry TInstr . (i :@ p ,) <$>
     case i of
       RET          -> tc_ret p
-      MOV src dst  -> tc_mov src dst p
+      MOV src dst  -> tc_mov src dst unsafe p
       JMP lbl tys  -> tc_jmp lbl tys p
       CALL lbl tys -> tc_call lbl tys p
       _           -> error $ "Unrecognized instruction '" <> show i <> "'."

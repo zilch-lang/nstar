@@ -83,8 +83,8 @@ tc_ret p = do
   pure []
 
 
-tc_mov :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Position -> Typechecker [Located Type]
-tc_mov (src :@ p1) (dest :@ p2) p = do
+tc_mov :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Bool -> Position -> Typechecker [Located Type]
+tc_mov (src :@ p1) (dest :@ p2) unsafe p = do
   -- There are many ways of handling `mov`s, and it all depends on what arguments are given.
   --
   -- > mov <immediate>, <register>

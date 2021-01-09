@@ -1,0 +1,5 @@
+unsafe ret
+unsafe { ret }
+unsafe {
+       ret
+}
