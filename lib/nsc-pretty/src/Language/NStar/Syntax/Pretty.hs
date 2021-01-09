@@ -15,12 +15,14 @@ import Data.Located (unLoc, Located)
 import qualified Data.Map as Map
 
 instance PrettyText Program where
-  prettyText (Program stts) =
-    vsep (fmap prettyText stts)
+  prettyText (Program stts) = vsep (fmap prettyText stts)
+
+instance PrettyText Section where
+  prettyText (Code sect) = vsep (fmap prettyText sect)
 
 instance PrettyText Statement where
-  prettyText (Label name ty is) = prettyText name <> colon <+> prettyText ty <> line <> vsep (fmap prettyText is)
-  prettyText (Instr i)          = prettyText i
+  prettyText (Label name ty) = prettyText name <> colon <+> prettyText ty
+  prettyText (Instr i)       = prettyText i
 
 instance PrettyText Kind where
   prettyText T8 = text "T8"

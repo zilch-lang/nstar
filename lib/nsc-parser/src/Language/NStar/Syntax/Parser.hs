@@ -50,8 +50,12 @@ parseFile file tokens = bimap (megaparsecBundleToDiagnostic "Parse error on inpu
 
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program
-parseProgram = MP.optional eol *> (Program <$> MP.many instructions) <* parseEOF
-  where instructions = located (parseUnsafeBlock <* eol MP.<|> parseTypedLabel MP.<|> parseInstruction <* eol)
+parseProgram = MP.optional eol *> (Program <$> MP.many section) <* parseEOF
+  where section = located (MP.choice [ parseCodeSection ]) <* eol
+
+parseCodeSection :: (?parserFlags :: ParserFlags) => Parser Section
+parseCodeSection = Code <$> (parseSymbol Section *> parseSymbol (Id "code") *> betweenBraces (MP.optional eol *> MP.many instruction))
+  where instruction = located (parseUnsafeBlock MP.<|> parseTypedLabel MP.<|> parseInstruction) <* eol
 
 -- | Parses the end of file. There is no guarantee that any parser will try to parse something after the end of file.
 --   This has to be dealt with on our own. No more token should be available after consuming the end of file.
@@ -142,9 +146,7 @@ eol = lexeme (pure ()) *> (MP.lookAhead parseEOF MP.<|> MP.skipSome (lexeme pars
 parseTypedLabel :: (?parserFlags :: ParserFlags) => Parser Statement
 parseTypedLabel = lexeme $
   Label <$> (parseIdentifier <* parseSymbol Colon)
-        <*> (located (parseForallType (parseRecordType True) MP.<|> parseRecordType True) <* eol)
-        <*> MP.manyTill (located (parseUnsafeBlock MP.<|> parseInstruction) <* eol)
-                        (MP.lookAhead (parseEOF MP.<|> MP.try (() <$ parseTypedLabel)))
+        <*> (located (parseForallType (parseRecordType True) MP.<|> parseRecordType True))
 
 -- | Parses an instruction call from the N*'s instruction set.
 parseInstruction :: (?parserFlags :: ParserFlags) => Parser Statement

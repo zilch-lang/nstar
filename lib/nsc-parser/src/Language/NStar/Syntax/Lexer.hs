@@ -115,25 +115,26 @@ identifierOrKeyword = lexeme $ located do
     transform :: Text -> Token
     transform w@(Text.toLower -> rw) = case rw of
       -- Instructions
-      "mov"    -> Mov
-      "ret"    -> Ret
-      "jmp"    -> Jmp
-      "call"   -> Call
+      "mov"     -> Mov
+      "ret"     -> Ret
+      "jmp"     -> Jmp
+      "call"    -> Call
       -- Registers
-      "r0"     -> R0'
-      "r1"     -> R1'
-      "r2"     -> R2'
-      "r3"     -> R3'
-      "r4"     -> R4'
-      "r5"     -> R5'
-      "sp"     -> SP'
-      "bp"     -> BP'
+      "r0"      -> R0'
+      "r1"      -> R1'
+      "r2"      -> R2'
+      "r3"      -> R3'
+      "r4"      -> R4'
+      "r5"      -> R5'
+      "sp"      -> SP'
+      "bp"      -> BP'
       -- Keywords
-      "forall" -> Forall
-      "sptr"   -> Sptr
-      "unsafe" -> UnSafe
+      "forall"  -> Forall
+      "sptr"    -> Sptr
+      "unsafe"  -> UnSafe
+      "section" -> Section
       -- Identifier
-      _        -> Id w
+      _         -> Id w
 
 -- | Parses a literal value (integer or character).
 literal :: (?lexerFlags :: LexerFlags) => Lexer LToken

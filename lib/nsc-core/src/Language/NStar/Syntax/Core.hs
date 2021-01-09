@@ -27,16 +27,28 @@ import Data.Data (Data)
 import Data.Typeable (Typeable)
 
 newtype Program
-  = Program [Located Statement]  -- ^ A program is a possibily empty list of statements
+  = Program [Located Section]  -- ^ A program is a possibily empty list of sections
 
 deriving instance Show Program
+
+data Section where
+  -- | The @data@ section
+  Code :: [Located Statement]
+       -> Section
+  Data :: [Located Statement]
+       -> Section
+  ROData :: [Located Statement]
+         -> Section
+  UData :: [Located Statement]
+        -> Section
+
+deriving instance Show Section
 
 -- | A statement is either
 data Statement where
   -- | A typed label
   Label :: Located Text           -- ^ The label's name. It may not be empty
         -> Located Type           -- ^ The "label's type", describing the minimal type expected when jumping to this label
-        -> [Located Statement]    -- ^ The label's associated instructions
         -> Statement
   -- | An instruction call
   Instr :: Instruction -> Statement
@@ -218,6 +230,8 @@ data Token where
   Sptr :: Token
   -- | \"@unsafe@\" block
   UnSafe :: Token
+  -- | \"@section@\" block
+  Section :: Token
   -- Comments
   -- | A comment starting with "@#@" and spanning until the end of the current line
   InlineComment :: Text        -- ^ The content of the comment

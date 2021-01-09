@@ -75,11 +75,11 @@ typecheckProgram (Program stts) = do
 --   worsening the overall complexity of the typechecking.
 registerAllLabels :: (?tcFlags :: TypecheckerFlags) => [Located Statement] -> Typechecker ()
 registerAllLabels = mapM_ addLabelType . filter isLabel
-  where isLabel (unLoc -> Label _ _ _) = True
-        isLabel _                      = False
+  where isLabel (unLoc -> Label _ _) = True
+        isLabel _                    = False
 
-        addLabelType (unLoc -> Label name ty _) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
-        addLabelType (unLoc -> t)               = error ("Adding type of non-label '" <> show t <> "' is impossible.")
+        addLabelType (unLoc -> Label name ty) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
+        addLabelType (unLoc -> t)             = error ("Adding type of non-label '" <> show t <> "' is impossible.")
 
 -- | Typechecks a statement.
 --
@@ -88,15 +88,13 @@ registerAllLabels = mapM_ addLabelType . filter isLabel
 --
 --   When it's an instruction, just typecheck the instruction accordingly.
 typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> Bool -> Typechecker [Located TypedStatement]
-typecheckStatement (Label name ty is :@ p) isUnsafe = do
+typecheckStatement (Label name ty :@ p) isUnsafe = do
   let (binders, record) = removeForallQuantifierIfAny ty
   setCurrentTypeContext (toRegisterMap record)
   setCurrentKindContext (Map.fromList $ first toVarName <$> binders)
   setLabel name
 
-  instrs <- forM is (flip typecheckStatement isUnsafe)
-
-  pure $ [TLabel name :@ p] <> mconcat instrs
+  pure $ [TLabel name :@ p]
  where
    removeForallQuantifierIfAny (unLoc -> ForAll b ty) = (b, ty)
    removeForallQuantifierIfAny ty                     = (mempty, ty)
@@ -106,8 +104,8 @@ typecheckStatement (Label name ty is :@ p) isUnsafe = do
 
    toVarName (Var v :@ _) = v
    toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
-typecheckStatement (Instr i :@ p) isUnsafe        = pure . (:@ p) <$> typecheckInstruction i p isUnsafe
-typecheckStatement (Unsafe is :@ p) _             = mconcat <$> forM is (flip typecheckStatement True)
+typecheckStatement (Instr i :@ p) isUnsafe      = pure . (:@ p) <$> typecheckInstruction i p isUnsafe
+typecheckStatement (Unsafe is :@ p) _           = mconcat <$> forM is (flip typecheckStatement True)
 
 typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Position -> Bool -> Typechecker TypedStatement
 typecheckInstruction i p unsafe = do
