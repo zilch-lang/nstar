@@ -157,8 +157,10 @@ parseInstruction = lexeme $ Instr <$> MP.choice
 
 parseUnsafeBlock :: (?parserFlags :: ParserFlags) => Parser Statement
 parseUnsafeBlock = lexeme $ fmap Unsafe $ parseSymbol UnSafe *> MP.choice
-  [ pure <$> located parseInstruction
-  , betweenBraces (MP.between (MP.optional eol) eol $ MP.many (located (parseTypedLabel MP.<|> parseInstruction MP.<|> parseUnsafeBlock)))
+  [ betweenBraces (MP.optional eol *> MP.choice
+                   [ pure <$> located parseInstruction <* MP.optional eol
+                   , MP.many (located (parseTypedLabel MP.<|> parseInstruction) <* eol) ])
+  , pure <$> located parseInstruction
   ]
 
 
