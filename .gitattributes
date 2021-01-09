@@ -1,1 +1,2 @@
 *.nst linguist-language=Unix-Assembly
+test linguist-detectable=false
