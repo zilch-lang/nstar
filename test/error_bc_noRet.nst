@@ -1,2 +1,2 @@
-main: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s }::s }
-  mov 0, %rax
+main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
+  mov 0, %r0

@@ -1,1 +1,1 @@
-main: forall (a: Ta). { %rsp: sptr s }
+main: forall (a: Ta). { %sp: sptr a }

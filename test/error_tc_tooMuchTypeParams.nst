@@ -1,5 +1,5 @@
-f: forall (s: Ts). { %rax: s64, %rsp: sptr s }
+f: forall (s: Ts). { %r0: s64, %sp: sptr s }
    jmp g<s64, s64, s64::s>
 
-g: forall (a: T8) (s: Ts). { %rsp: sptr s, %rax: a }
-   mov 0, %rcx
+g: forall (a: T8) (s: Ts). { %sp: sptr s, %r0: a }
+   mov 0, %r1

@@ -1,1 +1,1 @@
-mov %eax, %rax
+mov %r8, %r0

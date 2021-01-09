@@ -1,5 +1,5 @@
-f: forall (a: Ta) (s: Ts). { %rsp: sptr *{ %rsp: sptr s }::s }
+f: forall (a: Ta) (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
    jmp g<a, s>
 
-g: forall (b: Ta) (s: Ts). { %rsp: sptr *{ %rsp: sptr s }::s }
+g: forall (b: Ta) (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
    ret
