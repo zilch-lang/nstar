@@ -78,9 +78,9 @@ check file = do
         let ?parserFlags = ParserFlags {}
         let ?tcFlags     = TypecheckerFlags {}
 
-        tokens <- first (, Lx) $ lexFile file content
-        ast <- first (, Ps) $ parseFile file tokens
-        ast <- first (, Tc) $ typecheck ast
+        (tokens, _) <- first (, Lx) $ lexFile file content
+        (ast, _) <- first (, Ps) $ parseFile file tokens
+        (ast, _) <- first (, Tc) $ typecheck ast
         _ <- first (, Bc) $ branchcheck ast
         _ <- first (, Cg) $ maybeToEither errorCallCodeGen $ teaspoon (compile @S64 LE $ compileToElf X64 ast)
         pure ast
