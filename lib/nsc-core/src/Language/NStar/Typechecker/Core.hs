@@ -12,6 +12,7 @@
 module Language.NStar.Typechecker.Core
 (
   TypedProgram(..)
+, TypedDataSection(..), TypedRODataSection(..), TypedUDataSection(..), TypedCodeSection(..)
 , TypedStatement(..)
 ,  -- * Re-exports
   module Language.NStar.Syntax.Core
@@ -21,7 +22,28 @@ import Language.NStar.Syntax.Core (Type(..), Kind(..), Register(..), Instruction
 import Data.Located (Located)
 import Data.Text (Text)
 
-data TypedProgram = TProgram [Located TypedStatement]
+data TypedProgram =
+  TProgram
+    (Located TypedDataSection)
+    (Located TypedRODataSection)
+    (Located TypedUDataSection)
+    (Located TypedCodeSection)
+
+data TypedDataSection where
+  TData :: [()]
+        -> TypedDataSection
+
+data TypedRODataSection where
+  TROData :: [()]
+          -> TypedRODataSection
+
+data TypedUDataSection where
+  TUData :: [()]
+         -> TypedUDataSection
+
+data TypedCodeSection where
+  TCode :: [Located TypedStatement]
+        -> TypedCodeSection
 
 data TypedStatement where
   -- | A label stripped off its context.

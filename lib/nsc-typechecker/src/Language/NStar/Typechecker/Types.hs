@@ -42,9 +42,9 @@ typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT 
 --
 --   Typechecks a program, and return an elaborated form of it.
 typecheckProgram :: (?tcFlags :: TypecheckerFlags) => Program -> Typechecker TypedProgram
-typecheckProgram (Program [Data dataSect :@ _, ROData rodataSect :@ _, UData udataSect :@ _, Code code :@ _]) = do
+typecheckProgram (Program [Data dataSect :@ p1, ROData rodataSect :@ p2, UData udataSect :@ p3, Code code :@ p4]) = do
   registerAllLabels code
-  res <- TProgram . mconcat <$> mapM (flip typecheckStatement False) code
+  instrs <- concat <$> mapM (flip typecheckStatement False) code
 
   -- Check that the type of `main` is actually usable, and that states
   -- can be guaranteed at compile time.
@@ -63,7 +63,7 @@ typecheckProgram (Program [Data dataSect :@ _, ROData rodataSect :@ _, UData uda
   --
   -- For more information, see this: <http://dbp-consulting.com/tutorials/debugging/linuxProgramStartup.html>
 
-  pure res
+  pure (TProgram (TData [] :@ p1) (TROData [] :@ p2) (TUData [] :@ p3) (TCode instrs :@ p4))
 typecheckProgram (Program _) = error "Unexpected invalid Program"
 
 -- | Brings all the labels with their corresponding types into the type environment.

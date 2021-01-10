@@ -18,11 +18,12 @@ instance PrettyText Program where
   prettyText (Program stts) = vsep (fmap prettyText stts)
 
 instance PrettyText Section where
-  prettyText (Code sect) = vsep (fmap prettyText sect)
+  prettyText (Code sect) = text "section code {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
 
 instance PrettyText Statement where
   prettyText (Label name ty) = prettyText name <> colon <+> prettyText ty
   prettyText (Instr i)       = prettyText i
+  prettyText (Unsafe is)     = text "unsafe {" <> line <> vsep (fmap prettyText is) <> line <> "}"
 
 instance PrettyText Kind where
   prettyText T8 = text "T8"

@@ -54,7 +54,8 @@ compileX64 :: TypedProgram -> Compiler ()
 compileX64 = (fixupAddressesX64 =<<) . compileInterX64
 
 compileInterX64 :: TypedProgram -> Compiler [InterOpcode]
-compileInterX64 (TProgram stmts) = mconcat <$> mapM (compileStmtInterX64 . unLoc) stmts
+compileInterX64 (TProgram (TData _ :@ _) (TROData _ :@ _) (TUData _ :@ _) (TCode stmts :@ _)) =
+  mconcat <$> mapM (compileStmtInterX64 . unLoc) stmts
 
 compileStmtInterX64 :: TypedStatement -> Compiler [InterOpcode]
 compileStmtInterX64 (TLabel name) = pure [Label (unLoc name)]

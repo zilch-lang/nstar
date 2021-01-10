@@ -31,7 +31,7 @@ branchcheck p = bimap toDiagnostic (toDiagnostic' . snd) $ runExcept (runWriterT
         toDiagnostic' = foldl' (<++>) diagnostic . fmap fromBranchcheckerWarning
 
 branchcheckProgram :: TypedProgram -> Checker ()
-branchcheckProgram (TProgram stts) = do
+branchcheckProgram (TProgram (TData d :@ _) (TROData rd :@ _) (TUData ud :@ _) (TCode stts :@ _)) = do
   forM_ stts registerAllLabelsAsVertices
   forM_ stts registerEdges
 
