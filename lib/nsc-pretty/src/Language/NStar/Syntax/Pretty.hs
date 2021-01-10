@@ -11,14 +11,23 @@ import Text.Diagnose (PrettyText(..))
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 import Language.NStar.Syntax.Core
 import qualified Data.Text as Text
-import Data.Located (unLoc, Located)
+import Data.Located (unLoc, Located((:@)))
 import qualified Data.Map as Map
 
 instance PrettyText Program where
   prettyText (Program stts) = vsep (fmap prettyText stts)
 
 instance PrettyText Section where
-  prettyText (Code sect) = text "section code {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (Code sect)   = text "section code {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (Data sect)   = text "section data {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (ROData sect) = text "section rodata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (UData sect)  = text "section udata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+
+instance PrettyText Binding where
+  prettyText (Bind name ty cst) = prettyText name <> colon <+> prettyText ty <> line <> indent 4 (prettyText cst)
+
+instance PrettyText ReservedSpace where
+  prettyText (ReservedBind name ty) = prettyText name <> colon <+> prettyText ty
 
 instance PrettyText Statement where
   prettyText (Label name ty) = prettyText name <> colon <+> prettyText ty
@@ -67,6 +76,11 @@ instance PrettyText Instruction where
   prettyText (RET)          = text "ret"
   prettyText (JMP lbl tys)  = text "jmp" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
   prettyText (CALL lbl tys) = text "call" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
+
+instance PrettyText Constant where
+  prettyText (CInteger (i :@ _))   = integer i
+  prettyText (CCharacter (c :@ _)) = char c
+  prettyText (CArray csts)         = lbracket <> hsep (fmap prettyText csts) <+> rbracket
 
 instance PrettyText Expr where
   prettyText (Imm i) = prettyText i
