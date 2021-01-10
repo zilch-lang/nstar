@@ -1,0 +1,14 @@
+section data {
+x: u64
+   0
+}
+
+section code {
+main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r0: u64 }::s }
+      mov 0, %r1
+
+unsafe {
+      mov %r1(x), %r0
+}
+      ret
+}
