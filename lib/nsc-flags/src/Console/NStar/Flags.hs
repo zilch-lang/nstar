@@ -34,6 +34,7 @@ cli :: Parser Flags
 cli = do
   f <- Flags
     <$> many (argument str (metavar "FILES..."))
+    <*> outputFlag
     <*> (mconcat <$> many config)
     <*> (mconcat <$> many debug)
   pure f
@@ -65,6 +66,8 @@ debug = do
     , dump_tast = maybe False (const True) (Map.lookup "dump-typed-ast" f1)
     }
 
+outputFlag :: Parser FilePath
+outputFlag = strOption (long "out" <> short 'o' <> metavar "FILE" <> value "object.o" <> help "Sets the output file of the object file")
 
 
 ----------------------------------------------------------------------------------------------------

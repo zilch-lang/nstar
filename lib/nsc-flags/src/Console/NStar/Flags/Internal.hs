@@ -3,6 +3,7 @@ module Console.NStar.Flags.Internal where
 data Flags
   = Flags
   { files         :: [FilePath]
+  , output        :: FilePath
   , configuration :: ConfigurationFlags
   , debugging     :: DebugFlags
   }
