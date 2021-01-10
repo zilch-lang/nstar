@@ -244,12 +244,13 @@ parseKind = MP.choice
 
 -- | Parses any kind of expression.
 parseExpr :: (?parserFlags :: ParserFlags) => Parser Expr
-parseExpr = parseValueExpr MP.<|> parseAddressExpr
+parseExpr = parseAddressExpr MP.<|> parseValueExpr
 
 -- | Parses only expressions that cannot be indexed.
 parseValueExpr :: (?parserFlags :: ParserFlags) => Parser Expr
 parseValueExpr = lexeme $ MP.choice
-  [ Imm <$> located parseImmediate ]
+  [ Imm <$> located parseImmediate
+  , Reg <$> located parseRegister ]
 
 -- | Parses an immediate literal value.
 parseImmediate :: (?parserFlags :: ParserFlags) => Parser Immediate
@@ -261,8 +262,8 @@ parseImmediate = MP.choice
 parseAddressExpr :: (?parserFlags :: ParserFlags) => Parser Expr
 parseAddressExpr = lexeme $ MP.choice
   [ parseLabel
-  , Reg <$> located parseRegister
-  , parseIndexedExpr ]
+  , MP.try parseIndexedExpr
+  , Reg <$> located parseRegister ]
 
 -- | Parses a literal label name.
 parseLabel :: (?parserFlags :: ParserFlags) => Parser Expr
