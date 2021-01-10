@@ -92,7 +92,7 @@ registerAllDataLabels = mapM_ addBinding
     addBinding (unLoc -> Bind name ty (val :@ p)) = do
       liftEither (first FromReport $ kindcheck ty)
       unify ty =<< typecheckConstant val p
-      addDataLabel name ty
+      addDataLabel name (Ptr ty :@ p)
 
 -- | Typechecks a statement.
 --

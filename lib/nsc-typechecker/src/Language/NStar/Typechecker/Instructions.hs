@@ -105,19 +105,19 @@ tc_mov (src :@ p1) (dest :@ p2) unsafe p = do
   --
   -- For all those assertions, we also have to check that type sizes do match.
   case (src, dest) of
-    (Imm i, Reg r) -> do
-      ty <- typecheckExpr src p1
-      -- TODO: size check
-      -- At the moment, this isn't a problem: we only handle immediates that are actually
-      -- smaller than the max size (8 bytes) possible.
-      gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r ty
-      pure [ty, Register 64 :@ p2] -- TODO: fetch actual size of register
     (Reg r1, Reg r2) -> do
       ty1 <- typecheckExpr src p1
       -- TODO: size check
       -- No need at the moment, we only have 8-bytes big registers.
       gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r2 ty1
       pure [Register 64 :@ p1, Register 64 :@ p2] -- TODO: fetch actual size of register
+    (_, Reg r) -> do
+      ty <- typecheckExpr src p1
+      -- TODO: size check
+      -- At the moment, this isn't a problem: we only handle immediates that are actually
+      -- smaller than the max size (8 bytes) possible.
+      gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r ty
+      pure [ty, Register 64 :@ p2] -- TODO: fetch actual size of register
     _ -> error $ "Missing `mov` typechecking implementation for '" <> show src <> "' and '" <> show dest <> "'."
 
 tc_jmp :: (?tcFlags :: TypecheckerFlags) => Located Expr -> [Located Type] -> Position -> Typechecker [Located Type]
@@ -249,7 +249,18 @@ typecheckExpr (Imm (C _ :@ _)) p  = pure (Signed 8 :@ p)
 typecheckExpr (Reg r) p           = do
   ctx <- gets (currentTypeContext . snd)
   maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) pure (Map.lookup r ctx)
-typecheckExpr (Indexed _ e) p     = typecheckExpr (unLoc e) p
+typecheckExpr (Indexed (off :@ p1) (e :@ p2)) p     = do
+  ty <- typecheckExpr off p1
+  unify ty (Signed 64 :@ p)
+
+  ty2 :@ p3 <- typecheckExpr e p2
+  case ty2 of
+    Ptr t  -> pure t
+    SPtr s -> error $ "Unimplemented `typecheckExpr` for pointer offset on '" <> show ty2 <> "'."
+    _      -> throwError (NonPointerTypeOnOffset ty2 p3)
+typecheckExpr (Name n@(name :@ _)) p = do
+  ctx <- gets (dataSections . snd)
+  maybe (throwError (UnknownDataLabel name p)) pure (Map.lookup n ctx)
 typecheckExpr e p                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
 
 typecheckConstant :: (?tcFlags :: TypecheckerFlags) => Constant -> Position -> Typechecker (Located Type)
