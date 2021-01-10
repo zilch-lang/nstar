@@ -29,7 +29,7 @@ pkgs.mkShell {
   ];
 
   buildPhase = ''
-    (echo "Running \`nsc\`:"; ${nsc} ./test/singleRet.nst) && \
+    (echo "Running \`nsc\`:"; ${nsc} ./test/singleRet.nst -o test.o) && \
   ''
   + (if runReadelf
      then ''
