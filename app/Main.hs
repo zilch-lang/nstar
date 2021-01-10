@@ -17,18 +17,20 @@ import Language.NStar.CodeGen (SupportedArch(..), compileToElf)
 -- ! Experimental; remove once tested
 import Data.Elf as Elf (compile, Size(..), Endianness(..), writeFile)
 -- ! end
-import Text.Diagnose (printDiagnostic, (<~<))
+import Text.Diagnose (printDiagnostic, (<~<), prettyText)
 import System.IO (stderr, stdout)
 import Data.Text (Text)
 import qualified Data.Text as Text (unpack)
 import Data.Text.Encoding (decodeUtf8)
 import System.IO (utf8, hSetEncoding, hGetContents)
 import Console.NStar.Flags
-import Control.Monad (forM_)
+import Control.Monad (forM_, when)
 import System.Exit (exitFailure, exitSuccess)
 import Data.ByteString (readFile, ByteString)
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Except (runExceptT, liftEither)
+import System.Directory (createDirectoryIfMissing, getCurrentDirectory)
+import System.FilePath.Posix (joinPath)
 
 main :: IO ()
 main = do
@@ -44,6 +46,10 @@ tryCompile flags file = do
   content <- readFileUtf8 file
 
   let withColor = diagnostic_color (configuration flags)
+      dumpAST = dump_ast (debugging flags)
+      dumpTypedAST = dump_tast (debugging flags)
+
+  cwd <- getCurrentDirectory
 
   let ?lexerFlags  = LexerFlags {}
   let ?parserFlags = ParserFlags {}
@@ -57,8 +63,18 @@ tryCompile flags file = do
         (ast, parseWarnings)  <- liftEither $ parseFile file tks
         liftIO (printDiagnostic withColor stderr (parseWarnings <~< fileContent))
         ast                   <- pure $ postProcessAST ast
+
+        when dumpAST do
+          liftIO $ createDirectoryIfMissing True (joinPath [".nsc", "dump"])
+          liftIO $ Prelude.writeFile (joinPath [".nsc", "dump", "ast.debug"]) (show $ prettyText ast)
+
         (tast, tcWarnings)    <- liftEither $ typecheck ast
         liftIO (printDiagnostic withColor stderr (tcWarnings <~< fileContent))
+
+        when dumpTypedAST do
+          liftIO $ createDirectoryIfMissing True (joinPath [".nsc", "dump"])
+          liftIO $ Prelude.writeFile (joinPath [".nsc", "dump", "typed-ast.debug"]) (show $ prettyText tast)
+
         bcWarnings            <- liftEither $ branchcheck tast
         liftIO (printDiagnostic withColor stderr (bcWarnings <~< fileContent))
         pure tast

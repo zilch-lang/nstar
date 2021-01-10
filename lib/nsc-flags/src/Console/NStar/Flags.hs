@@ -5,7 +5,7 @@
 module Console.NStar.Flags
 ( extractFlags
 ,  -- * Re-exports
-  Flags(..), ConfigurationFlags(..)
+  Flags(..), ConfigurationFlags(..), DebugFlags(..)
 , LexerFlags(..), ParserFlags(..), TypecheckerFlags(..)
 ) where
 
@@ -20,7 +20,7 @@ import Data.Typeable (Typeable)
 import Data.Char (toLower)
 import qualified Data.Set as Set
 import Data.Foldable (fold)
-import Data.Bifunctor (first)
+import Data.Bifunctor (first, second)
 import Control.Monad (join)
 import Data.List (intercalate)
 
@@ -35,6 +35,7 @@ cli = do
   f <- Flags
     <$> many (argument str (metavar "FILES..."))
     <*> (mconcat <$> many config)
+    <*> (mconcat <$> many debug)
   pure f
 
 config :: Parser ConfigurationFlags
@@ -55,6 +56,15 @@ configOptions = subparser $ commandGroup "Available configuration (option -f):" 
     noop = info (option (readerError "This should never be printed!") idm)
 
 
+debug :: Parser DebugFlags
+debug = do
+  f1 <- option (eitherReader parseDebugFlag)
+               (short 'd' <> metavar "OPTION" <> hidden <> help "See available configuration OPTIONs at <https://github.com/zilch-lang/nsc/blob/develop/docs/compiler-options.md>")
+  pure $ mempty
+    { dump_ast  = maybe False (const True) (Map.lookup "dump-ast" f1)
+    , dump_tast = maybe False (const True) (Map.lookup "dump-typed-ast" f1)
+    }
+
 
 
 ----------------------------------------------------------------------------------------------------
@@ -69,12 +79,18 @@ parseConfigFlag = first toStringError . Mega.runParser configFlags "cli-config"
     toStringError Mega.ParseErrorBundle{..} =
       fold (Mega.parseErrorTextPretty <$> bundleErrors)
 
+parseDebugFlag :: String -> Either String (Map String ())
+parseDebugFlag = first toStringError . Mega.runParser debugFlags "cli-debug"
+  where toStringError Mega.ParseErrorBundle{..} =
+          fold (Mega.parseErrorTextPretty <$> bundleErrors)
+
 data ErrorContext
   = ErrCtx
   { inFields :: String
   , err      :: Mega.ParseError String ErrorContext
   }
   deriving (Eq, Show, Typeable, Data)
+
 instance Ord ErrorContext where
   ErrCtx _ e1 <= ErrCtx _ e2 = off e1 <= off e2
     where
@@ -99,3 +115,9 @@ unknownField = fail . (\ k -> "Unknown configuration key '" <> k <> "'") =<< Meg
 
 yesno :: Mega.Parsec ErrorContext String String
 yesno = fmap toLower <$> Mega.choice [ MegaC.string' "yes", MegaC.string' "no" ]
+
+debugFlags :: Mega.Parsec ErrorContext String (Map String ())
+debugFlags = uncurry Map.singleton . second (const ()) <$> Mega.choice
+  [ field "dump-ast" (pure "")
+  , field "dump-typed-ast" (pure "")
+  , unknownField ]
