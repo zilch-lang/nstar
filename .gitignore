@@ -2,3 +2,6 @@
 *~
 *.o
 *.out
+
+# NSC dump directory
+.nsc
