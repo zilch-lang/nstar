@@ -258,7 +258,7 @@ typecheckExpr (Indexed (off :@ p1) (e :@ p2)) p unsafe    = do
     Ptr t  ->
       case off of
         Imm _ -> pure t -- TODO: check if immediate offset is correct
-        _ | unsafe    -> pure t
+        _ | unsafe -> pure t
           | otherwise -> throwError (UnsafeOperationOutOfUnsafeBlock p)
     SPtr s -> error $ "Unimplemented `typecheckExpr` for pointer offset on '" <> show ty2 <> "'."
     _      -> throwError (NonPointerTypeOnOffset ty2 p3)
