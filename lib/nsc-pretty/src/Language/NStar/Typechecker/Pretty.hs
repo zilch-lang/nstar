@@ -16,13 +16,16 @@ import Language.NStar.Syntax.Pretty()
 
 instance PrettyText TypedProgram where
   prettyText (TProgram (dataSect :@ _) (rodataSect :@ _) (udataSect :@ _) (codeSect :@ _)) =
-    -- prettyText dataSect <> line <>
+    prettyText dataSect <> line <>
     -- prettyText rodataSect <> line <>
     -- prettyText udataSect <> line <>
     prettyText codeSect
 
+instance PrettyText TypedDataSection where
+  prettyText (TData d) = text "section data {" <> line <> vsep (fmap prettyText d) <> line <> text "}"
+
 instance PrettyText TypedCodeSection where
-  prettyText (TCode is) = text "section code {" <> line <> vsep (fmap prettyText is) <> line <> "}"
+  prettyText (TCode is) = text "section code {" <> line <> vsep (fmap prettyText is) <> line <> text "}"
 
 instance PrettyText TypedStatement where
   prettyText (TLabel l)    = text (Text.unpack (unLoc l)) <> colon
