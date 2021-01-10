@@ -18,7 +18,7 @@ module Language.NStar.Typechecker.Core
   module Language.NStar.Syntax.Core
 ) where
 
-import Language.NStar.Syntax.Core (Type(..), Kind(..), Register(..), Instruction(..))
+import Language.NStar.Syntax.Core (Type(..), Kind(..), Register(..), Instruction(..), Binding(..))
 import Data.Located (Located)
 import Data.Text (Text)
 
@@ -30,7 +30,7 @@ data TypedProgram =
     (Located TypedCodeSection)
 
 data TypedDataSection where
-  TData :: [()]
+  TData :: [Located Binding]
         -> TypedDataSection
 
 data TypedRODataSection where

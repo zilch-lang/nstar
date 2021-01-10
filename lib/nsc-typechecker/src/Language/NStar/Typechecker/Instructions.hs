@@ -9,7 +9,7 @@ import Language.NStar.Typechecker.TC
 import Language.NStar.Typechecker.Free
 import Language.NStar.Typechecker.Subst
 import Language.NStar.Typechecker.Core
-import Language.NStar.Syntax.Core (Expr(..), Immediate(..))
+import Language.NStar.Syntax.Core (Expr(..), Immediate(..), Constant(..))
 import Data.Located (Located(..), unLoc, getPos, Position)
 import qualified Data.Map as Map
 import Control.Monad.State (gets)
@@ -18,14 +18,14 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Maybe (fromJust)
-import Data.Foldable (fold)
+import Data.Foldable (fold, foldlM)
 import Console.NStar.Flags (TypecheckerFlags(..))
 import Internal.Error (internalError)
 import qualified Language.NStar.Typechecker.Env as Env (lookup)
 import Control.Monad (forM)
 import Data.Bifunctor (first)
 import Language.NStar.Typechecker.Kinds (unifyKinds, kindcheckType, runKindchecker)
-import Control.Monad (forM_)
+import Control.Monad (forM_, when)
 import Data.Functor ((<&>))
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker [Located Type]
@@ -251,6 +251,23 @@ typecheckExpr (Reg r) p           = do
   maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) pure (Map.lookup r ctx)
 typecheckExpr (Indexed _ e) p     = typecheckExpr (unLoc e) p
 typecheckExpr e p                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
+
+typecheckConstant :: (?tcFlags :: TypecheckerFlags) => Constant -> Position -> Typechecker (Located Type)
+typecheckConstant (CInteger _) p   = pure (Unsigned 64 :@ p)
+typecheckConstant (CCharacter _) p = pure (Signed 8 :@ p)
+typecheckConstant (CArray csts) p  =
+  if | (c1:cs) <- csts -> do
+         types <- forM csts \ (c :@ p) -> typecheckConstant c p
+         let (t1:ts) = types
+         when (not (null ts)) do
+           () <$ foldlM2 (\ acc t1 t2 -> mappend acc <$> unify t1 t2) mempty (t1:ts)
+         pure (Ptr t1 :@ p)
+     | otherwise       -> do
+         v <- freshVar "d" p
+         pure (Ptr v :@ p)
+  where
+    foldlM2 :: (Monad m) => (b -> a -> a -> m b) -> b -> [a] -> m b
+    foldlM2 f e l = foldlM (uncurry . f) e (zip l (drop 1 l))
 
 --------------------------------------------------------------------------------
 
