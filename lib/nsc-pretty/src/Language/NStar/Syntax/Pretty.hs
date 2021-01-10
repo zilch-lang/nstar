@@ -76,6 +76,10 @@ instance PrettyText Instruction where
   prettyText (RET)          = text "ret"
   prettyText (JMP lbl tys)  = text "jmp" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
   prettyText (CALL lbl tys) = text "call" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
+  prettyText (ADD inc dst)  = text "add" <+> prettyText inc <> comma <+> prettyText dst
+  prettyText (PUSH val)     = text "push" <+> prettyText val
+  prettyText (POP dst)      = text "pop" <+> prettyText dst
+  prettyText (SUB inc dst)  = text "sub" <+> prettyText inc <> comma <+> prettyText dst
 
 instance PrettyText Constant where
   prettyText (CInteger (i :@ _))   = integer i

@@ -142,11 +142,11 @@ deriving instance Ord Register
 
 -- | N*'s instruction set
 data Instruction where
-  -- | @mov a, v@ is the same as @a <- v@.
+  -- | @mov a, v@ is the same as @v <- a@.
   MOV :: Located Expr         -- ^ The destination of the move. It must be addressable
       -> Located Expr         -- ^ The source value moved into the destination
       -> Instruction
-  -- | @ret@ returns the value in @'RAX'@ to the caller.
+  -- | @ret@ returns to the address on top of the stack.
   RET :: Instruction
   -- | @jmp@ alters the control flow by unconditionally jumping to the given address.
   JMP :: Located Expr
@@ -157,6 +157,20 @@ data Instruction where
   CALL :: Located Expr
        -> [Located Type]
        -> Instruction
+  -- |
+  ADD :: Located Expr    -- ^ The source operand
+      -> Located Expr    -- ^ The increment value
+      -> Instruction
+  -- |
+  PUSH :: Located Expr
+       -> Instruction
+  -- |
+  POP :: Located Expr
+      -> Instruction
+  -- |
+  SUB :: Located Expr
+      -> Located Expr
+      -> Instruction
 
   -- TODO: add more instructions
 
