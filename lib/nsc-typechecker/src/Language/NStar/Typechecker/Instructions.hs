@@ -106,13 +106,13 @@ tc_mov (src :@ p1) (dest :@ p2) unsafe p = do
   -- For all those assertions, we also have to check that type sizes do match.
   case (src, dest) of
     (Reg r1, Reg r2) -> do
-      ty1 <- typecheckExpr src p1
+      ty1 <- typecheckExpr src p1 unsafe
       -- TODO: size check
       -- No need at the moment, we only have 8-bytes big registers.
       gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r2 ty1
       pure [Register 64 :@ p1, Register 64 :@ p2] -- TODO: fetch actual size of register
     (_, Reg r) -> do
-      ty <- typecheckExpr src p1
+      ty <- typecheckExpr src p1 unsafe
       -- TODO: size check
       -- At the moment, this isn't a problem: we only handle immediates that are actually
       -- smaller than the max size (8 bytes) possible.
@@ -243,25 +243,29 @@ tc_call (t :@ p1) ty sp = internalError $ "Cannot handle call to non-label expre
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 
-typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Typechecker (Located Type)
-typecheckExpr (Imm (I _ :@ _)) p  = pure (Unsigned 64 :@ p)
-typecheckExpr (Imm (C _ :@ _)) p  = pure (Signed 8 :@ p)
-typecheckExpr (Reg r) p           = do
+typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Bool -> Typechecker (Located Type)
+typecheckExpr (Imm (I _ :@ _)) p _  = pure (Unsigned 64 :@ p)
+typecheckExpr (Imm (C _ :@ _)) p _  = pure (Signed 8 :@ p)
+typecheckExpr (Reg r) p _           = do
   ctx <- gets (currentTypeContext . snd)
   maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) pure (Map.lookup r ctx)
-typecheckExpr (Indexed (off :@ p1) (e :@ p2)) p     = do
-  ty <- typecheckExpr off p1
+typecheckExpr (Indexed (off :@ p1) (e :@ p2)) p unsafe    = do
+  ty <- typecheckExpr off p1 unsafe
   unify ty (Signed 64 :@ p)
 
-  ty2 :@ p3 <- typecheckExpr e p2
+  ty2 :@ p3 <- typecheckExpr e p2 unsafe
   case ty2 of
-    Ptr t  -> pure t
+    Ptr t  ->
+      case off of
+        Imm _ -> pure t -- TODO: check if immediate offset is correct
+        _ | unsafe    -> pure t
+          | otherwise -> throwError (UnsafeOperationOutOfUnsafeBlock p)
     SPtr s -> error $ "Unimplemented `typecheckExpr` for pointer offset on '" <> show ty2 <> "'."
     _      -> throwError (NonPointerTypeOnOffset ty2 p3)
-typecheckExpr (Name n@(name :@ _)) p = do
+typecheckExpr (Name n@(name :@ _)) p _ = do
   ctx <- gets (dataSections . snd)
   maybe (throwError (UnknownDataLabel name p)) pure (Map.lookup n ctx)
-typecheckExpr e p                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
+typecheckExpr e p _                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
 
 typecheckConstant :: (?tcFlags :: TypecheckerFlags) => Constant -> Position -> Typechecker (Located Type)
 typecheckConstant (CInteger _) p   = pure (Unsigned 64 :@ p)

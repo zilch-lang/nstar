@@ -40,6 +40,7 @@ data TypecheckError
   | MissingRegistersInContext [Register] Position
   | NonPointerTypeOnOffset Type Position
   | UnknownDataLabel Text Position
+  | UnsafeOperationOutOfUnsafeBlock Position
 
 data TypecheckWarning
 
@@ -66,6 +67,7 @@ fromTypecheckError (CannotJumpBecauseOf p err)                  = cannotJumpAt p
 fromTypecheckError (MissingRegistersInContext rs p)             = missingRegistersInContext rs p
 fromTypecheckError (NonPointerTypeOnOffset t p)                 = typeIsNotAPointer t p
 fromTypecheckError (UnknownDataLabel n p)                       = unknownDataLabel n p
+fromTypecheckError (UnsafeOperationOutOfUnsafeBlock p)          = unsafeNotInUnsafeBlock p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -205,4 +207,10 @@ unknownDataLabel :: Text -> Position -> Report String
 unknownDataLabel name p =
   reportError ("Label '" <> Text.unpack name <> "' not found in data sections.")
     [ (p, This "Expected to be found in any data section, but not found") ]
+    []
+
+unsafeNotInUnsafeBlock :: Position -> Report String
+unsafeNotInUnsafeBlock p =
+  reportError "Unsafe operation not enclosed in an 'unsafe' block."
+    [ (p, This "This is considered an unsafe operation, therefore must be placed in an 'unsafe block'") ]
     []
