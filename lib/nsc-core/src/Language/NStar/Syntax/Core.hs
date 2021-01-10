@@ -27,22 +27,42 @@ import Data.Data (Data)
 import Data.Typeable (Typeable)
 
 newtype Program
-  = Program [Located Section]  -- ^ A program is a possibily empty list of sections
+  = Program [Located Section]  -- ^ A program is a (possibly empty) list of sections
 
 deriving instance Show Program
 
 data Section where
-  -- | The @data@ section
+  -- | The @code@ section
   Code :: [Located Statement]
        -> Section
-  Data :: [Located Statement]
+  -- | The @data@ section
+  Data :: [Located Binding]
        -> Section
-  ROData :: [Located Statement]
+  -- | The @rodata@ section
+  ROData :: [Located Binding]
          -> Section
-  UData :: [Located Statement]
+  -- | The @udata@ section
+  UData :: [Located ReservedSpace]
         -> Section
 
 deriving instance Show Section
+
+data Binding where
+  -- | An initialized data binding
+  Bind :: Located Text
+       -> Located Type
+       -> Located Constant
+       -> Binding
+
+deriving instance Show Binding
+
+data ReservedSpace where
+  -- | An uninitialized data binding (in the @udata@ section)
+  ReservedBind :: Located Text
+               -> Located Type
+               -> ReservedSpace
+
+deriving instance Show ReservedSpace
 
 -- | A statement is either
 data Statement where
@@ -141,6 +161,19 @@ data Instruction where
   -- TODO: add more instructions
 
 deriving instance Show Instruction
+
+data Constant where
+  -- | A constant integer
+  CInteger :: Located Integer
+           -> Constant
+  -- | A constant character
+  CCharacter :: Located Char
+             -> Constant
+  -- | An array of constants
+  CArray :: [Located Constant]
+         -> Constant
+
+deriving instance Show Constant
 
 data Expr where
   -- | An immediate value (@$⟨val⟩@)
