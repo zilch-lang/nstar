@@ -85,7 +85,7 @@ instance PrettyText Constant where
 instance PrettyText Expr where
   prettyText (Imm i) = prettyText i
   prettyText (Name n) = text (Text.unpack (unLoc n))
-  prettyText (Indexed idx e) = integer (unLoc idx) <> parens (prettyText e)
+  prettyText (Indexed idx e) = prettyText idx <> parens (prettyText e)
   prettyText (Reg r) = prettyText r
   prettyText (Spec e ty) = prettyText e <> angles (prettyText ty)
 

@@ -103,7 +103,7 @@ anySymbol = lexeme . located . MP.choice $ sat <$> symbols
      , (Comma, ",")
      , (DoubleColon, "::"), (Colon, ":")
      , (Dot, ".")
-     , (Minus, "-") ]
+     , (Minus, "-"), (Plus, "+") ]
 
 -- | Tries to parse an identifier. If the result appears to be a keyword, it instead returns a keyword.
 identifierOrKeyword :: (?lexerFlags :: LexerFlags) => Lexer LToken

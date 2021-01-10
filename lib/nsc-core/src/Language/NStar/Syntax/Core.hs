@@ -183,7 +183,7 @@ data Expr where
   Name :: Located Text
        -> Expr
   -- | An indexed expression (@⟨idx⟩[⟨expr⟩]@)
-  Indexed :: Located Integer        -- ^ \- @⟨idx⟩@
+  Indexed :: Located Expr           -- ^ \- @⟨idx⟩@
           -> Located Expr           -- ^ \- @⟨expr⟩@
           -> Expr
   -- | A register (one of the available 'Register's)
@@ -256,6 +256,8 @@ data Token where
   Dot :: Token
   -- | Negation "@-@"
   Minus :: Token
+  -- | Addition "@+@"
+  Plus :: Token
   -- Keywords
   -- | \"@forall@\" type variable binder in type
   Forall :: Token

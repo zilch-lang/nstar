@@ -22,12 +22,13 @@ import Text.Diagnose (Diagnostic, diagnostic, (<++>))
 import Data.Bifunctor (bimap, second)
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Data.Located (Located(..), unLoc)
+import Data.Located (Located(..), unLoc, getPos)
 import qualified Data.Map as Map (fromList)
 import Console.NStar.Flags (ParserFlags(..))
 import Control.Monad.Writer (WriterT, runWriterT)
 import Data.Foldable (foldl')
 import Language.NStar.Syntax.Errors
+import Debug.Trace (trace)
 
 type Parser a = WriterT [ParseWarning] (MP.Parsec SemanticError [LToken]) a
 
@@ -51,11 +52,17 @@ parseFile file tokens = bimap (megaparsecBundleToDiagnostic "Parse error on inpu
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program
 parseProgram = MP.optional eol *> (Program <$> MP.many section) <* parseEOF
-  where section = located (MP.choice [ parseCodeSection ]) <* eol
+  where section = located (MP.choice [ MP.try parseCodeSection, parseDataSection ]) <* eol
 
 parseCodeSection :: (?parserFlags :: ParserFlags) => Parser Section
 parseCodeSection = Code <$> (parseSymbol Section *> parseSymbol (Id "code") *> betweenBraces (MP.optional eol *> MP.many instruction))
   where instruction = located (parseUnsafeBlock MP.<|> parseTypedLabel MP.<|> parseInstruction) <* eol
+
+parseDataSection :: (?parserFlags :: ParserFlags) => Parser Section
+parseDataSection = Data <$> (parseSymbol Section *> parseSymbol (Id "data") *> betweenBraces (MP.optional eol *> MP.many (located binding)))
+  where binding = Bind <$> (parseIdentifier <* parseSymbol Colon)
+                       <*> (located parseType <* eol)
+                       <*> (located parseConstant <* eol)
 
 -- | Parses the end of file. There is no guarantee that any parser will try to parse something after the end of file.
 --   This has to be dealt with on our own. No more token should be available after consuming the end of file.
@@ -263,14 +270,29 @@ parseLabel = Name <$> parseIdentifier
 
 -- | Parses an indexed addressable expression.
 parseIndexedExpr :: (?parserFlags :: ParserFlags) => Parser Expr
-parseIndexedExpr = MP.label "an indexed expression" $
-  Indexed <$> located parseSignedInteger
+parseIndexedExpr = MP.label "an indexed expression" $ do
+  source <- getPos <$> located (pure ())
+  Indexed <$> (MP.option (Imm (I 0 :@ source) :@ source) (located parseValueExpr))
           <*> betweenParens (located parseAddressExpr)
 
 parseSignedInteger :: (?parserFlags :: ParserFlags) => Parser Integer
-parseSignedInteger = (*) <$> sign <*> (unLoc <$> parseInteger)
+parseSignedInteger = MP.label "an integer" $ (*) <$> sign <*> (unLoc <$> parseInteger)
  where
-   sign = MP.choice [ -1 <$ parseSymbol Minus, 1 <$ pure () ]
+   sign = MP.choice [ -1 <$ parseSymbol Minus, 1 <$ parseSymbol Plus, 1 <$ pure () ]
+
+----------------------------------------------------------------------------------------------------------------
+
+parseConstant :: (?parserFlags :: ParserFlags) => Parser Constant
+parseConstant = parseIntegerConstant MP.<|> parseCharacterConstant MP.<|> parseArrayConstant
+
+parseIntegerConstant :: (?parserFlags :: ParserFlags) => Parser Constant
+parseIntegerConstant = MP.label "an integer constant" $ CInteger <$> located parseSignedInteger
+
+parseCharacterConstant :: (?parserFlags :: ParserFlags) => Parser Constant
+parseCharacterConstant = MP.label "a character constant" $ CCharacter <$> parseCharacter
+
+parseArrayConstant :: (?parserFlags :: ParserFlags) => Parser Constant
+parseArrayConstant = MP.label "an array constant" $ CArray <$> betweenBrackets (MP.many (located parseConstant))
 
 ----------------------------------------------------------------------------------------------------------------
 
