@@ -15,6 +15,8 @@ library
       Language.NStar.Typechecker.Free
       Language.NStar.Typechecker.Instructions
       Language.NStar.Typechecker.Kinds
+      Language.NStar.Typechecker.PostProcessor
+      Language.NStar.Typechecker.PostProcessor.PointerOffsets
       Language.NStar.Typechecker.Subst
       Language.NStar.Typechecker.TC
       Language.NStar.Typechecker.Types
