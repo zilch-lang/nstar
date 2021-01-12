@@ -354,7 +354,11 @@ fixupSymbolNames = do
 
   put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
 
--- | Sets 'st_shndx' to the @.text@ section index for all function symbols.
+-- | Sets 'st_shndx' to
+--
+--   * the @.text@ section index for all function symbols.
+--
+--   * the @.data@ section index for all object symbols
 fixupSymbolDefs :: ValueSet n => Fixup n ()
 fixupSymbolDefs = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
@@ -365,10 +369,12 @@ fixupSymbolDefs = do
   -- We will consider that all functions are internally bound to begin with.
 
   let Just textIndex = elemIndex ".text" (getName <$> Map.keys sects)
+      Just dataIndex = elemIndex ".data" (getName <$> Map.keys sects)
       newSyms        = flip Map.mapWithKey syms \ (ElfSymbol _ ty _ _) st ->
         case ty of
           ST_NoType -> st
           ST_Func _ -> st { st_shndx = fromIntegral textIndex }
+          ST_Object -> st { st_shndx = fromIntegral dataIndex }
           _         -> st
 
   put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
