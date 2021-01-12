@@ -13,7 +13,7 @@ module Data.Elf.Internal.Symbol
 
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.Elf.Types
-import Data.Elf.Internal.Serialize (SerializableValueSet, Serializable(..))
+import Data.Elf.Internal.Serialize (Serializable(..))
 import Foreign.Storable (Storable(..))
 
 #include <elf.h>
@@ -35,7 +35,7 @@ instance Storable (Elf_Sym S64) where
   poke _ _ = undefined
   peek _ = undefined
 
-instance SerializableValueSet S64 e => Serializable S64 e (Elf_Sym S64) where
+instance Serializable S64 e (Elf_Sym S64) where
   put e Elf_Sym{..} = do
     put @S64 e st_name
     put @S64 e st_info
@@ -47,43 +47,43 @@ instance SerializableValueSet S64 e => Serializable S64 e (Elf_Sym S64) where
 -- Symbol binding type
 
 -- | Local symbol
-stb_local :: ValueSet n => Elf_UChar n
+stb_local :: Elf_UChar n
 stb_local = {#const STB_LOCAL#}
 -- | Global symbol
-stb_global :: ValueSet n => Elf_UChar n
+stb_global :: Elf_UChar n
 stb_global = {#const STB_GLOBAL#}
 -- | Weak symbol
-stb_weak :: ValueSet n => Elf_UChar n
+stb_weak :: Elf_UChar n
 stb_weak = {#const STB_WEAK#}
 
 
 -- Symbol type
 
 -- | Symbol type is unspecified
-stt_notype :: ValueSet n => Elf_UChar n
+stt_notype :: Elf_UChar n
 stt_notype = {#const STT_NOTYPE#}
 -- | Symbol is a data object
-stt_object :: ValueSet n => Elf_UChar n
+stt_object :: Elf_UChar n
 stt_object = {#const STT_OBJECT#}
 -- | Symbol is a code object
-stt_func :: ValueSet n => Elf_UChar n
+stt_func :: Elf_UChar n
 stt_func = {#const STT_FUNC#}
 -- | Symbol associated with a section
-stt_section :: ValueSet n => Elf_UChar n
+stt_section :: Elf_UChar n
 stt_section = {#const STT_SECTION#}
 
 
 -- Visibility
 
 -- | Default symbol visibility rules
-stv_default :: ValueSet n => Elf_UChar n
+stv_default :: Elf_UChar n
 stv_default = {#const STV_DEFAULT#}
 -- | Processor specific hidden class
-stv_internal :: ValueSet n => Elf_UChar n
+stv_internal :: Elf_UChar n
 stv_internal = {#const STV_INTERNAL#}
 -- | Sym unavailable in other modules
-stv_hidden :: ValueSet n => Elf_UChar n
+stv_hidden :: Elf_UChar n
 stv_hidden = {#const STV_HIDDEN#}
 -- | Not preemptible, not exported
-stv_protected :: ValueSet n => Elf_UChar n
+stv_protected :: Elf_UChar n
 stv_protected = {#const STV_PROTECTED#}

@@ -35,7 +35,7 @@ import Data.Functor ((<&>))
 --   This is essentially a simple alias on 'compileFor' specialized for ELF objects.
 --
 --   >>> unabstract = compileFor
-unabstract :: ( ValueSet n
+unabstract :: ( ReifySize n
               , CompileFor n ElfHeader Elf_Ehdr
               , CompileFor n SectionHeader Elf_Shdr
               , CompileFor n ProgramHeader Elf_Phdr
@@ -44,7 +44,7 @@ unabstract :: ( ValueSet n
               ) => ElfObject n -> Internal.Object n
 unabstract = compileFor
 
-instance ( ValueSet n
+instance ( ReifySize n
          , CompileFor n ElfHeader Elf_Ehdr
          , CompileFor n SectionHeader Elf_Shdr
          , CompileFor n ProgramHeader Elf_Phdr
@@ -56,7 +56,7 @@ instance ( ValueSet n
         sectNames = fetchSectionNamesFrom sections
 
         segs      = toSnd (compileFor @n) <$> (PPhdr : PLoad (section "PHDR") pf_r : segments)
-                                                        --                      ^^^^ Special identifier, to refer to the PHDR segment
+                                                        --             ^^^^ Special identifier, to refer to the PHDR segment
 
         symbols = ElfSymbol "" ST_NoType SB_Local SV_Default : fetchSymbols sections
 

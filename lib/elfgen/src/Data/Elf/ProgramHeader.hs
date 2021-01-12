@@ -25,8 +25,8 @@ data ProgramHeader n
   | PInterp
       String     -- ^ Path to the dynamic interpreter
       (PFlags n)
-deriving instance ValueSet n => Eq (ProgramHeader n)
-deriving instance ValueSet n => Ord (ProgramHeader n)
+deriving instance Eq (ProgramHeader n)
+deriving instance Ord (ProgramHeader n)
 
 -- | Either a section name, or concrete binary data.
 type SectionOrData = Either String [Word8]

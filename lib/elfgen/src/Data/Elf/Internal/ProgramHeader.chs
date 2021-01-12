@@ -15,7 +15,7 @@ import Data.Elf.Types
 import Foreign.Storable (Storable(..))
 import GHC.TypeNats (Nat)
 import Data.Elf.Internal.BusSize (Size(..))
-import Data.Elf.Internal.Serialize (Serializable(..), SerializableValueSet)
+import Data.Elf.Internal.Serialize (Serializable(..))
 
 #include <elf.h>
 
@@ -37,7 +37,7 @@ instance Storable (Elf_Phdr S64) where
   peek _ = undefined
   poke _ _ = undefined
 
-instance (SerializableValueSet S64 e) => Serializable S64 e (Elf_Phdr S64) where
+instance Serializable S64 e (Elf_Phdr S64) where
   put e Elf_Phdr{..} = do
     put @S64 e p_type
     put @S64 e p_flags
@@ -51,14 +51,14 @@ instance (SerializableValueSet S64 e) => Serializable S64 e (Elf_Phdr S64) where
 -- Segment types
 
 -- | Program header table entry unused
-pt_null :: ValueSet n => Elf_Word n
+pt_null :: Elf_Word n
 pt_null = {#const PT_NULL#}
 -- | Entry for header table itself
-pt_phdr :: ValueSet n => Elf_Word n
+pt_phdr :: Elf_Word n
 pt_phdr = {#const PT_PHDR#}
 -- | Loadable program segment
-pt_load :: ValueSet n => Elf_Word n
+pt_load :: Elf_Word n
 pt_load = {#const PT_LOAD#}
 -- | Program interpreter
-pt_interp :: ValueSet n => Elf_Word n
+pt_interp :: Elf_Word n
 pt_interp = {#const PT_INTERP#}

@@ -20,7 +20,7 @@ import Data.Elf.Internal.Object (Object)
 import Data.Elf.Internal.FileHeader (Elf_Ehdr)
 import Data.Elf.Internal.ProgramHeader (Elf_Phdr)
 import Data.Elf.Internal.SectionHeader (Elf_Shdr)
-import Data.Elf.Types (ValueSet)
+import Data.Elf.Types (ReifySize)
 import Data.Elf.Internal.Compile.ForArch (CompileFor)
 import Data.Elf.FileHeader (ElfHeader)
 import Data.Elf.ProgramHeader (ProgramHeader)
@@ -35,7 +35,7 @@ import Data.Elf.Internal.Symbol (Elf_Sym)
 --   [An unabstracting stage] Where the abstract ELF file is broken down into a concrete representation ready to be serialized.
 --   [A serialization stage] Where the concrete representation is compiled down to simple binary data following the ELF specifications.
 compile :: forall (n :: Size) e.
-           ( ValueSet n
+           ( ReifySize n
            , Serializable n e (Elf_Ehdr n)
            , Serializable n e (Elf_Phdr n)
            , Serializable n e (Elf_Shdr n)

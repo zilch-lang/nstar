@@ -3,7 +3,7 @@ module Data.Elf.Internal.Compile.Symbol where
 import Data.Elf.Internal.Compile.ForArch
 import Data.Elf.Symbol
 import Data.Elf.Internal.Symbol
-import Data.Bits (shiftL, (.&.))
+import Data.Bits (shiftL, shiftR, (.&.))
 import Data.Elf.Internal.BusSize (Size(..))
 
 instance CompileFor S64 ElfSymbol Elf_Sym where

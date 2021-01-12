@@ -33,5 +33,5 @@ data SectionHeader n
       String
       [String]
 
-deriving instance ValueSet n => Eq (SectionHeader n)
-deriving instance ValueSet n => Ord (SectionHeader n)
+deriving instance Eq (SectionHeader n)
+deriving instance Ord (SectionHeader n)

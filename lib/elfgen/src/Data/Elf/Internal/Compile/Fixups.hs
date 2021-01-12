@@ -25,7 +25,7 @@ import Control.Monad.State (State, get, put, execState)
 import Data.Functor ((<&>))
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.List (elemIndex, intercalate)
-import Data.Elf.Types (ValueSet, Elf_Off, Elf_Addr, Elf_Xword)
+import Data.Elf.Types (Elf_Off, Elf_Addr, Elf_Xword, ReifySize)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Word (Word8)
@@ -54,17 +54,17 @@ data FixupEnvironment (n :: Size)
       (SymbolsAList n)     -- ^ An association from abstract to concrete symbol structures
       ByteString           -- ^ All generated binary data unrelated to headers (for example the content of the @.shstrtab@ section)
 
-type Fixup (n :: Size) a = State (FixupEnvironment n) a
+type Fixup (n :: Size) a = ReifySize n => State (FixupEnvironment n) a
 
-defaultStartAddress :: ValueSet n => Elf_Addr n
+defaultStartAddress :: ReifySize n => Elf_Addr n
 defaultStartAddress = 0x400000
 
 -- | Run a given fixup step (or multiple) with the given initial environment.
-runFixup :: ValueSet n => Fixup n a -> FixupEnvironment n -> FixupEnvironment n
+runFixup :: ReifySize n => Fixup n a -> FixupEnvironment n -> FixupEnvironment n
 runFixup = execState
 
 -- | Contains all fixes to do.
-allFixes :: forall (n :: Size). ValueSet n => Fixup n ()
+allFixes :: forall (n :: Size). Fixup n ()
 allFixes = do
   FixupEnv fileHeader sects sectsNames _ syms gen <- get
   let isExec = e_type fileHeader == et_exec @n
@@ -88,7 +88,7 @@ allFixes = do
   fixupEntryPoint
 
 -- | A fix for headers count in the ELF file header (fields 'e_phnum' and 'e_shnum').
-fixupHeaderCount :: ValueSet n => Fixup n ()
+fixupHeaderCount :: Fixup n ()
 fixupHeaderCount = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
   let newHeader = fileHeader
@@ -97,7 +97,7 @@ fixupHeaderCount = do
   put (FixupEnv newHeader sects sectsNames segs syms gen)
 
 -- | Fixes the @.shstrtab@ section index in the file header.
-fixupShstrtabIndex :: ValueSet n => Fixup n ()
+fixupShstrtabIndex :: Fixup n ()
 fixupShstrtabIndex = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
   let Just e_shstrtabndx  = elemIndex ".shstrtab" (getName <$> Map.keys sects)
@@ -112,7 +112,7 @@ fixupShstrtabIndex = do
    getName (SSymTab n _)     = n
 
 -- | Fixes the @.strtab@ section index in the @.symtab@ section field 'sh_link'.
-fixupSymtabStrtabIndex :: ValueSet n => Fixup n ()
+fixupSymtabStrtabIndex :: Fixup n ()
 fixupSymtabStrtabIndex = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
   let Just e_strtabndx  = elemIndex ".strtab" (getName <$> Map.keys sects)
@@ -131,7 +131,7 @@ getName (SStrTab n _)     = n
 getName (SSymTab n _)     = n
 
 -- | Fixes (sections/segments) headers offsets in the file header.
-fixupHeadersOffsets :: forall (n :: Size). ValueSet n => Fixup n ()
+fixupHeadersOffsets :: forall (n :: Size). Fixup n ()
 fixupHeadersOffsets = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
   let phnum     = fromIntegral (e_phnum fileHeader)
@@ -149,7 +149,7 @@ fixupHeadersOffsets = do
 --
 --   As per @readelf@, we need to have a @LOAD@ segment that loads /at least/ the @PHDR@ in a read-only
 --   memory segment.
-fixupPHDREntry :: ValueSet n => Fixup n ()
+fixupPHDREntry :: Fixup n ()
 fixupPHDREntry = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
@@ -172,7 +172,7 @@ fixupPHDREntry = do
 
 -- | Fixes every section name index (field 'sh_name') depending on how data is laid out
 --   in the @.shstrtab@ section.
-fixupSectionNames :: ValueSet n => Fixup n ()
+fixupSectionNames :: Fixup n ()
 fixupSectionNames = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
@@ -198,7 +198,7 @@ fetchStringIndex = goFetch 0
 
 -- | Inserts binary data from a section (if it contains any) directly into the environment
 --   and updates the fields 'sh_addr', 'sh_offset' and 'sh_size'.
-fixupSectionOffsets :: forall (n :: Size). ValueSet n => Fixup n ()
+fixupSectionOffsets :: forall (n :: Size). Fixup n ()
 fixupSectionOffsets = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
@@ -216,7 +216,7 @@ fixupSectionOffsets = do
   put (FixupEnv fileHeader newSectsModif sectsNames segs syms newGenBin)
  where
    generateBinFromSectionsStartingAt :: forall (n :: Size).
-                                        ValueSet n
+                                        ReifySize n
                                      => [(SectionHeader n, Elf_Shdr n)]        -- ^ mappings unifying sections
                                      -> Elf_Off n                              -- ^ starting file offset
                                      -> Bool                                   -- ^ Is the file supposed to be executable?
@@ -253,7 +253,7 @@ fixupSectionOffsets = do
    c2w = unsafeCoerce
 
 -- | Fixes all @LOAD@ segments with correct addresses, sizes and offsets (fields 'p_vaddr', 'p_paddr', 'p_filesz', 'p_memsz' and 'p_offset').
-fixupLoadSegments :: forall (n :: Size). ValueSet n => Fixup n ()
+fixupLoadSegments :: forall (n :: Size). Fixup n ()
 fixupLoadSegments = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
@@ -269,7 +269,7 @@ fixupLoadSegments = do
   put (FixupEnv fileHeader sects sectsNames newSegsWithUnmodif syms (gen <> newGen))
  where
    fixSegmentsOffsetsAndAddresses :: forall (n :: Size).
-                                     ValueSet n
+                                     ReifySize n
                                   => [(ProgramHeader n, Elf_Phdr n)]      -- ^ mappings unifying segments
                                   -> Elf_Off n                            -- ^ initial offset (end of file)
                                   -> SectionAList n
@@ -303,7 +303,7 @@ fixupLoadSegments = do
      in (Map.union newSegs segs, segBin <> gen)
 
 -- | Fixes the field 'sh_info' of the section @.symtab@ with the number of symbols in the file + 1.
-fixupSymtabShInfo :: ValueSet n => Fixup n ()
+fixupSymtabShInfo :: Fixup n ()
 fixupSymtabShInfo = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
@@ -323,7 +323,7 @@ fixupSymtabShInfo = do
 --   __NOTE:__ This is handled differently than other section because we need to know
 --             all data generated before trying to write the symbol table (function sizes will be unknown otherwise
 --             and most probably unfixable if written before).
-fixupSymtabOffset :: ValueSet n => Fixup n ()
+fixupSymtabOffset :: Fixup n ()
 fixupSymtabOffset = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
@@ -340,7 +340,7 @@ fixupSymtabOffset = do
   put (FixupEnv fileHeader newSects sectsNames segs syms gen)
 
 -- | Replaces symbols names with the corresponding indices in the @.strtab@ section.
-fixupSymbolNames :: ValueSet n => Fixup n ()
+fixupSymbolNames :: Fixup n ()
 fixupSymbolNames = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
@@ -359,7 +359,7 @@ fixupSymbolNames = do
 --   * the @.text@ section index for all function symbols.
 --
 --   * the @.data@ section index for all object symbols
-fixupSymbolDefs :: ValueSet n => Fixup n ()
+fixupSymbolDefs :: Fixup n ()
 fixupSymbolDefs = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
@@ -380,7 +380,7 @@ fixupSymbolDefs = do
   put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
 
 -- | Fixes function symbol addresses (field 'st_value') and code object sizes (field 'st_size').
-fixupFuncSymbolAddresses :: forall (n :: Size). ValueSet n => Fixup n ()
+fixupFuncSymbolAddresses :: forall (n :: Size). Fixup n ()
 fixupFuncSymbolAddresses = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
@@ -396,7 +396,7 @@ fixupFuncSymbolAddresses = do
 
   put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
  where
-   fixSymbolAddressesBy2 :: ValueSet n => Elf_Addr n -> Elf_Xword n -> [(ElfSymbol n, Elf_Sym n)] -> [(ElfSymbol n, Elf_Sym n)]
+   fixSymbolAddressesBy2 :: Elf_Addr n -> Elf_Xword n -> [(ElfSymbol n, Elf_Sym n)] -> [(ElfSymbol n, Elf_Sym n)]
    fixSymbolAddressesBy2 _ _ []                                                                            = []
    fixSymbolAddressesBy2 startAddr endOff [(e@(ElfSymbol _ ty _ _), st)]                                   = case ty of
      ST_Func off ->
@@ -417,7 +417,7 @@ fixupFuncSymbolAddresses = do
 
 -- | Replace the 'e_entry' file header field with the address of the 'main' function, if there is one.
 --   Else leaves the header untouched.
-fixupEntryPoint :: ValueSet n => Fixup n ()
+fixupEntryPoint :: Fixup n ()
 fixupEntryPoint = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
