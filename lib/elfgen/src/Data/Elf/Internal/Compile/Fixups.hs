@@ -302,7 +302,7 @@ fixupLoadSegments = do
          (segs, gen) = fixSegmentsOffsetsAndAddresses ss newOff sects sectsNames
      in (Map.union newSegs segs, segBin <> gen)
 
--- | Fixes the field 'sh_info' of the section @.symtab@ with the number of symbols in the file + 1.
+-- | Fixes the field 'sh_info' of the section @.symtab@ with the number of symbols in the file - 1.
 fixupSymtabShInfo :: Fixup n ()
 fixupSymtabShInfo = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
@@ -315,7 +315,6 @@ fixupSymtabShInfo = do
                                      --                and will spit out errors like:
                                      --                > undefined reference to `main'
       newSects    = Map.update (const symtabSect) symtab sects
-
   put (FixupEnv fileHeader newSects sectsNames segs syms gen)
 
 -- | Fixes the @.symtab@ section offset.
@@ -334,7 +333,7 @@ fixupSymtabOffset = do
        --            ^^^ start at the end of the file
   let Just symtab = Map.lookup ".symtab" sectsNames
       symtabSect  = Map.lookup symtab sects <&> \ s ->
-        s { sh_offset = initialSize }
+        s { sh_offset = initialSize, sh_size = fromIntegral (sh_entsize s) * fromIntegral (sh_info s + 1) }
       newSects    = Map.update (const symtabSect) symtab sects
 
   put (FixupEnv fileHeader newSects sectsNames segs syms gen)
@@ -358,7 +357,9 @@ fixupSymbolNames = do
 --
 --   * the @.text@ section index for all function symbols.
 --
---   * the @.data@ section index for all object symbols
+--   * the @.data@ section index for all object symbols.
+--
+--   * the section pointed to for all section symbols.
 fixupSymbolDefs :: Fixup n ()
 fixupSymbolDefs = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
@@ -372,10 +373,13 @@ fixupSymbolDefs = do
       Just dataIndex = elemIndex ".data" (getName <$> Map.keys sects)
       newSyms        = flip Map.mapWithKey syms \ (ElfSymbol _ ty _ _) st ->
         case ty of
-          ST_NoType -> st
-          ST_Func _ -> st { st_shndx = fromIntegral textIndex }
-          ST_Object -> st { st_shndx = fromIntegral dataIndex }
-          _         -> st
+          ST_NoType    -> st
+          ST_Func _    -> st { st_shndx = fromIntegral textIndex }
+          ST_Object    -> st { st_shndx = fromIntegral dataIndex }
+          ST_Section n ->
+            let Just sectIndex = elemIndex n (getName <$> Map.keys sects)
+            in st { st_shndx = fromIntegral sectIndex }
+          _            -> st
 
   put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
 

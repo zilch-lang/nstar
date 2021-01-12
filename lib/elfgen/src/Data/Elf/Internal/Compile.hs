@@ -72,7 +72,7 @@ instance ( ReifySize n
                        Map.insert ".strtab" strtab $
                        sectNames
 
-        elfSymbols   = toSnd (compileFor @n) <$> symbols
+        elfSymbols   = toSnd (compileFor @n) <$> (symbols <> makeSymbolsFromSections @n allSectionNames)
 
     in
       let Fix.FixupEnv fileHeader sections _ segments syms gen
@@ -85,10 +85,8 @@ instance ( ReifySize n
                       (Map.fromList elfSymbols)
                       mempty
 
-      in traceShow allSectionNames $
-
-
-         Internal.Obj @n fileHeader (Map.elems segments) (Map.elems sections) (BS.unpack gen) (Map.elems syms)
+      in
+        Internal.Obj @n fileHeader (Map.elems segments) (Map.elems sections) (BS.unpack gen) (Map.elems syms)
 
 fetchSectionNamesFrom :: [SectionHeader n] -> Map String (SectionHeader n)
 fetchSectionNamesFrom = Map.fromList . mapMaybe f
@@ -109,6 +107,16 @@ fetchSymbols = mconcat . mapMaybe f
     f (SStrTab _ _)     = Nothing
     f (SSymTab _ syms)  = Just syms
     f (SRela _ _)       = Nothing
+
+makeSymbolsFromSections :: [String] -> [ElfSymbol n]
+makeSymbolsFromSections = fmap intoSymbol . filter allowedInSymbolTable
+  where
+    intoSymbol name = ElfSymbol "" (ST_Section name) SB_Local SV_Default
+
+    allowedInSymbolTable ".text" = True
+    allowedInSymbolTable ".data" = True
+    allowedInSymbolTable ".bss"  = True
+    allowedInSymbolTable _       = False
 
 toSnd :: (a -> b) -> a -> (a, b)
 toSnd f x = (x, f x)
