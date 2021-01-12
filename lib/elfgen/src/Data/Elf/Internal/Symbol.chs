@@ -9,6 +9,13 @@ module Data.Elf.Internal.Symbol
 , stt_notype, stt_object, stt_func, stt_section
   -- * 'st_other'
 , stv_default, stv_internal, stv_hidden, stv_protected
+
+, Elf_Rela(..)
+  -- * 'r_info'
+  -- ** Relocation type
+  -- *** AMD x86-64 architecture specific
+, r_x86_64_none, r_x86_64_64, r_x86_64_32, r_x86_64_32s
+
 ) where
 
 import Data.Elf.Internal.BusSize (Size(..))
@@ -87,3 +94,38 @@ stv_hidden = {#const STV_HIDDEN#}
 -- | Not preemptible, not exported
 stv_protected :: Elf_UChar n
 stv_protected = {#const STV_PROTECTED#}
+
+
+-- | Relocation table entry with addend (in section of type @SHT_RELA@).
+data Elf_Rela (n :: Size)
+  = Elf_Rela
+  { r_offset :: Elf_Addr n          -- ^ Address
+  , r_info   :: Elf_Rel_Info n      -- ^ Relocation type and symbol index
+  , r_addend :: Elf_Rel_Addend n    -- ^ Addend
+  }
+
+instance Storable (Elf_Rela S64) where
+  sizeOf _ = {#sizeof Elf64_Rela#}
+  alignment _ = {#alignof Elf64_Rela#}
+  poke _ _ = undefined
+  peek _ = undefined
+
+instance Serializable S64 e (Elf_Rela S64) where
+  put e Elf_Rela{..} = do
+    put @S64 e r_offset
+    put @S64 e r_info
+    put @S64 e r_addend
+
+-------- AMD x86-64 relocations
+-- | No reloc
+r_x86_64_none :: Elf_Word n
+r_x86_64_none = {#const R_X86_64_NONE#}
+-- | Direct 64 bit
+r_x86_64_64 :: Elf_Word n
+r_x86_64_64 = {#const R_X86_64_64#}
+-- | Direct 32 bit zero extended
+r_x86_64_32 :: Elf_Word n
+r_x86_64_32 = {#const R_X86_64_32#}
+-- | Direct 32 bit sign extended
+r_x86_64_32s :: Elf_Word n
+r_x86_64_32s = {#const R_X86_64_32S#}

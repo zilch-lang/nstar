@@ -67,3 +67,6 @@ sht_symtab = {#const SHT_SYMTAB#}
 -- | String table
 sht_strtab :: Elf_Word n
 sht_strtab = {#const SHT_STRTAB#}
+-- | Relocation entries with addends
+sht_rela :: Elf_Word n
+sht_rela = {#const SHT_RELA#}

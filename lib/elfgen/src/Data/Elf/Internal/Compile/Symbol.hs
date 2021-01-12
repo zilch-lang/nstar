@@ -36,3 +36,20 @@ instance CompileFor S64 ElfSymbol Elf_Sym where
          SV_Internal  -> stv_internal @S64
          SV_Hidden    -> stv_hidden @S64
          SV_Protected -> stv_protected @S64
+
+instance CompileFor S64 RelocationSymbol Elf_Rela where
+  -- | Compiles an abstract relocation table entry into a concrete table entry.
+  --
+  --   Fields 'r_info' and 'r_addend' must be fixed afterwards.
+  compileFor (RelocationSymbol name relType offset) =
+    Elf_Rela @S64
+      (fromIntegral offset)
+      compileInfo64bits
+      0x0
+    where
+      compileInfo64bits =
+        fromIntegral case relType of
+          R_x86_64_None -> r_x86_64_none @S64
+          R_x86_64_64   -> r_x86_64_64 @S64
+          R_x86_64_32   -> r_x86_64_32 @S64
+          R_x86_64_32S  -> r_x86_64_32s @S64

@@ -7,7 +7,7 @@
 
 module Data.Elf.Types
 ( -- * ELF types
-  Elf_Half, Elf_Word, Elf_Sword, Elf_Xword, Elf_Sxword, Elf_Addr(..), Elf_Off(..), Elf_UChar, Elf_Section
+  Elf_Half, Elf_Word, Elf_Sword, Elf_Xword, Elf_Sxword, Elf_Addr(..), Elf_Off(..), Elf_UChar, Elf_Section, Elf_Rel_Info(..), Elf_Rel_Addend(..)
   -- * Internal export
 , ReifySize
 ) where
@@ -50,6 +50,16 @@ data Elf_Off (n :: Size) where
   Elf64_Off :: Word64 -> Elf_Off S64
 -- | Unsigned 16-bits integer
 type Elf_Section (n :: Size) = Word16
+-- | [32 bits] Unsigned 32-bits integer
+--   [64 bits] Unsigned 64-bits integer
+data Elf_Rel_Info (n :: Size) where
+  Elf32_Rel_Info :: Word32 -> Elf_Rel_Info S32
+  Elf64_Rel_Info :: Word64 -> Elf_Rel_Info S64
+-- | [32 bits] Signed 32-bits integer
+--   [64 bits] Signed 64-bits integer
+data Elf_Rel_Addend (n :: Size) where
+  Elf32_Rel_Addend :: Word32 -> Elf_Rel_Addend S32
+  Elf64_Rel_Addend :: Word64 -> Elf_Rel_Addend S64
 
 
 class ReifySize (n :: Size) where
@@ -129,3 +139,54 @@ instance ReifySize n => Integral (Elf_Off n) where
 deriving instance Ord (Elf_Off n)
 deriving instance Eq (Elf_Off n)
 deriving instance Show (Elf_Off n)
+
+
+
+instance ReifySize n => Num (Elf_Rel_Info n) where
+  Elf32_Rel_Info i1 + Elf32_Rel_Info i2 = Elf32_Rel_Info (i1 + i2)
+  Elf64_Rel_Info i1 + Elf64_Rel_Info i2 = Elf64_Rel_Info (i1 + i2)
+
+  Elf32_Rel_Info i1 * Elf32_Rel_Info i2 = Elf32_Rel_Info (i1 * i2)
+  Elf64_Rel_Info i1 * Elf64_Rel_Info i2 = Elf64_Rel_Info (i1 * i2)
+
+  -- NOTE: we don't use those at all, and it makes no sense.
+  abs _ = undefined
+  signum _ = undefined
+
+  fromInteger i =
+    let Some (unsafeCoerce -> info :: Elf_Rel_Info n) = case reifySize @n of
+          S32 -> Some $ Elf32_Rel_Info (fromInteger i)
+          S64 -> Some $ Elf64_Rel_Info (fromInteger i)
+    in info
+
+  negate (Elf32_Rel_Info i) = Elf32_Rel_Info (negate i)
+  negate (Elf64_Rel_Info i) = Elf64_Rel_Info (negate i)
+
+deriving instance Ord (Elf_Rel_Info n)
+deriving instance Eq (Elf_Rel_Info n)
+deriving instance Show (Elf_Rel_Info n)
+
+
+instance ReifySize n => Num (Elf_Rel_Addend n) where
+  Elf32_Rel_Addend a1 + Elf32_Rel_Addend a2 = Elf32_Rel_Addend (a1 + a2)
+  Elf64_Rel_Addend a1 + Elf64_Rel_Addend a2 = Elf64_Rel_Addend (a1 + a2)
+
+  Elf32_Rel_Addend a1 * Elf32_Rel_Addend a2 = Elf32_Rel_Addend (a1 * a2)
+  Elf64_Rel_Addend a1 * Elf64_Rel_Addend a2 = Elf64_Rel_Addend (a1 * a2)
+
+  -- NOTE: we don't use those at all, and it makes no sense.
+  abs _ = undefined
+  signum _ = undefined
+
+  fromInteger i =
+    let Some (unsafeCoerce -> addend :: Elf_Rel_Addend n) = case reifySize @n of
+          S32 -> Some $ Elf32_Rel_Addend (fromInteger i)
+          S64 -> Some $ Elf64_Rel_Addend (fromInteger i)
+    in addend
+
+  negate (Elf32_Rel_Addend a) = Elf32_Rel_Addend (negate a)
+  negate (Elf64_Rel_Addend a) = Elf64_Rel_Addend (negate a)
+
+deriving instance Ord (Elf_Rel_Addend n)
+deriving instance Eq (Elf_Rel_Addend n)
+deriving instance Show (Elf_Rel_Addend n)

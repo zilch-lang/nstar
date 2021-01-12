@@ -39,27 +39,32 @@ instance CompileFor S64 SectionHeader Elf_Shdr where
         SNoBits _ _ _   -> sht_nobits @S64
         SStrTab _ _     -> sht_strtab @S64
         SSymTab _ _     -> sht_symtab @S64
+        SRela _ _       -> sht_rela @S64
       compileFlags64bits = case sect of
         SNull           -> 0x0
         SProgBits _ _ f -> f
         SNoBits _ _ f   -> f
         SStrTab _ _     -> 0x0
         SSymTab _ _     -> 0x0
+        SRela _ _       -> 0x0
       compileAlignment64bits = case sect of
         SNull           -> 0x0
         SProgBits _ _ _ -> 0x1
         SNoBits _ _ _   -> 0x20
         SStrTab _ _     -> 0x1
         SSymTab _ _     -> 0x8
+        SRela _ _       -> 0x8
       compileEntsize64bits = case sect of
         SNull           -> 0x0
         SProgBits _ _ _ -> 0x0
         SNoBits _ _ _   -> 0x0
         SStrTab _ _     -> 0x0
         SSymTab _ _     -> fromIntegral $ sizeOf @(Elf_Sym S64) undefined
+        SRela _ _       -> fromIntegral $ sizeOf @(Elf_Rela S64) undefined
       compileSize64bits = case sect of
         SNull           -> 0x0
         SProgBits _ _ _ -> 0x0
         SNoBits _ _ _   -> 0x0
         SStrTab _ _     -> 0x0
         SSymTab _ s     -> fromIntegral (sizeOf @(Elf_Sym S64) undefined) * (fromIntegral (length s) + 1)
+        SRela _ s       -> fromIntegral $ sizeOf @(Elf_Rela S64) undefined * fromIntegral (length s)

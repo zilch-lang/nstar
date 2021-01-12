@@ -19,6 +19,10 @@ data SectionHeader n
       String
       [Word8]
       (SFlags n)
+  -- | Relocation entries with addends
+  | SRela
+      String
+      [RelocationSymbol n]
   -- | Program space with no data (bss)
   | SNoBits
       String

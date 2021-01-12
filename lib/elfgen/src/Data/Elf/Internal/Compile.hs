@@ -94,6 +94,7 @@ fetchSectionNamesFrom = Map.fromList . mapMaybe f
     f h@(SNoBits n _ _)   = Just (n, h)
     f h@(SStrTab n _)     = Just (n, h)
     f h@(SSymTab n _)     = Just (n, h)
+    f h@(SRela n _)       = Just (n, h)
 
 fetchSymbols :: [SectionHeader n] -> [ElfSymbol n]
 fetchSymbols = mconcat . mapMaybe f
@@ -103,6 +104,7 @@ fetchSymbols = mconcat . mapMaybe f
     f (SNoBits _ _ _)   = Nothing
     f (SStrTab _ _)     = Nothing
     f (SSymTab _ syms)  = Just syms
+    f (SRela _ _)       = Nothing
 
 toSnd :: (a -> b) -> a -> (a, b)
 toSnd f x = (x, f x)

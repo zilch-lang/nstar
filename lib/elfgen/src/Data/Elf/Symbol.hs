@@ -5,6 +5,8 @@ module Data.Elf.Symbol
 , SymbolType(..)
 , SymbolBinding(..)
 , SymbolVisibility(..)
+, RelocationSymbol(..)
+, RelocationType(..)
 ) where
 
 import Data.Elf.Types
@@ -43,4 +45,22 @@ data SymbolVisibility
   | SV_Internal        -- ^ Processor specific hidden class
   | SV_Hidden          -- ^ Symbol unavailable in other modules
   | SV_Protected       -- ^ Not preemptible, not exported
+  deriving (Eq, Ord)
+
+
+
+-- | Relocation table entry
+data RelocationSymbol (n :: Size)
+  = RelocationSymbol
+      String           -- ^ Symbol name
+      RelocationType   -- ^ Relocation type
+      Integer          -- ^ Relocation offset in section
+  deriving (Eq, Ord)
+
+data RelocationType
+------------------------- AMD x86-64 relocations
+  = R_x86_64_None    -- ^ No reloc
+  | R_x86_64_32      -- ^ Direct 32 bit zero extended
+  | R_x86_64_32S     -- ^ Direct 32 bit sign extended
+  | R_x86_64_64      -- ^ Direct 64 bit
   deriving (Eq, Ord)
