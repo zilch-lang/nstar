@@ -302,18 +302,13 @@ fixupLoadSegments = do
          (segs, gen) = fixSegmentsOffsetsAndAddresses ss newOff sects sectsNames
      in (Map.union newSegs segs, segBin <> gen)
 
--- | Fixes the field 'sh_info' of the section @.symtab@ with the number of symbols in the file - 1.
+-- | Fixes the field 'sh_info' of the section @.symtab@ with the number of symbols in the file.
 fixupSymtabShInfo :: Fixup n ()
 fixupSymtabShInfo = do
   FixupEnv fileHeader sects sectsNames segs syms gen <- get
 
   let Just symtab = Map.lookup ".symtab" sectsNames
-      symtabSect  = Map.lookup symtab sects <&> \ s ->
-        s { sh_info = fromIntegral (Map.size syms) - 1 }
-                                     --            ^^^ DO NOT COUNT THE NULL ENTRY
-                                     --                else `ld` is not able to figure out symbols
-                                     --                and will spit out errors like:
-                                     --                > undefined reference to `main'
+      symtabSect  = Map.lookup symtab sects <&> \ s -> s { sh_info = fromIntegral (Map.size syms) }
       newSects    = Map.update (const symtabSect) symtab sects
   put (FixupEnv fileHeader newSects sectsNames segs syms gen)
 
@@ -333,7 +328,7 @@ fixupSymtabOffset = do
        --            ^^^ start at the end of the file
   let Just symtab = Map.lookup ".symtab" sectsNames
       symtabSect  = Map.lookup symtab sects <&> \ s ->
-        s { sh_offset = initialSize, sh_size = fromIntegral (sh_entsize s) * fromIntegral (sh_info s + 1) }
+        s { sh_offset = initialSize, sh_size = fromIntegral (sh_entsize s) * fromIntegral (sh_info s) }
       newSects    = Map.update (const symtabSect) symtab sects
 
   put (FixupEnv fileHeader newSects sectsNames segs syms gen)
