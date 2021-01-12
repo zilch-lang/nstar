@@ -21,7 +21,7 @@ import Data.Elf.Internal.ProgramHeader (Elf_Phdr)
 import Data.Elf.Internal.FileHeader (Elf_Ehdr)
 import qualified Data.Text as Text (pack)
 import Data.Maybe (mapMaybe)
-import Data.List (intersperse)
+import Data.List (intersperse, sort)
 import Data.Word (Word8)
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.Elf.Internal.Compile.ForArch
@@ -29,6 +29,7 @@ import qualified Data.ByteString as BS (unpack)
 import Data.Elf.Symbol
 import Data.Elf.Internal.Symbol (Elf_Sym)
 import Data.Functor ((<&>))
+import Debug.Trace (traceShow)
 
 -- | Transforms an abstract ELF object into a concrete ELF object.
 --
@@ -60,7 +61,7 @@ instance ( ReifySize n
 
         symbols = ElfSymbol "" ST_NoType SB_Local SV_Default : fetchSymbols sections
 
-        allSectionNames = ".shstrtab" : ".strtab" : Map.keys sectNames
+        allSectionNames = sort $ ".shstrtab" : ".strtab" : Map.keys sectNames
         allSymbolNames  = filter (/= "") $ symbols <&> \ (ElfSymbol n _ _ _) -> n
 
         strtab    = SStrTab ".strtab" allSymbolNames
@@ -84,7 +85,10 @@ instance ( ReifySize n
                       (Map.fromList elfSymbols)
                       mempty
 
-      in Internal.Obj @n fileHeader (Map.elems segments) (Map.elems sections) (BS.unpack gen) (Map.elems syms)
+      in traceShow allSectionNames $
+
+
+         Internal.Obj @n fileHeader (Map.elems segments) (Map.elems sections) (BS.unpack gen) (Map.elems syms)
 
 fetchSectionNamesFrom :: [SectionHeader n] -> Map String (SectionHeader n)
 fetchSectionNamesFrom = Map.fromList . mapMaybe f
