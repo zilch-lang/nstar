@@ -16,5 +16,7 @@ data InterOpcode
   = Byte !Word8
   -- | A label (jump destination)
   | Label !Text
-  -- | An unconditional jump to a given label
+  -- | A jump to a given label
   | Jump !Text
+  -- | A data access through a label
+  | Symbol !Text

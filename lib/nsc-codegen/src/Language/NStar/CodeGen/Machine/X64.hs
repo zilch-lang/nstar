@@ -21,6 +21,7 @@ import qualified Data.ByteString.Lazy as BS (unpack)
 import Data.Char (ord)
 import Data.Bits ((.&.), (.|.), shiftL)
 import Debug.Trace (traceShow)
+import Data.Bifunctor (second)
 
 -- | REX with only the W bit set, so it indicates 64-bit operand size, but no high registers.
 rexW :: InterOpcode
@@ -51,7 +52,10 @@ registerNumber R4 = 0x6  -- rsi
 registerNumber R5 = 0x7  -- rdi
 
 compileX64 :: TypedProgram -> Compiler ()
-compileX64 = (fixupAddressesX64 =<<) . compileInterX64
+compileX64 prog@(TProgram (TData dataSect :@ _) _ _ _) = do
+  intermediateOpcodes <- compileInterX64 prog
+  fixupAddressesX64 intermediateOpcodes
+  generateDataX64 dataSect
 
 compileInterX64 :: TypedProgram -> Compiler [InterOpcode]
 compileInterX64 (TProgram (TData _ :@ _) (TROData _ :@ _) (TUData _ :@ _) (TCode stmts :@ _)) =
@@ -99,18 +103,25 @@ int32 = BS.unpack . runPut . putWord32le . fromIntegral
 char8 :: Char -> [Word8]
 char8 = BS.unpack . runPut . putWord8 . fromIntegral . ord
 
+compileConstantX64 :: Constant -> [Word8]
+compileConstantX64 (CInteger (i :@ _))   = int64 i
+compileConstantX64 (CCharacter (c :@ _)) = char8 c
+compileConstantX64 (CArray csts)         = error $ "Not yet implemented: compileConstant " <> show (CArray csts)
+
 ---------------------------------------------------------------------------------------------------------------------
 
 fixupAddressesX64 :: [InterOpcode] -> Compiler ()
 fixupAddressesX64 os = fixupAddressesX64Internal (findLabelsAddresses os) os 0
  where
    fixupAddressesX64Internal :: Map Text Integer -> [InterOpcode] -> Integer -> Compiler ()
-   fixupAddressesX64Internal labelsAddresses [] _             = tell (MInfo [] labelsAddresses)
-   fixupAddressesX64Internal labelsAddresses (Byte b:os) i    = tell (MInfo [b] mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 1)
+   fixupAddressesX64Internal labelsAddresses [] _             = tell (MInfo mempty (second Function <$> Map.assocs labelsAddresses) mempty)
+   fixupAddressesX64Internal labelsAddresses (Byte b:os) i    = tell (MInfo [b] mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 1)
    fixupAddressesX64Internal labelsAddresses (Label n:os) i   = fixupAddressesX64Internal labelsAddresses os i
    fixupAddressesX64Internal labelsAddresses (Jump n:os) i    = do
      let addr = maybe (internalError $ "Label " <> show n <> " not found during codegen.") (int32 . (subtract (i + 4))) (Map.lookup n labelsAddresses)
-     tell (MInfo addr mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 4)
+     tell (MInfo addr mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 4)
+   -- TODO: implement this
+   fixupAddressesX64Internal labelsAddresses (Symbol s:os) i  = fixupAddressesX64Internal labelsAddresses os i
 
 findLabelsAddresses :: [InterOpcode] -> Map Text Integer
 findLabelsAddresses = findLabelsAddressesInternal 0
@@ -120,3 +131,12 @@ findLabelsAddresses = findLabelsAddressesInternal 0
     findLabelsAddressesInternal n (Byte _:os)   = findLabelsAddressesInternal (n + 1) os
     findLabelsAddressesInternal n (Label l:os)  = Map.insert l n (findLabelsAddressesInternal n os)
     findLabelsAddressesInternal n (Jump l:os)   = findLabelsAddressesInternal (n + 4) os
+    findLabelsAddressesInternal n (Symbol s:os) = findLabelsAddressesInternal (n + 4) os
+
+--------------------------------------------------------------------------------------------------------------------
+
+generateDataX64 :: [Located Binding] -> Compiler ()
+generateDataX64 []                                        = pure ()
+generateDataX64 ((Bind (name :@ _) _ (val :@ _) :@ _):bs) = do
+  tell (MInfo mempty mempty (DataTable [name] (compileConstantX64 val)))
+  generateDataX64 bs
