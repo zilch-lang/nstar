@@ -6,6 +6,7 @@ module Data.Elf.Symbol
 , SymbolBinding(..)
 , SymbolVisibility(..)
 , RelocationSymbol(..)
+, RelocationOrigin(..)
 , RelocationType(..)
 ) where
 
@@ -52,9 +53,16 @@ data SymbolVisibility
 -- | Relocation table entry
 data RelocationSymbol (n :: Size)
   = RelocationSymbol
-      String           -- ^ Symbol name
+      RelocationOrigin -- ^ Symbol name
       RelocationType   -- ^ Relocation type
       Integer          -- ^ Relocation offset in section
+  deriving (Eq, Ord)
+
+data RelocationOrigin
+  -- | Relocating from a section
+  = SectionReloc
+      String        -- ^ Section name
+      Integer       -- ^ Offset from beginning of section
   deriving (Eq, Ord)
 
 data RelocationType
