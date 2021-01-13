@@ -38,6 +38,18 @@ modRM mod reg rm = Byte $
   .|. ((reg .&. 0b111) `shiftL` 3)
   .|. ((rm  .&. 0b111) `shiftL` 0)
 
+-- | Creates the SIB byte from the scale, the index and the base.
+--
+--   >>> effective_address = scale * index + base + offset
+sib :: Word8     -- ^ The scale
+    -> Word8     -- ^ The index
+    -> Word8     -- ^ The base
+    -> InterOpcode
+sib scale index base = Byte $
+      ((scale .&. 0b11)  `shiftL` 6)
+  .|. ((index .&. 0b111) `shiftL` 3)
+  .|. ((base .&. 0b111)  `shiftL` 0)
+
 -- | Associates registers with their 4-bits encoding.
 --
 --   See <https://wiki.osdev.org/X86-64_Instruction_Encoding#Registers the osdev wiki on registers encoding> for more information.
@@ -72,6 +84,9 @@ compileInstrInterX64 RET []                                    =
   pure [Byte 0xC3]
 compileInstrInterX64 RET args                                  =
   internalError $ "Expected [] but got " <> show args <> " as arguments for " <> show RET
+-- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
+compileInstrInterX64 (MOV (Indexed (Imm (I disp :@ _) :@ _) (Name l :@ _) :@ _) (Reg dst :@ _)) [_, Register 64] =
+  pure [rexW, Byte 0x8B, modRM 0x0 (registerNumber (unLoc dst)) 0x5, sib 0x0 0x3 0x1, Symbol (unLoc l) disp]
 -- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
 compileInstrInterX64 (MOV src (Reg dst :@ _)) [Unsigned 64, Register 64] =
   ([rexW, Byte (0xB8 + registerNumber (unLoc dst))] <>) <$> compileExprX64 64 (unLoc src)
