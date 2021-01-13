@@ -24,7 +24,7 @@ data ElfSymbol (n :: Size)
 -- | Symbol type
 data SymbolType
   = ST_NoType          -- ^ Symbol type is unspecified
-  | ST_Object          -- ^ Symbol is a data object
+  | ST_Object Integer  -- ^ Symbol is a data object
   | ST_Func Integer    -- ^ Symbol is a code object
   | ST_Section String  -- ^ Symbol associated with a section
   | ST_File String     -- ^ Symbol's name is file name

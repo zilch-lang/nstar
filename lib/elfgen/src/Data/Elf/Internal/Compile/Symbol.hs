@@ -22,7 +22,7 @@ instance CompileFor S64 ElfSymbol Elf_Sym where
        compileTypeAndBind64bits =
          let ty = case symType of
                ST_NoType     -> stt_notype @S64
-               ST_Object     -> stt_object @S64
+               ST_Object _   -> stt_object @S64
                ST_Func _     -> stt_func @S64
                ST_Section _  -> stt_section @S64
                s             -> error "not yet implemented: ST_FILE | ST_Common | ST_TLS"

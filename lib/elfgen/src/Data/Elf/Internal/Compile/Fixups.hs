@@ -370,7 +370,7 @@ fixupSymbolDefs = do
         case ty of
           ST_NoType    -> st
           ST_Func _    -> st { st_shndx = fromIntegral textIndex }
-          ST_Object    -> st { st_shndx = fromIntegral dataIndex }
+          ST_Object _  -> st { st_shndx = fromIntegral dataIndex }
           ST_Section n ->
             let Just sectIndex = elemIndex n (getName <$> Map.keys sects)
             in st { st_shndx = fromIntegral sectIndex }
@@ -391,9 +391,14 @@ fixupFuncSymbolAddresses = do
       isExec        = e_type fileHeader == et_exec @n
 
       newSyms       = Map.fromList (fixSymbolAddressesBy2 startAddr textSize (Map.toList syms))
-             -- we skip everything that is not a function
 
-  put (FixupEnv fileHeader sects sectsNames segs newSyms gen)
+  let startAddr     = 0x0
+      Just dataSect = Map.lookup ".data" sectsNames >>= flip Map.lookup sects
+      dataSize      = sh_size dataSect
+
+      newSyms'      = Map.fromList (fixDataSymbolAddressesBy2 startAddr dataSize (Map.toList newSyms))
+
+  put (FixupEnv fileHeader sects sectsNames segs newSyms' gen)
  where
    fixSymbolAddressesBy2 :: Elf_Addr n -> Elf_Xword n -> [(ElfSymbol n, Elf_Sym n)] -> [(ElfSymbol n, Elf_Sym n)]
    fixSymbolAddressesBy2 _ _ []                                                                            = []
@@ -413,6 +418,23 @@ fixupFuncSymbolAddresses = do
      (ST_Func off1, _)            -> fixSymbolAddressesBy2 startAddr endOff [e1] <> fixSymbolAddressesBy2 startAddr endOff (e2:es)
      (_, ST_Func off2)            -> e1 : fixSymbolAddressesBy2 startAddr endOff (e2:es)
      (_, _)                       -> e1 : e2 : fixSymbolAddressesBy2 startAddr endOff es
+
+   fixDataSymbolAddressesBy2 :: Elf_Addr n -> Elf_Xword n -> [(ElfSymbol n, Elf_Sym n)] -> [(ElfSymbol n, Elf_Sym n)]
+   fixDataSymbolAddressesBy2 _ _ [] = []
+   fixDataSymbolAddressesBy2 startAddr endOff [(e@(ElfSymbol _ ty _ _), st)] = case ty of
+     ST_Object off ->
+       let symbolSize = endOff - fromIntegral off
+           symbolAddr = startAddr + fromIntegral off
+       in [(e, st { st_value = symbolAddr, st_size = symbolSize })]
+     _            -> [(e, st)]
+   fixDataSymbolAddressesBy2 startAddr endOff (e1@(ElfSymbol _ ty1 _ _, st1):e2@(ElfSymbol _ ty2 _ _, st2):es) = case (ty1, ty2) of
+     (ST_Object off1, ST_Object off2) ->
+       let symbolSize = fromIntegral $ off2 - off1
+           symbolAddr = startAddr + fromIntegral off1
+       in (fst e1, st1 { st_value = symbolAddr, st_size = symbolSize }) : fixDataSymbolAddressesBy2 startAddr endOff (e2:es)
+     (ST_Object off1, _)              -> fixDataSymbolAddressesBy2 startAddr endOff [e1] <> fixDataSymbolAddressesBy2 startAddr endOff (e2:es)
+     (_, ST_Object off2)              -> e1 : fixDataSymbolAddressesBy2 startAddr endOff (e2:es)
+     (_, _)                           -> e1 : e2 : fixDataSymbolAddressesBy2 startAddr endOff es
 
 -- | Replace the 'e_entry' file header field with the address of the 'main' function, if there is one.
 --   Else leaves the header untouched.
