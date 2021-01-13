@@ -54,8 +54,8 @@ registerNumber R5 = 0x7  -- rdi
 compileX64 :: TypedProgram -> Compiler ()
 compileX64 prog@(TProgram (TData dataSect :@ _) _ _ _) = do
   intermediateOpcodes <- compileInterX64 prog
-  fixupAddressesX64 intermediateOpcodes
   generateDataX64 dataSect
+  fixupAddressesX64 intermediateOpcodes
 
 compileInterX64 :: TypedProgram -> Compiler [InterOpcode]
 compileInterX64 (TProgram (TData _ :@ _) (TROData _ :@ _) (TUData _ :@ _) (TCode stmts :@ _)) =
@@ -95,10 +95,10 @@ compileExprX64 n (Imm i) = case (n, unLoc i) of
 -- ^^^^^ all these matches are intentionally left incomplete.
 
 int64 :: Integer -> [Word8]
-int64 = BS.unpack . runPut . putWord64le . fromIntegral
+int64 = BS.unpack . runPut . putInt64le . fromIntegral
 
 int32 :: Integer -> [Word8]
-int32 = BS.unpack . runPut . putWord32le . fromIntegral
+int32 = BS.unpack . runPut . putInt32le . fromIntegral
 
 char8 :: Char -> [Word8]
 char8 = BS.unpack . runPut . putWord8 . fromIntegral . ord
@@ -114,14 +114,17 @@ fixupAddressesX64 :: [InterOpcode] -> Compiler ()
 fixupAddressesX64 os = fixupAddressesX64Internal (findLabelsAddresses os) os 0
  where
    fixupAddressesX64Internal :: Map Text Integer -> [InterOpcode] -> Integer -> Compiler ()
-   fixupAddressesX64Internal labelsAddresses [] _             = tell (MInfo mempty (second Function <$> Map.assocs labelsAddresses) mempty)
-   fixupAddressesX64Internal labelsAddresses (Byte b:os) i    = tell (MInfo [b] mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 1)
+   fixupAddressesX64Internal labelsAddresses [] _             = tell (MInfo mempty (second Function <$> Map.assocs labelsAddresses) mempty mempty)
+   fixupAddressesX64Internal labelsAddresses (Byte b:os) i    = tell (MInfo [b] mempty mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 1)
    fixupAddressesX64Internal labelsAddresses (Label n:os) i   = fixupAddressesX64Internal labelsAddresses os i
    fixupAddressesX64Internal labelsAddresses (Jump n:os) i    = do
      let addr = maybe (internalError $ "Label " <> show n <> " not found during codegen.") (int32 . (subtract (i + 4))) (Map.lookup n labelsAddresses)
-     tell (MInfo addr mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 4)
+     tell (MInfo addr mempty mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 4)
    -- TODO: implement this
-   fixupAddressesX64Internal labelsAddresses (Symbol s:os) i  = fixupAddressesX64Internal labelsAddresses os i
+   fixupAddressesX64Internal labelsAddresses (Symbol s o:os) i  = do
+     tell (MInfo [0, 0, 0, 0] mempty mempty [RelocText s ".data" o i])
+                                                --       ^^^^^^^ FIXME: do not hardcode origin section
+     fixupAddressesX64Internal labelsAddresses os (i + 4)
 
 findLabelsAddresses :: [InterOpcode] -> Map Text Integer
 findLabelsAddresses = findLabelsAddressesInternal 0
@@ -131,7 +134,7 @@ findLabelsAddresses = findLabelsAddressesInternal 0
     findLabelsAddressesInternal n (Byte _:os)   = findLabelsAddressesInternal (n + 1) os
     findLabelsAddressesInternal n (Label l:os)  = Map.insert l n (findLabelsAddressesInternal n os)
     findLabelsAddressesInternal n (Jump l:os)   = findLabelsAddressesInternal (n + 4) os
-    findLabelsAddressesInternal n (Symbol s:os) = findLabelsAddressesInternal (n + 4) os
+    findLabelsAddressesInternal n (Symbol s o:os) = findLabelsAddressesInternal (n + 4) os
 
 --------------------------------------------------------------------------------------------------------------------
 
@@ -142,5 +145,5 @@ generateDataX64 = generateDataX64Internal 0
     generateDataX64Internal _ [] = pure ()
     generateDataX64Internal off ((Bind (name :@ _) _ (val :@ _) :@ _) : bs) = do
       let cst = compileConstantX64 val
-      tell (MInfo mempty mempty (DataTable [(name, off)] cst))
+      tell (MInfo mempty mempty (DataTable [(name, off)] cst) mempty)
       generateDataX64Internal (off + fromIntegral (length cst)) bs

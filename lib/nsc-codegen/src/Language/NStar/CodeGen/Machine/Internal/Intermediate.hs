@@ -20,3 +20,4 @@ data InterOpcode
   | Jump !Text
   -- | A data access through a label
   | Symbol !Text
+      Integer -- ^ The offset from the label
