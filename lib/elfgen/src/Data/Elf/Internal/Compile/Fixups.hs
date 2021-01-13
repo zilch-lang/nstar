@@ -21,7 +21,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Control.Monad.State (State, get, put, execState)
+import Control.Monad.State (State, get, put, modify, execState)
 import Data.Functor ((<&>))
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.List (elemIndex, intercalate)
@@ -34,6 +34,8 @@ import Data.Elf.Symbol
 import Data.Elf.Internal.Symbol
 import Control.Applicative ((<|>))
 import Control.Monad (unless)
+import Data.Bifunctor
+import Control.Monad (forM_)
 
 -- | Associative list between abstract and concrete section header structures.
 type SectionAList n = Map (SectionHeader n) (Elf_Shdr n)
@@ -75,6 +77,7 @@ allFixes = do
   fixupHeaderCount
   fixupSymtabStrtabIndex
   fixupShstrtabIndex
+  fixupRelaLinkAndInfo
   fixupHeadersOffsets
   fixupPHDREntry
   fixupSectionNames
@@ -82,6 +85,7 @@ allFixes = do
   fixupLoadSegments
   fixupSymtabShInfo
   fixupSymtabOffset
+  fixupRelaOffset
   fixupSymbolNames
   fixupSymbolDefs
   fixupFuncSymbolAddresses
@@ -124,6 +128,25 @@ getName (SNoBits n _ _)   = n
 getName (SStrTab n _)     = n
 getName (SSymTab n _)     = n
 getName (SRela n _)       = n
+
+-- | Fixes the 'sh_link' and 'sh_info' fields of all the relocation sections.
+--
+--   - 'sh_link' must point to the @.symtab@ section index
+--
+--   - 'sh_info' must point to the section index to relocate
+fixupRelaLinkAndInfo :: Fixup n ()
+fixupRelaLinkAndInfo = do
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
+
+  let Just e_symtabndx = elemIndex ".symtab" (getName <$> Map.keys sects)
+      Just e_textndx   = elemIndex ".text" (getName <$> Map.keys sects)
+      relaTextSect     = (Map.lookup ".rela.text" sectsNames >>= flip Map.lookup sects) <&> \ s ->
+        s { sh_link = fromIntegral e_symtabndx, sh_info = fromIntegral e_textndx }
+      newSects         = case Map.lookup ".rela.text" sectsNames of
+        Nothing -> sects
+        Just s  -> Map.update (const relaTextSect) s sects
+
+  put (FixupEnv fileHeader newSects sectsNames segs syms gen)
 
 -- | Fixes (sections/segments) headers offsets in the file header.
 fixupHeadersOffsets :: forall (n :: Size). Fixup n ()
@@ -326,6 +349,34 @@ fixupSymtabOffset = do
       symtabSect  = Map.lookup symtab sects <&> \ s ->
         s { sh_offset = initialSize, sh_size = fromIntegral (sh_entsize s) * fromIntegral (sh_info s) }
       newSects    = Map.update (const symtabSect) symtab sects
+
+  put (FixupEnv fileHeader newSects sectsNames segs syms gen)
+
+-- | Fixes all the @.relaXXX@ section offsets.
+--
+--   __NOTE:__ We put the relocation tables at the very end of the file, right after the @.symtab@ table.
+fixupRelaOffset :: Fixup n ()
+fixupRelaOffset = do
+  FixupEnv fileHeader sects sectsNames segs syms gen <- get
+
+  let headerSize    = fromIntegral $ e_ehsize fileHeader
+      segmentHSize  = fromIntegral $ e_phnum fileHeader * e_phentsize fileHeader
+      sectionHSize  = fromIntegral $ e_shnum fileHeader * e_shentsize fileHeader
+      Just symtab   = Map.lookup ".symtab" sectsNames >>= flip Map.lookup sects
+  let initialSize   = fromIntegral (BS.length gen) + headerSize + segmentHSize + sectionHSize + sh_size symtab
+       --            ^^^ start at the end of the file
+      allReloc      = [ ".rela.text" ]
+
+      (newSects, _) = flip execState (sects, initialSize) $
+        forM_ allReloc \ s ->
+          case Map.lookup s sectsNames of
+            Nothing            -> pure ()
+            Just se@(SRela _ ent) -> do
+              (sects, currentOffset) <- get
+              let Just sect = Map.lookup se sects <&> \ s ->
+                    s { sh_offset = fromIntegral currentOffset, sh_size = fromIntegral (sh_entsize s) * fromIntegral (length ent) }
+              modify $ bimap (Map.update (const $ Just sect) se) (+ sh_size sect)
+
 
   put (FixupEnv fileHeader newSects sectsNames segs syms gen)
 
