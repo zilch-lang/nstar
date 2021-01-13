@@ -1,6 +1,8 @@
 section data {
 x: u64
    9
+y: u64
+   8
 }
 
 section code {
