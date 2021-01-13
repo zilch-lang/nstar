@@ -136,7 +136,11 @@ findLabelsAddresses = findLabelsAddressesInternal 0
 --------------------------------------------------------------------------------------------------------------------
 
 generateDataX64 :: [Located Binding] -> Compiler ()
-generateDataX64 []                                        = pure ()
-generateDataX64 ((Bind (name :@ _) _ (val :@ _) :@ _):bs) = do
-  tell (MInfo mempty mempty (DataTable [name] (compileConstantX64 val)))
-  generateDataX64 bs
+generateDataX64 = generateDataX64Internal 0
+  where
+    generateDataX64Internal :: Integer -> [Located Binding] -> Compiler ()
+    generateDataX64Internal _ [] = pure ()
+    generateDataX64Internal off ((Bind (name :@ _) _ (val :@ _) :@ _) : bs) = do
+      let cst = compileConstantX64 val
+      tell (MInfo mempty mempty (DataTable [(name, off)] cst))
+      generateDataX64Internal (off + fromIntegral (length cst)) bs

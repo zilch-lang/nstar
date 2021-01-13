@@ -36,11 +36,11 @@ generateSymbolTableFrom :: forall (n :: Size). [(Text, SymbolType')] -> [ElfSymb
 generateSymbolTableFrom = fmap \ (k, l) ->
   let symType = case l of
         Function idx -> ST_Func idx
-        Object       -> ST_Object
+        Object idx   -> ST_Object idx
   in ElfSymbol (Text.unpack k) symType SB_Global SV_Default
 
-generateDataSymbols :: [Text] -> [ElfSymbol n]
-generateDataSymbols = fmap \ n -> ElfSymbol (Text.unpack n) ST_Object SB_Local SV_Default
+generateDataSymbols :: [(Text, Integer)] -> [ElfSymbol n]
+generateDataSymbols = fmap \ (n, idx) -> ElfSymbol (Text.unpack n) (ST_Object idx) SB_Local SV_Default
 
 supportedArchToArch :: SupportedArch -> Arch
 supportedArchToArch X64 = EM_x86_64

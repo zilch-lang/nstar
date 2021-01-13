@@ -22,10 +22,10 @@ instance Monoid MachineInfo where
 
 data SymbolType'
   = Function Integer
-  | Object
+  | Object Integer
 
 data DataTable
-  = DataTable [Text] [Word8]
+  = DataTable [(Text, Integer)] [Word8]
 
 instance Semigroup DataTable where
   DataTable l1 v1 <> DataTable l2 v2 = DataTable (l1 <> l2) (v1 <> v2)
