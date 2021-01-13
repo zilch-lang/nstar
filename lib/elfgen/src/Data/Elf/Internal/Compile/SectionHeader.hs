@@ -46,7 +46,7 @@ instance CompileFor S64 SectionHeader Elf_Shdr where
         SNoBits _ _ f   -> f
         SStrTab _ _     -> 0x0
         SSymTab _ _     -> 0x0
-        SRela _ _       -> 0x0
+        SRela _ _       -> shf_info_link
       compileAlignment64bits = case sect of
         SNull           -> 0x0
         SProgBits _ _ _ -> 0x1

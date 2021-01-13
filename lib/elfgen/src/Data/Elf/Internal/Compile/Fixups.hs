@@ -104,12 +104,6 @@ fixupShstrtabIndex = do
       newHeader           = fileHeader
         { e_shstrndx = fromIntegral e_shstrtabndx }
   put (FixupEnv newHeader sects sectsNames segs syms gen)
- where
-   getName SNull             = ""
-   getName (SProgBits n _ _) = n
-   getName (SNoBits n _ _)   = n
-   getName (SStrTab n _)     = n
-   getName (SSymTab n _)     = n
 
 -- | Fixes the @.strtab@ section index in the @.symtab@ section field 'sh_link'.
 fixupSymtabStrtabIndex :: Fixup n ()
@@ -129,6 +123,7 @@ getName (SProgBits n _ _) = n
 getName (SNoBits n _ _)   = n
 getName (SStrTab n _)     = n
 getName (SSymTab n _)     = n
+getName (SRela n _)       = n
 
 -- | Fixes (sections/segments) headers offsets in the file header.
 fixupHeadersOffsets :: forall (n :: Size). Fixup n ()
@@ -245,6 +240,7 @@ fixupSectionOffsets = do
                -- NOTE: we do not generate anything from a symtab, because we want to handle symbol compilation
                --       later, because we lack some information at the current moment (like the data size pointed by a symbol
                --       or even the section it is in)
+           (SRela _ _, _)       -> (off, mempty, Map.singleton sh shd)
 
          (binGen, sects) = generateBinFromSectionsStartingAt ss newOff isExec
      in (sectBin <> binGen, Map.union newSects sects)
