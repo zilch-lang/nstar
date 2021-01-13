@@ -28,6 +28,7 @@ instance CompileToElf S64 where
         , PLoad (section ".data") (pf_r .|. pf_w) ]
         [ SProgBits ".text" opcodes (shf_alloc .|. shf_execinstr)
         , SProgBits ".data" dataSect (shf_alloc .|. shf_write)
+        , SNoBits ".bss" 0 (shf_alloc .|. shf_write)
 --        , SRela ".rela.text" textReloc
         , SSymTab ".symtab" (generateSymbolTableFrom @S64 syms <> generateDataSymbols @S64 dataLabels) ]
 
