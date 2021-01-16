@@ -29,6 +29,7 @@ void fix_section_offsets(elf_object const *obj, Elf64_Object *target);
 void fix_symtab_offset_and_shinfo(elf_object const *obj, Elf64_Object *target);
 void fix_symbol_names_and_sections(elf_object const *obj, Elf64_Object *target);
 void fix_symbol_values(elf_object const *obj, Elf64_Object *target);
+void fix_rel_sections_shinfo_and_shlink(elf_object const *obj, Elf64_Object *target);
 
 
 /*
@@ -46,6 +47,7 @@ void fix_elf_object(elf_object const *obj, Elf64_Object *target)
     fix_symtab_offset_and_shinfo(obj, target);
     fix_symbol_names_and_sections(obj, target);
     fix_symbol_values(obj, target);
+    fix_rel_sections_shinfo_and_shlink(obj, target);
 }
 
 
@@ -364,6 +366,21 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
     free(data_symbols_indices);
     free(text_symbols);
     free(text_symbols_indices);
+}
+
+void fix_rel_sections_shinfo_and_shlink(elf_object const *obj, Elf64_Object *target)
+{
+    int symtab_index = find_section_index_by_name(obj->sections, obj->sections_len, ".symtab");
+    symtab_index = symtab_index == -1 ? 0 : symtab_index;
+
+    // .rela.text
+    int relatext_index = find_section_index_by_name(obj->sections, obj->sections_len, ".rela.text");
+    if (relatext_index != -1)
+    {
+        int text_index = find_section_index_by_name(obj->sections, obj->sections_len, ".text");
+        target->section_headers[relatext_index]->sh_link = symtab_index;
+        target->section_headers[relatext_index]->sh_info = text_index;
+    }
 }
 
 #undef NB_RELOCATION_TABLES
