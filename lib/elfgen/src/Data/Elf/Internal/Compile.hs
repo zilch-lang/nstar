@@ -16,7 +16,7 @@ import Data.Elf.Internal.ProgramHeader (Elf_Phdr)
 import Data.Elf.Internal.FileHeader (Elf_Ehdr)
 import qualified Data.Text as Text (pack)
 import Data.Maybe (mapMaybe)
-import Data.List (intersperse, sort)
+import Data.List (intersperse, sort, sortBy)
 import Data.Word (Word8)
 import Data.Elf.Internal.BusSize (Size(..))
 import qualified Data.ByteString as BS (unpack)
@@ -96,7 +96,7 @@ mkAbstractObject ElfObject{..} =
       segs            = PPhdr : PLoad (section "PHDR") pf_r : segments
                            --             ^^^^ Special identifier, to refer to the PHDR segment
 
-      symbols         = ElfSymbol "" ST_NoType SB_Local SV_Default : fetchSymbols sections
+      symbols         = sort $ ElfSymbol "" ST_NoType SB_Local SV_Default : fetchSymbols sections
 
       allSectionNames = Map.keys sectByNames <> [ ".shstrtab", ".strtab" ]
       allSymbolNames  = filter (/= "") $ symbols <&> \ (ElfSymbol n _ _ _) -> n

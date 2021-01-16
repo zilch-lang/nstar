@@ -28,6 +28,7 @@ void fix_section_names(elf_object const *obj, Elf64_Object *target);
 void fix_section_offsets(elf_object const *obj, Elf64_Object *target);
 void fix_symtab_offset_and_shinfo(elf_object const *obj, Elf64_Object *target);
 void fix_symbol_names_and_sections(elf_object const *obj, Elf64_Object *target);
+void fix_symbol_values(elf_object const *obj, Elf64_Object *target);
 
 
 /*
@@ -44,6 +45,7 @@ void fix_elf_object(elf_object const *obj, Elf64_Object *target)
     fix_section_offsets(obj, target);
     fix_symtab_offset_and_shinfo(obj, target);
     fix_symbol_names_and_sections(obj, target);
+    fix_symbol_values(obj, target);
 }
 
 
@@ -207,6 +209,9 @@ void fix_symbol_names_and_sections(elf_object const *obj, Elf64_Object *target)
     int text_index = find_section_index_by_name(obj->sections, obj->sections_len, ".text");
     int data_index = find_section_index_by_name(obj->sections, obj->sections_len, ".data");
 
+    if (text_index == -1) text_index = STN_UNDEF;
+    if (data_index == -1) data_index = STN_UNDEF;
+
     for (unsigned int i = 0; i < target->symbols_len; ++i)
     {
         elf_symbol const *s = symtab->data.s_symtab.symbols[i];
@@ -235,6 +240,130 @@ void fix_symbol_names_and_sections(elf_object const *obj, Elf64_Object *target)
                 sym->st_shndx = STN_UNDEF;
         }
     }
+}
+
+void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
+{
+    int symtab_index = find_section_index_by_name(obj->sections, obj->sections_len, ".symtab");
+    int text_index = find_section_index_by_name(obj->sections, obj->sections_len, ".text");
+    int data_index = find_section_index_by_name(obj->sections, obj->sections_len, ".data");
+    elf_section_header const *symtab = obj->sections[symtab_index];
+    Elf64_Shdr *text = text_index != -1 ? target->section_headers[text_index] : NULL;
+    Elf64_Shdr *data = data_index != -1 ? target->section_headers[data_index] : NULL;
+
+    // Three cases:
+    // - No symbols -> there's nothing to patch
+    // - 1 symbol   -> its size = the size of the section it is in - its offset in this section
+    // - 2+ symbols -> two consecutive symbols of the same type put the limit on the size of the first symbol
+    //              => fetch all objects and all funcs separately (the list is already sorted in the Haskell-side)
+    //              => we then have a correct way of identifying which symbol appeared first in the section
+    //              => which means we can implement the strategy above
+
+    int data_sym_count = 0;
+    int text_sym_count = 0;
+
+    for (unsigned int i = 0; i < target->symbols_len; ++i)
+    {
+        Elf64_Sym *symbol = target->symbols[i];
+
+        if (ELF64_ST_TYPE(symbol->st_info) == STT_OBJECT) data_sym_count += 1;
+        if (ELF64_ST_TYPE(symbol->st_info) == STT_FUNC) text_sym_count += 1;
+    }
+
+    struct symbol_type const **data_symbols = malloc(data_sym_count * sizeof(struct symbol_type *));
+    assert(data_symbols != NULL);
+    int *data_symbols_indices = malloc(data_sym_count * sizeof(int));
+    assert(data_symbols_indices != NULL);
+    struct symbol_type const **text_symbols = malloc(text_sym_count * sizeof(struct symbol_type *));
+    assert(text_symbols != NULL);
+    int *text_symbols_indices = malloc(text_sym_count * sizeof(int));
+    assert(text_symbols_indices != NULL);
+
+    for (unsigned int i = 0, j = 0, k = 0; i < target->symbols_len; ++i)
+    {
+        Elf64_Sym *s = target->symbols[i];
+        elf_symbol const *sym = symtab->data.s_symtab.symbols[i];
+
+        if (ELF64_ST_TYPE(s->st_info) == STT_OBJECT)
+        {
+            data_symbols[j] = sym->type;
+            data_symbols_indices[j++] = i;
+        }
+        if (ELF64_ST_TYPE(s->st_info) == STT_FUNC)
+        {
+            text_symbols[k] = sym->type;
+            text_symbols_indices[k++] = i;
+        }
+    }
+
+    int current_offset_in_section = 0;
+
+    if (data != NULL)
+    {
+        for (unsigned int i = 1; i < data_sym_count; ++i)
+        {
+            int current_symbol_index = data_symbols_indices[i - 1];
+            unsigned long current_symbol_offset = data_symbols[i - 1]->data.st_object.offset;
+            unsigned long next_symbol_offset = data_symbols[i]->data.st_object.offset;
+
+            unsigned long current_symbol_size = next_symbol_offset - current_symbol_offset;
+
+            Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
+
+            current_symbol->st_size = current_symbol_size;
+            current_symbol->st_value = current_offset_in_section;
+
+            current_offset_in_section += current_symbol_size;
+        }
+        if (data_sym_count > 0)
+        {
+            int current_symbol_index = data_symbols_indices[data_sym_count - 1];
+            unsigned long current_symbol_offset = data_symbols[data_sym_count - 1]->data.st_object.offset;
+            unsigned long current_symbol_size = data->sh_size - current_symbol_offset;
+
+            Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
+
+            current_symbol->st_size = current_symbol_size;
+            current_symbol->st_value = current_offset_in_section;
+        }
+    }
+
+    current_offset_in_section = 0;
+
+    if (text != NULL)
+    {
+        for (unsigned int i = 1; i < text_sym_count; ++i)
+        {
+            int current_symbol_index = text_symbols_indices[i - 1];
+            unsigned long current_symbol_offset = text_symbols[i - 1]->data.st_func.offset;
+            unsigned long next_symbol_offset = text_symbols[i]->data.st_func.offset;
+
+            unsigned long current_symbol_size = next_symbol_offset - current_symbol_offset;
+
+            Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
+
+            current_symbol->st_size = current_symbol_size;
+            current_symbol->st_value = current_offset_in_section;
+
+            current_offset_in_section += current_symbol_size;
+        }
+        if (text_sym_count > 0)
+        {
+            int current_symbol_index = text_symbols_indices[text_sym_count - 1];
+            unsigned long current_symbol_offset = text_symbols[text_sym_count - 1]->data.st_func.offset;
+            unsigned long current_symbol_size = text->sh_size - current_symbol_offset;
+
+            Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
+
+            current_symbol->st_size = current_symbol_size;
+            current_symbol->st_value = current_offset_in_section;
+        }
+    }
+
+    free(data_symbols);
+    free(data_symbols_indices);
+    free(text_symbols);
+    free(text_symbols_indices);
 }
 
 #undef NB_RELOCATION_TABLES
