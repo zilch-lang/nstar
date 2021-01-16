@@ -88,7 +88,7 @@ tryCompile flags file = do
       --   For now, only write ELF output in a file named "test.o".
 
       let elfObject = compileToElf X64 p
-      let bytes = compile @S64 LE elfObject   -- we want little endian as a test
+      bytes <- compile @S64 LE elfObject   -- we want little endian as a test
       Elf.writeFile (output flags) bytes
       exitSuccess
 

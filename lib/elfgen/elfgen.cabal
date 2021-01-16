@@ -16,12 +16,6 @@ library
       Data.Elf.FileHeader.Flags
       Data.Elf.Internal.BusSize
       Data.Elf.Internal.Compile
-      Data.Elf.Internal.Compile.FileHeader
-      Data.Elf.Internal.Compile.Fixups
-      Data.Elf.Internal.Compile.ForArch
-      Data.Elf.Internal.Compile.ProgramHeader
-      Data.Elf.Internal.Compile.SectionHeader
-      Data.Elf.Internal.Compile.Symbol
       Data.Elf.Internal.Endianness
       Data.Elf.Internal.FileHeader
       Data.Elf.Internal.Object
@@ -40,12 +34,23 @@ library
       Paths_elfgen
   hs-source-dirs:
       src
+      cbits
   default-extensions: LambdaCase BinaryLiterals BlockArguments TypeApplications DataKinds FlexibleInstances MultiParamTypeClasses ScopedTypeVariables TypeFamilies FlexibleContexts UndecidableInstances StandaloneDeriving AllowAmbiguousTypes
+  cpp-options: -Wall -Wextra
+  include-dirs:
+      cbits/include
+  c-sources:
+      cbits/elf64/object.c
+      cbits/elf64/compile.c
+      cbits/elf64/fix.c
+      cbits/elf64/internal_fix.c
+      cbits/test.c
   build-depends:
       base >=4.7 && <5
     , binary
     , bytestring
     , containers
+    , insert-ordered-containers
     , mtl
     , some
     , text

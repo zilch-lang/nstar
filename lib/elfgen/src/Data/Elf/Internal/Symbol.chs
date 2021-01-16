@@ -39,8 +39,20 @@ data Elf_Sym (n :: Size)
 instance Storable (Elf_Sym S64) where
   sizeOf _ = {#sizeof Elf64_Sym#}
   alignment _ = {#alignof Elf64_Sym#}
-  poke _ _ = undefined
-  peek _ = undefined
+  peek ptr =
+    Elf_Sym <$> (fromIntegral <$> {#get struct Elf64_Sym->st_name#} ptr)
+            <*> (fromIntegral <$> {#get struct Elf64_Sym->st_info#} ptr)
+            <*> (fromIntegral <$> {#get struct Elf64_Sym->st_other#} ptr)
+            <*> (fromIntegral <$> {#get struct Elf64_Sym->st_shndx#} ptr)
+            <*> (fromIntegral <$> {#get struct Elf64_Sym->st_value#} ptr)
+            <*> (fromIntegral <$> {#get struct Elf64_Sym->st_size#} ptr)
+  poke ptr Elf_Sym{..} = do
+    {#set struct Elf64_Sym->st_name#} ptr (fromIntegral st_name)
+    {#set struct Elf64_Sym->st_info#} ptr (fromIntegral st_info)
+    {#set struct Elf64_Sym->st_other#} ptr (fromIntegral st_other)
+    {#set struct Elf64_Sym->st_shndx#} ptr (fromIntegral st_shndx)
+    {#set struct Elf64_Sym->st_value#} ptr (fromIntegral st_value)
+    {#set struct Elf64_Sym->st_size#} ptr (fromIntegral st_size)
 
 instance Serializable S64 e (Elf_Sym S64) where
   put e Elf_Sym{..} = do
@@ -107,8 +119,14 @@ data Elf_Rela (n :: Size)
 instance Storable (Elf_Rela S64) where
   sizeOf _ = {#sizeof Elf64_Rela#}
   alignment _ = {#alignof Elf64_Rela#}
-  poke _ _ = undefined
-  peek _ = undefined
+  peek ptr =
+    Elf_Rela <$> (fromIntegral <$> {#get struct Elf64_Rela->r_offset#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Rela->r_info#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Rela->r_addend#} ptr)
+  poke ptr Elf_Rela{..} = do
+    {#set struct Elf64_Rela->r_offset#} ptr (fromIntegral r_offset)
+    {#set struct Elf64_Rela->r_info#} ptr (fromIntegral r_info)
+    {#set struct Elf64_Rela->r_addend#} ptr (fromIntegral r_addend)
 
 instance Serializable S64 e (Elf_Rela S64) where
   put e Elf_Rela{..} = do

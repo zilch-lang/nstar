@@ -47,6 +47,8 @@ import Foreign.Storable (Storable(..))
 import GHC.TypeNats (Nat)
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.Elf.Internal.Serialize (Serializable(..))
+import Foreign.Marshal.Array (peekArray, newArray)
+import Foreign.Ptr (castPtr)
 
 -- | The ELF file header. This appears at the start of every ELF file.
 data Elf_Ehdr n = Elf_Ehdr
@@ -69,8 +71,36 @@ data Elf_Ehdr n = Elf_Ehdr
 instance Storable (Elf_Ehdr S64) where
   sizeOf _ = {#sizeof Elf64_Ehdr#}
   alignment _ = {#alignof Elf64_Ehdr#}
-  peek _ = undefined      -- ↓
-  poke _ _ = undefined    -- we don't need to either write or read it to/from a pointer
+  peek ptr =
+    Elf_Ehdr <$> (peekArray 16 . castPtr =<< {#get struct Elf64_Ehdr->e_ident#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_type#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_machine#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_version#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_entry#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_phoff#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_shoff#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_flags#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_ehsize#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_phentsize#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_phnum#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_shentsize#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_shnum#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Ehdr->e_shstrndx#} ptr)
+  poke ptr Elf_Ehdr{..} = do
+    {#set struct Elf64_Ehdr->e_ident#} ptr =<< newArray (fromIntegral <$> e_ident)
+    {#set struct Elf64_Ehdr->e_type#} ptr (fromIntegral e_type)
+    {#set struct Elf64_Ehdr->e_machine#} ptr (fromIntegral e_machine)
+    {#set struct Elf64_Ehdr->e_version#} ptr (fromIntegral e_version)
+    {#set struct Elf64_Ehdr->e_entry#} ptr (fromIntegral e_entry)
+    {#set struct Elf64_Ehdr->e_phoff#} ptr (fromIntegral e_phoff)
+    {#set struct Elf64_Ehdr->e_shoff#} ptr (fromIntegral e_shoff)
+    {#set struct Elf64_Ehdr->e_flags#} ptr (fromIntegral e_flags)
+    {#set struct Elf64_Ehdr->e_ehsize#} ptr (fromIntegral e_ehsize)
+    {#set struct Elf64_Ehdr->e_phentsize#} ptr (fromIntegral e_phentsize)
+    {#set struct Elf64_Ehdr->e_phnum#} ptr (fromIntegral e_phnum)
+    {#set struct Elf64_Ehdr->e_shentsize#} ptr (fromIntegral e_shentsize)
+    {#set struct Elf64_Ehdr->e_shnum#} ptr (fromIntegral e_shnum)
+    {#set struct Elf64_Ehdr->e_shstrndx#} ptr (fromIntegral e_shstrndx)
 
 instance Serializable S64 e (Elf_Ehdr S64) where
   put e Elf_Ehdr{..} = do

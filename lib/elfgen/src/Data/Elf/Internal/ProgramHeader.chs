@@ -34,8 +34,24 @@ data Elf_Phdr n = Elf_Phdr
 instance Storable (Elf_Phdr S64) where
   sizeOf _ = {#sizeof Elf64_Phdr#}
   alignment _ = {#alignof Elf64_Phdr#}
-  peek _ = undefined
-  poke _ _ = undefined
+  peek ptr =
+    Elf_Phdr <$> (fromIntegral <$> {#get struct Elf64_Phdr->p_type#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Phdr->p_flags#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Phdr->p_offset#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Phdr->p_vaddr#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Phdr->p_paddr#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Phdr->p_filesz#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Phdr->p_memsz#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Phdr->p_align#} ptr)
+  poke ptr Elf_Phdr{..} = do
+    {#set struct Elf64_Phdr->p_type#} ptr (fromIntegral p_type)
+    {#set struct Elf64_Phdr->p_flags#} ptr (fromIntegral p_flags)
+    {#set struct Elf64_Phdr->p_offset#} ptr (fromIntegral p_offset)
+    {#set struct Elf64_Phdr->p_vaddr#} ptr (fromIntegral p_vaddr)
+    {#set struct Elf64_Phdr->p_paddr#} ptr (fromIntegral p_paddr)
+    {#set struct Elf64_Phdr->p_filesz#} ptr (fromIntegral p_filesz)
+    {#set struct Elf64_Phdr->p_memsz#} ptr (fromIntegral p_memsz)
+    {#set struct Elf64_Phdr->p_align#} ptr (fromIntegral p_align)
 
 instance Serializable S64 e (Elf_Phdr S64) where
   put e Elf_Phdr{..} = do
