@@ -44,7 +44,7 @@ library
       cbits/elf64/compile.c
       cbits/elf64/fix.c
       cbits/elf64/internal_fix.c
-      cbits/test.c
+      cbits/strings.c
   build-depends:
       base >=4.7 && <5
     , binary

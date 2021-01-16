@@ -1,6 +1,3 @@
-#define _GNU_SOURCE
-// enable GNU extensions, for `memmem`
-
 #include "elf64/fix.h"
 #include "object.h"
 #include "file_header.h"
@@ -114,10 +111,10 @@ void fix_section_names(elf_object const *obj, Elf64_Object *target)
     for (unsigned int i = 0; i < obj->sections_len; ++i)
     {
         char const *section_name = get_section_name(obj->sections[i]);
-        char const *substr = memmem(strings, strtab->data.s_strtab.strings_len,
-                                    section_name, strlen(section_name));
+        int string_index = mempos(strings, strtab->data.s_strtab.strings_len,
+                                  section_name, strlen(section_name));
 
-        if (substr != NULL) target->section_headers[i]->sh_name = substr - strings;
+        if (string_index != -1) target->section_headers[i]->sh_name = string_index;
     }
 }
 
@@ -214,10 +211,10 @@ void fix_symbol_names_and_sections(elf_object const *obj, Elf64_Object *target)
     {
         elf_symbol const *s = symtab->data.s_symtab.symbols[i];
         Elf64_Sym *sym = target->symbols[i];
-        char const *substr = memmem(strtab->data.s_strtab.strings, strtab->data.s_strtab.strings_len,
-                                    s->name, strlen(s->name));
+        int string_index = mempos(strtab->data.s_strtab.strings, strtab->data.s_strtab.strings_len,
+                                  s->name, strlen(s->name));
 
-        sym->st_name = substr != NULL ? (substr - strtab->data.s_strtab.strings) : 0x0;
+        sym->st_name = string_index != -1 ? string_index : 0x0;
 
         switch (s->type->type)
         {
