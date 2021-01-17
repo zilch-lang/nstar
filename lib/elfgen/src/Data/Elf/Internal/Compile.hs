@@ -89,6 +89,16 @@ fetchSymbols = mconcat . mapMaybe f
     f (SSymTab _ syms)  = Just syms
     f (SRela _ _)       = Nothing
 
+sectionsAsSymbols :: [String] -> [ElfSymbol n]
+sectionsAsSymbols = fmap intoSymbol . filter allowedInSymbolTable
+  where
+    intoSymbol name = ElfSymbol "" (ST_Section name) SB_Local SV_Default
+
+    allowedInSymbolTable ".text" = True
+    allowedInSymbolTable ".data" = True
+    allowedInSymbolTable ".bss"  = True
+    allowedInSymbolTable _       = False
+
 mkAbstractObject :: forall (n :: Size). ElfObject n -> ElfObject n
 mkAbstractObject ElfObject{..} =
   let sectByNames     = fetchSectionNamesFrom (SNull : sections)
@@ -96,7 +106,7 @@ mkAbstractObject ElfObject{..} =
       segs            = PPhdr : PLoad (section "PHDR") pf_r : segments
                            --             ^^^^ Special identifier, to refer to the PHDR segment
 
-      symbols         = sort $ ElfSymbol "" ST_NoType SB_Local SV_Default : fetchSymbols sections
+      symbols         = sort $ ElfSymbol "" ST_NoType SB_Local SV_Default : sectionsAsSymbols (Map.keys sectByNames) <> fetchSymbols sections
 
       allSectionNames = Map.keys sectByNames <> [ ".shstrtab", ".strtab" ]
       allSymbolNames  = filter (/= "") $ symbols <&> \ (ElfSymbol n _ _ _) -> n
