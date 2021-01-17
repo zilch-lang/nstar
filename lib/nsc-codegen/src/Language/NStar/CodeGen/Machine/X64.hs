@@ -103,6 +103,9 @@ compileInstrInterX64 (CALL (Name n :@ _) _) []                             =
 -- 50+rd	        PUSH r64	        O	Valid	        N.E.	                Push r64.
 compileInstrInterX64 (PUSH (Reg src :@ _)) [Register 64] = do
   pure [Byte $ 0x50 + registerNumber (unLoc src)]
+-- 58+ rd	        POP r64	        O	Valid	        N.E.	                Pop top of stack into r64; increment stack pointer. Cannot encode 32-bit operand size.
+compileInstrInterX64 (POP (Reg src :@ _)) [Register 64] = do
+  pure [Byte $ 0x58 + registerNumber (unLoc src)]
 compileInstrInterX64 i args                                    =
   error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
 
