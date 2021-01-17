@@ -31,10 +31,12 @@ void compile_x64(elf_object const *obj, Elf64_Object *dst)
     dst->file_header = malloc(sizeof(Elf64_Ehdr));
     assert(dst->file_header != NULL);
     compile_file_header(obj->file_header, dst->file_header);
+    // Allocate memory for the concrete file header, and compile the abstract one.
 
     int is_executable_object = dst->file_header->e_type == ET_EXEC;
 
     dst->segments_len = is_executable_object ? obj->segments_len : 0;
+    // If the file is not executable, there is no point in generating segments.
     dst->segment_headers = malloc(dst->segments_len * sizeof(Elf64_Phdr *));
     assert(dst->segment_headers != NULL);
     for (unsigned int i = 0; i < dst->segments_len; ++i)
@@ -43,6 +45,7 @@ void compile_x64(elf_object const *obj, Elf64_Object *dst)
         assert(dst->segment_headers[i] != NULL);
         compile_segment_header(obj->segments[i], dst->segment_headers[i]);
     }
+    // Traverse all segment headers, allocate memory for each new concrete header, and compile the abstract ones.
 
     dst->relocations = NULL;
     dst->symbols = NULL;
@@ -61,8 +64,11 @@ void compile_x64(elf_object const *obj, Elf64_Object *dst)
         insert_symbols_if_needed(obj, dst, i);
         insert_relocation_symbols_if_needed(obj, dst, i);
     }
+    // Traverse all segment headers, allocate memory for each new concrete header, and compile the abstract ones.
+    // Also add symbols if it is possible.
 
     fix_elf_object(obj, dst);
+    // Then patch and fill missing fields in the generated concrete object.
 }
 
 
@@ -207,6 +213,7 @@ void insert_symbols_if_needed(elf_object const *obj, Elf64_Object *dst, unsigned
             assert(dst->symbols[j] != NULL);
             compile_symbol(sect->data.s_symtab.symbols[j], dst->symbols[j]);
         }
+        // Traverse all symbols, allocate memory for concrete symbols and add them to the symbol table.
     }
 }
 
@@ -229,5 +236,7 @@ void insert_relocation_symbols_if_needed(elf_object const *obj, Elf64_Object *ds
         }
 
         dst->relocations_len += sym_count;
+        // Traverse all relocation symbols in the section. If a relocation table is already present, increase its size for new relocation entries
+        // then compile all abstract relocation symbol and put them in the relocation table.
     }
 }
