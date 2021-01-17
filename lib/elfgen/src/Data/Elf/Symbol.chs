@@ -33,24 +33,27 @@ data ElfSymbol (n :: Size)
       SymbolType       -- ^ Symbol type
       SymbolBinding    -- ^ Symbol binding
       SymbolVisibility -- ^ Symbol visibility
-  deriving (Eq, Ord)
+  deriving (Eq, Show)
+
+instance Ord (ElfSymbol n) where
+  ElfSymbol _ t1 _ _ <= ElfSymbol _ t2 _ _ = t1 <= t2
 
 -- | Symbol type
 data SymbolType
   = ST_NoType          -- ^ Symbol type is unspecified
-  | ST_Object Integer  -- ^ Symbol is a data object
-  | ST_Func Integer    -- ^ Symbol is a code object
   | ST_Section String  -- ^ Symbol associated with a section
+  | ST_Func Integer    -- ^ Symbol is a code object
+  | ST_Object Integer  -- ^ Symbol is a data object
   | ST_File String     -- ^ Symbol's name is file name
   | ST_Common          -- ^ Symbol is a common data object
   | ST_TLS             -- ^ Symbol is a thread-local data object
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Show)
 
 -- | Symbol binding type
-{#enum symbol_binding as SymbolBinding {SB_LOCAL as SB_Local, SB_GLOBAL as SB_Global, SB_WEAK as SB_Weak} deriving (Eq, Ord)#}
+{#enum symbol_binding as SymbolBinding {SB_LOCAL as SB_Local, SB_GLOBAL as SB_Global, SB_WEAK as SB_Weak} deriving (Eq, Ord, Show)#}
 
 -- | Symbol visibility specification
-{#enum symbol_visibility as SymbolVisibility {SV_DEFAULT as SV_Default, SV_INTERNAL as SV_Internal, SV_HIDDEN as SV_Hidden, SV_PROTECTED as SV_Protected} deriving (Eq, Ord)#}
+{#enum symbol_visibility as SymbolVisibility {SV_DEFAULT as SV_Default, SV_INTERNAL as SV_Internal, SV_HIDDEN as SV_Hidden, SV_PROTECTED as SV_Protected} deriving (Eq, Ord, Show)#}
 
 {#enum symbol_type_ as C_SymbolType' {ST_NOTYPE as STT_NoType, ST_OBJECT as STT_Object, ST_FUNC as STT_Func, ST_SECTION as STT_Section, ST_FILE as STT_File, ST_COMMON as STT_Common, ST_TLS as STT_TLS}#}
 

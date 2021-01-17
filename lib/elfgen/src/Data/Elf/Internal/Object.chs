@@ -96,7 +96,7 @@ peekObject ptr = do
   fileHeader <- peek fh
   segmentHeaders <- traverse peek =<< peekArray (fromIntegral pl) phs
   sectionHeaders <- traverse peek =<< peekArray (fromIntegral sl) shs
-  relocations <- traceShow relsl $ traverse peek =<< peekArray (fromIntegral relsl) rels
+  relocations <- traverse peek =<< peekArray (fromIntegral relsl) rels
   symbols <- traverse peek =<< peekArray (fromIntegral syml) syms
   binData <- peekArray (fromIntegral dl) (castPtr d :: Ptr Word8)
   pure (Obj fileHeader segmentHeaders sectionHeaders symbols relocations binData)
