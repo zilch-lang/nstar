@@ -95,9 +95,8 @@ compileInstrInterX64 (MOV (Name n :@ _) (Reg dst :@ _)) [_, Register 64] =
 compileInstrInterX64 (MOV src@(Imm _ :@ _) (Reg dst :@ _)) [Unsigned 64, Register 64] =
   ([rexW, Byte (0xB8 + registerNumber (unLoc dst))] <>) <$> compileExprX64 64 (unLoc src)
 -- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
-compileInstrInterX64 (MOV src (Reg dst :@ _)) [Register 64, Register 64] = do
-  let Reg s :@ _ = src
-  pure [rexW, Byte 0x8B, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc s))]
+compileInstrInterX64 (MOV (Reg src :@ _) (Reg dst :@ _)) [Register 64, Register 64] =
+  pure [rexW, Byte 0x8B, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
 -- E9 cd	        JMP rel32	        D	Valid	        Valid	                Jump near, relative, RIP = RIP + 32-bit displacement sign extended to 64-bits
 compileInstrInterX64 (JMP (Name n :@ _) _) []                              =
   pure [Byte 0xE9, Jump (unLoc n)]
@@ -110,6 +109,9 @@ compileInstrInterX64 (PUSH (Reg src :@ _)) [Register 64] =
 -- 58+ rd	        POP r64	        O	Valid	        N.E.	                Pop top of stack into r64; increment stack pointer. Cannot encode 32-bit operand size.
 compileInstrInterX64 (POP (Reg src :@ _)) [Register 64] =
   pure [Byte $ 0x58 + registerNumber (unLoc src)]
+-- REX.W + 01 /r	ADD r/m64, r64	        MR	Valid	        N.E.	                Add r64 to r/m64.
+compileInstrInterX64 (ADD (Reg src :@ _) (Reg dst :@ _)) [Register 64, Register 64] =
+  pure [rexW, Byte 0x01, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
 compileInstrInterX64 i args                                    =
   error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
 
@@ -147,12 +149,12 @@ fixupAddressesX64 os = fixupAddressesX64Internal (findLabelsAddresses os) os 0
      tell (MInfo addr mempty mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 4)
    -- TODO: implement this
    fixupAddressesX64Internal labelsAddresses (Symbol32 s o:os) i  = do
-     tell (MInfo [0, 0, 0, 0] mempty mempty [RelocText s ".data" o i R_x86_64_32s])
-                                                --       ^^^^^^^ FIXME: do not hardcode origin section
+     tell (MInfo (int32 0x0) mempty mempty [RelocText s ".data" o i R_x86_64_32s])
+                                               --       ^^^^^^^ FIXME: do not hardcode origin section
      fixupAddressesX64Internal labelsAddresses os (i + 4)
    fixupAddressesX64Internal labelsAddresses (Symbol64 s:os) i = do
-     tell (MInfo [0, 0, 0, 0, 0, 0, 0, 0] mempty mempty [RelocText s ".data" 0x0 i R_x86_64_64])
-                                                           --        ^^^^^^^ FIXME: do not hardcode origin section
+     tell (MInfo (int64 0x0) mempty mempty [RelocText s ".data" 0x0 i R_x86_64_64])
+                                              --        ^^^^^^^ FIXME: do not hardcode origin section
      fixupAddressesX64Internal labelsAddresses os (i + 8)
 
 findLabelsAddresses :: [InterOpcode] -> Map Text Integer
