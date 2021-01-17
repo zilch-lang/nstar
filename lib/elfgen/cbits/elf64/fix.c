@@ -271,6 +271,11 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
 
         if (ELF64_ST_TYPE(symbol->st_info) == STT_OBJECT) data_sym_count += 1;
         if (ELF64_ST_TYPE(symbol->st_info) == STT_FUNC) text_sym_count += 1;
+        if (ELF64_ST_TYPE(symbol->st_info) == STT_SECTION)
+        {
+            Elf64_Shdr *section = target->section_headers[symbol->st_shndx];
+            symbol->st_size = section->sh_size;
+        }
     }
 
     struct symbol_type const **data_symbols = malloc(data_sym_count * sizeof(struct symbol_type *));
