@@ -18,11 +18,30 @@
 static char const * const all_relocation_tables[NB_RELOCATION_TABLES] =
     { ".rela.text" };
 
+//! Stores the offset after the file header, the segment header table, the section header table and the relocation tables.
 static Elf64_Off relocation_tables_end = 0;
+//! Stores the offset after all binary data (progbits, string tables, etc).
 static Elf64_Off data_end = 0;
 
+/**
+ * @brief Fixes the `e_phnum`, `e_shnum`, `e_phoff`, `e_shoff` fields of the file header, and the `sh_offset` of the relocation table sections.
+ *
+ * @details - `e_phnum` and `e_phoff` are the number and file offset of segment headers
+ *          - `e_shnum` and `e_shoff` are the number and file offset of section headers
+ *          - `sh_offset` is the file offset of the content of a section
+ * */
 void fix_header_count_and_offsets(elf_object const *obj, Elf64_Object *target);
+/**
+ * @brief Fixes the `e_shstrndx` field of the file header.
+ *
+ * @details Makes the `e_shstrndx` field point to a valid `.shstrtab` section.
+ * */
 void fix_header_shstrtab_index(elf_object const *obj, Elf64_Object *target);
+/**
+ * @brief Fixes the `sh_link` field of the `.symtab` section.
+ *
+ * @details This patch makes the `sh_link` field point to a valid `.strtab` section index.
+ * */
 void fix_symtab_strtab_index(elf_object const *obj, Elf64_Object *target);
 void fix_section_names(elf_object const *obj, Elf64_Object *target);
 void fix_section_offsets(elf_object const *obj, Elf64_Object *target);
@@ -308,7 +327,7 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
 
     int current_offset_in_section = 0;
 
-    if (data != NULL)
+    if (data != NULL && data_sym_count > 0)
     {
         for (unsigned int i = 1; i < data_sym_count; ++i)
         {
@@ -325,7 +344,6 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
 
             current_offset_in_section += current_symbol_size;
         }
-        if (data_sym_count > 0)
         {
             int current_symbol_index = data_symbols_indices[data_sym_count - 1];
             unsigned long current_symbol_offset = data_symbols[data_sym_count - 1]->data.st_object.offset;
@@ -340,7 +358,7 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
 
     current_offset_in_section = 0;
 
-    if (text != NULL)
+    if (text != NULL && text_sym_count > 0)
     {
         for (unsigned int i = 1; i < text_sym_count; ++i)
         {
@@ -357,7 +375,6 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
 
             current_offset_in_section += current_symbol_size;
         }
-        if (text_sym_count > 0)
         {
             int current_symbol_index = text_symbols_indices[text_sym_count - 1];
             unsigned long current_symbol_offset = text_symbols[text_sym_count - 1]->data.st_func.offset;

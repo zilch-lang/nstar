@@ -13,7 +13,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/**
+ * @brief Inserts the symbols from the section at the given index only if it is a symbol table.
+ *
+ * @param index The index of the section to add symbols from
+ * */
 void insert_symbols_if_needed(elf_object const *obj, Elf64_Object *target, unsigned int index);
+/**
+ * @brief Inserts the relocation symbols from the section at the given index only if it is a relocation table.
+ *
+ * @param index The index of the section (in the section table) to add relocation symbols from
+ * */
 void insert_relocation_symbols_if_needed(elf_object const *obj, Elf64_Object *target, unsigned int index);
 
 void compile_x64(elf_object const *obj, Elf64_Object *dst)

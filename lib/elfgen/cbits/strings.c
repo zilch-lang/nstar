@@ -1,7 +1,7 @@
 #include "strings.h"
 
 #ifdef _GNU_SOURCE
-#    undef _GNU_SOURCE
+#    undef _GNU_SOURCE  // we do not want to use `memmem` in `string.h`
 #endif
 
 #include <string.h>
