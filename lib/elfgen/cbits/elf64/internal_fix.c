@@ -37,11 +37,22 @@ int find_section_index_by_name(elf_section_header const **sections, unsigned int
     int index = -1;
     int i = 0;
 
-    while (index == -1 && i < size)
+    for (int i = 0; index == -1 && i < size; ++i)
     {
         char const *section_name = get_section_name(sections[i]);
         if (strcmp(section_name, name) == 0) index = i;
-        i++;
+    }
+
+    return index;
+}
+
+int find_section_symbol_by_index(Elf64_Sym **symtab, unsigned int size, int section_index)
+{
+    int index = -1;
+
+    for (int i = 0; index == -1 && i < size; ++i)
+    {
+        if (ELF64_ST_TYPE(symtab[i]->st_info) == STT_SECTION && symtab[i]->st_shndx == section_index) index = i;
     }
 
     return index;
