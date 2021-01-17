@@ -51,8 +51,8 @@ generateRelocationEntries :: [(Text, Integer)] -> [RelocType'] -> [RelocationSym
 generateRelocationEntries labels =
   let m = Map.fromList labels
   in mapMaybe \ case
-    RelocText sym sectName addend off ->
-      Map.lookup sym m <&> \ sectOff -> RelocationSymbol (SectionReloc (Text.unpack sectName) (sectOff + addend)) R_x86_64_32s off
+    RelocText sym sectName addend off rty ->
+      Map.lookup sym m <&> \ sectOff -> RelocationSymbol (SectionReloc (Text.unpack sectName) (sectOff + addend)) rty off
 
 supportedArchToArch :: SupportedArch -> Arch
 supportedArchToArch X64 = EM_x86_64

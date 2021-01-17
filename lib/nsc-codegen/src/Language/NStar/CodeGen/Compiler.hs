@@ -4,6 +4,7 @@ import Control.Monad.Writer (Writer)
 import Data.Word (Word8)
 import Data.Map (Map)
 import Data.Text (Text)
+import Data.Elf (RelocationType)
 
 type Compiler a = Writer MachineInfo a
 
@@ -37,7 +38,8 @@ instance Monoid DataTable where
 data RelocType'
   -- | A relocation entry in the .text section
   = RelocText
-      Text       -- ^ The symbol name
-      Text       -- ^ The section the symbol originates from
-      Integer    -- ^ The offset from the symbol
-      Integer    -- ^ The offset where to relocate in the @.text@ section
+      Text            -- ^ The symbol name
+      Text            -- ^ The section the symbol originates from
+      Integer         -- ^ The offset from the symbol
+      Integer         -- ^ The offset where to relocate in the @.text@ section
+      RelocationType  -- ^ The relocation type

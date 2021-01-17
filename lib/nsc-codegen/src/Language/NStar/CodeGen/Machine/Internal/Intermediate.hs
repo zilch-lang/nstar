@@ -18,7 +18,9 @@ data InterOpcode
   | Label !Text
   -- | A jump to a given label
   | Jump !Text
-  -- | A data access through a label
-  | Symbol !Text
+  -- | A data access through a label (disp32)
+  | Symbol32 !Text
       Integer -- ^ The offset from the label
+  -- | The address of a label (imm64)
+  | Symbol64 !Text
   deriving (Show)
