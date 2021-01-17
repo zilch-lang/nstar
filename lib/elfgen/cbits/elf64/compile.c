@@ -52,8 +52,6 @@ void compile_x64(elf_object const *obj, Elf64_Object *dst)
         insert_relocation_symbols_if_needed(obj, dst, i);
     }
 
-    fprintf(stderr, "[%s:%d] Found a total of %ld relocation symbol(s).\n", __FILE__, __LINE__, dst->relocations_len);
-
     fix_elf_object(obj, dst);
 }
 

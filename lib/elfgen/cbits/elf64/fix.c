@@ -30,6 +30,7 @@ void fix_symtab_offset_and_shinfo(elf_object const *obj, Elf64_Object *target);
 void fix_symbol_names_and_sections(elf_object const *obj, Elf64_Object *target);
 void fix_symbol_values(elf_object const *obj, Elf64_Object *target);
 void fix_rel_sections_shinfo_and_shlink(elf_object const *obj, Elf64_Object *target);
+void fix_relocation_symbols_addresses(elf_object const *obj, Elf64_Object *target);
 
 
 /*
@@ -48,6 +49,7 @@ void fix_elf_object(elf_object const *obj, Elf64_Object *target)
     fix_symbol_names_and_sections(obj, target);
     fix_symbol_values(obj, target);
     fix_rel_sections_shinfo_and_shlink(obj, target);
+    fix_relocation_symbols_addresses(obj, target);
 }
 
 
@@ -387,6 +389,38 @@ void fix_rel_sections_shinfo_and_shlink(elf_object const *obj, Elf64_Object *tar
         target->section_headers[relatext_index]->sh_link = symtab_index;
         target->section_headers[relatext_index]->sh_info = text_index;
     }
+}
+
+void fix_relocation_symbols_addresses(elf_object const *obj, Elf64_Object *target)
+{
+    elf_relocation_symbol const **symbols = malloc(target->relocations_len * sizeof(elf_relocation_symbol *));
+    assert(symbols != NULL);
+
+    for (unsigned long i = 0, k = 0; i < obj->sections_len; ++i)
+    {
+        elf_section_header const *sect = obj->sections[i];
+        if (sect->type == S_RELA)
+        {
+            for (unsigned long j = 0; j < sect->data.s_rela.symbols_len; ++j)
+            {
+                symbols[k++] = sect->data.s_rela.symbols[j];
+            }
+        }
+    }
+
+    for (unsigned long i = 0; i < target->relocations_len; ++i)
+    {
+        elf_relocation_symbol const *abstract_symbol = symbols[i];
+        Elf64_Rela *concrete_symbol = target->relocations[i];
+
+        int section_index = find_section_index_by_name(obj->sections, obj->sections_len, abstract_symbol->origin->data.origin_section.section_name);
+        int ssymbol_index = find_section_symbol_by_index(target->symbols, target->symbols_len, section_index);
+
+        concrete_symbol->r_info = ELF64_R_INFO(ssymbol_index, ELF64_R_TYPE(concrete_symbol->r_info));
+        concrete_symbol->r_addend = abstract_symbol->origin->data.origin_section.offset;
+    }
+
+    free(symbols);
 }
 
 #undef NB_RELOCATION_TABLES
