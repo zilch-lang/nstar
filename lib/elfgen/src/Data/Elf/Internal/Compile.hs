@@ -117,5 +117,5 @@ mkAbstractObject ElfObject{..} =
         Map.insert ".symtab" (SSymTab ".symtab" symbols)
         sectByNames
 
-      abstractObject = traceShow symbols $ ElfObject fileHeader segs (Map.elems sects)
+      abstractObject = ElfObject fileHeader segs (Map.elems sects)
   in abstractObject
