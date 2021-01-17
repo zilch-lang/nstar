@@ -24,7 +24,8 @@ static Elf64_Off relocation_tables_end = 0;
 static Elf64_Off data_end = 0;
 
 /**
- * @brief Fixes the `e_phnum`, `e_shnum`, `e_phoff`, `e_shoff` fields of the file header, and the `sh_offset` of the relocation table sections.
+ * @brief Fixes the `e_phnum`, `e_shnum`, `e_phoff`, `e_shoff` fields of the file header,
+ *        and the `sh_offset` of the relocation table sections.
  *
  * @details - `e_phnum` and `e_phoff` are the number and file offset of segment headers
  *          - `e_shnum` and `e_shoff` are the number and file offset of section headers
@@ -43,12 +44,54 @@ void fix_header_shstrtab_index(elf_object const *obj, Elf64_Object *target);
  * @details This patch makes the `sh_link` field point to a valid `.strtab` section index.
  * */
 void fix_symtab_strtab_index(elf_object const *obj, Elf64_Object *target);
+/**
+ * @brief Fixes the `sh_name` field of all sections.
+ *
+ * @details This fix finds the offset of the name of the section in the `.shstrtab` section
+ *          and puts it in the `sh_name` field.
+ * */
 void fix_section_names(elf_object const *obj, Elf64_Object *target);
+/**
+ * @brief Fixes the `sh_offset` fields of all "non-relocation table" sections.
+ *
+ * @details Sets the `sh_offset` field to the file offset of the content of the section.
+ *
+ * @note This skips the null section, the relocation section and the symbol table section.
+ * */
 void fix_section_offsets(elf_object const *obj, Elf64_Object *target);
+/**
+ * @brief Fixes the `.symtab` section `sh_offset` and `sh_info`.
+ *
+ * @details - `sh_info` must point to the `.strtab` section
+ *          - `sh_offset` is computed in `fix_section_offsets` and put in `data_end` for easy retrieval.
+ * */
 void fix_symtab_offset_and_shinfo(elf_object const *obj, Elf64_Object *target);
+/**
+ * @brief Fixes the `st_name` and `st_shndx` fields for all symbols.
+ *
+ * @details - a section symbol does not have a name, thus `st_name = 0`
+ *          - `st_shndx` is set to the index (in the section header table) of the section the symbol appears in
+ *            (or the section it embodies)
+ * */
 void fix_symbol_names_and_sections(elf_object const *obj, Elf64_Object *target);
+/**
+ * @brief Fixes the `st_value` field for all symbols.
+ *
+ * @details - the value of an object/function symbol is the address it appears at in the linked section (in the field `st_shndx`)
+ * */
 void fix_symbol_values(elf_object const *obj, Elf64_Object *target);
+/**
+ * @brief Fixes the `sh_info` and `sh_link` fields for relocatable sections.
+ *
+ * @details - `sh_info` must point to the `.symtab` section index
+ *          - `sh_link` must point to the section to relocate
+ * */
 void fix_rel_sections_shinfo_and_shlink(elf_object const *obj, Elf64_Object *target);
+/**
+ * @brief Fixes the `r_info` and `r_addend` fields of the relocation symbols.
+ *
+ *
+ * */
 void fix_relocation_symbols_addresses(elf_object const *obj, Elf64_Object *target);
 
 
