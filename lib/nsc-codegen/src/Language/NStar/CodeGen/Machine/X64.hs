@@ -86,7 +86,7 @@ compileInstrInterX64 RET args                                  =
   internalError $ "Expected [] but got " <> show args <> " as arguments for " <> show RET
 -- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
 compileInstrInterX64 (MOV (Indexed (Imm (I disp :@ _) :@ _) (Name l :@ _) :@ _) (Reg dst :@ _)) [_, Register 64] =
-  pure [rexW, Byte 0x8B, modRM 0x0 (registerNumber (unLoc dst)) 0x5, sib 0x0 0x3 0x1, Symbol (unLoc l) disp]
+  pure [rexW, Byte 0x8B, modRM 0x0 (registerNumber (unLoc dst)) 0x4, sib 0x0 0x4 0x5, Symbol (unLoc l) disp]
 -- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
 compileInstrInterX64 (MOV src (Reg dst :@ _)) [Unsigned 64, Register 64] =
   ([rexW, Byte (0xB8 + registerNumber (unLoc dst))] <>) <$> compileExprX64 64 (unLoc src)
