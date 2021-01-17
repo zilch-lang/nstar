@@ -100,6 +100,9 @@ compileInstrInterX64 (JMP (Name n :@ _) _) []                              =
 -- E8 cd	        CALL rel32	        D	Valid	        Valid	                Call near, relative, displacement relative to next instruction. 32-bit displacement sign extended to 64-bits in 64-bit mode.
 compileInstrInterX64 (CALL (Name n :@ _) _) []                             =
   pure [Byte 0xE8, Jump (unLoc n)]
+-- 50+rd	        PUSH r64	        O	Valid	        N.E.	                Push r64.
+compileInstrInterX64 (PUSH (Reg src :@ _)) [Register 64] = do
+  pure [Byte $ 0x50 + registerNumber (unLoc src)]
 compileInstrInterX64 i args                                    =
   error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
 
