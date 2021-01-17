@@ -72,9 +72,10 @@ void fix_header_count_and_offsets(elf_object const *obj, Elf64_Object *target)
     for (unsigned int i = 0; i < NB_RELOCATION_TABLES; ++i)
     {
         rel_section_index = find_section_index_by_name(obj->sections, obj->sections_len, all_relocation_tables[i]);
+
         if (rel_section_index != -1)
         {
-            Elf64_Shdr *relocation_section = target->section_headers[i];
+            Elf64_Shdr *relocation_section = target->section_headers[rel_section_index];
 
             relocation_section->sh_offset = offset;
             offset += relocation_section->sh_size;

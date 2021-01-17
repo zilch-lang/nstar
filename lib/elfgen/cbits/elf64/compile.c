@@ -13,6 +13,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+void insert_symbols_if_needed(elf_object const *obj, Elf64_Object *target, unsigned int index);
+void insert_relocation_symbols_if_needed(elf_object const *obj, Elf64_Object *target, unsigned int index);
+
 void compile_x64(elf_object const *obj, Elf64_Object *dst)
 {
     dst->file_header = malloc(sizeof(Elf64_Ehdr));
@@ -31,6 +34,11 @@ void compile_x64(elf_object const *obj, Elf64_Object *dst)
         compile_segment_header(obj->segments[i], dst->segment_headers[i]);
     }
 
+    dst->relocations = NULL;
+    dst->symbols = NULL;
+    dst->relocations_len = 0;
+    dst->symbols_len = 0;
+
     dst->sections_len = obj->sections_len;
     dst->section_headers = malloc(dst->sections_len * sizeof(Elf64_Shdr *));
     assert(dst->section_headers != NULL);
@@ -40,20 +48,11 @@ void compile_x64(elf_object const *obj, Elf64_Object *dst)
         assert(dst->section_headers[i] != NULL);
         compile_section_header(obj->sections[i], dst->section_headers[i]);
 
-        elf_section_header const *sect = obj->sections[i];
-        if (sect->type == S_SYMTAB)
-        {
-            dst->symbols_len = sect->data.s_symtab.symbols_len;
-            dst->symbols = malloc(dst->symbols_len * sizeof(Elf64_Sym *));
-            assert(dst->symbols != NULL);
-            for (unsigned int i = 0; i < dst->symbols_len; ++i)
-            {
-                dst->symbols[i] = malloc(sizeof(Elf64_Sym));
-                assert(dst->symbols[i] != NULL);
-                compile_symbol(sect->data.s_symtab.symbols[i], dst->symbols[i]);
-            }
-        }
+        insert_symbols_if_needed(obj, dst, i);
+        insert_relocation_symbols_if_needed(obj, dst, i);
     }
+
+    fprintf(stderr, "[%s:%d] Found a total of %ld relocation symbol(s).\n", __FILE__, __LINE__, dst->relocations_len);
 
     fix_elf_object(obj, dst);
 }
@@ -174,4 +173,53 @@ void compile_symbol(elf_symbol const *sym, Elf64_Sym *target)
     target->st_shndx = 0x0;
     target->st_value = 0x0;
     target->st_size = 0x0;
+}
+
+void compile_relocation_symbol(elf_relocation_symbol const *sym, Elf64_Rela *target)
+{
+    target->r_offset = sym->offset;
+    target->r_info = ELF64_R_INFO(0, sym->reloc_type);
+    target->r_addend = 0x0;
+}
+
+
+
+
+void insert_symbols_if_needed(elf_object const *obj, Elf64_Object *dst, unsigned int i)
+{
+    elf_section_header const *sect = obj->sections[i];
+    if (sect->type == S_SYMTAB)
+    {
+        dst->symbols_len = sect->data.s_symtab.symbols_len;
+        dst->symbols = malloc(dst->symbols_len * sizeof(Elf64_Sym *));
+        assert(dst->symbols != NULL);
+        for (unsigned int j = 0; j < dst->symbols_len; ++j)
+        {
+            dst->symbols[j] = malloc(sizeof(Elf64_Sym));
+            assert(dst->symbols[j] != NULL);
+            compile_symbol(sect->data.s_symtab.symbols[j], dst->symbols[j]);
+        }
+    }
+}
+
+void insert_relocation_symbols_if_needed(elf_object const *obj, Elf64_Object *dst, unsigned int i)
+{
+    elf_section_header const *sect = obj->sections[i];
+    if (sect->type == S_RELA)
+    {
+        unsigned long sym_count = sect->data.s_rela.symbols_len;
+
+        if (dst->relocations == NULL) dst->relocations = malloc(sym_count * sizeof(Elf64_Rela *));
+        else dst->relocations = realloc(dst->relocations, (dst->relocations_len + sym_count) * sizeof(Elf64_Rela *));
+        assert(dst->relocations != NULL);
+
+        for (unsigned int j = dst->relocations_len; j < dst->relocations_len + sym_count; ++j)
+        {
+            dst->relocations[j] = malloc(sizeof(Elf64_Rela));
+            assert(dst->relocations[j] != NULL);
+            compile_relocation_symbol(sect->data.s_rela.symbols[j - dst->relocations_len], dst->relocations[j]);
+        }
+
+        dst->relocations_len += sym_count;
+    }
 }

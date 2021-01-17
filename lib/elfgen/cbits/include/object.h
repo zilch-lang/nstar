@@ -20,12 +20,14 @@ typedef struct
     Elf64_Ehdr *file_header;
     Elf64_Phdr **segment_headers;
     Elf64_Shdr **section_headers;
+    Elf64_Rela **relocations;
     Elf64_Sym **symbols;
     unsigned char *binary_data;
 
     unsigned long segments_len;
     unsigned long sections_len;
     unsigned long symbols_len;
+    unsigned long relocations_len;
     unsigned long binary_data_len;
 } Elf64_Object;
 

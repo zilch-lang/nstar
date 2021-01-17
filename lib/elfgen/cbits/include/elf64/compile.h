@@ -84,4 +84,6 @@ void compile_section_header(elf_section_header const *sect, Elf64_Shdr *header);
 
 void compile_symbol(elf_symbol const *sym, Elf64_Sym *target);
 
+void compile_relocation_symbol(elf_relocation_symbol const *sym, Elf64_Rela *target);
+
 #endif

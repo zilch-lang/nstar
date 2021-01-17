@@ -17,6 +17,11 @@ library:
   - -Wall
   - -Wextra
 
+  when:
+  - condition: flag(debug)
+    cpp-options:
+    - -g
+
 default-extensions:
 - LambdaCase
 - BinaryLiterals
@@ -41,3 +46,9 @@ dependencies:
 - text
 - some
 - insert-ordered-containers
+
+flags:
+  debug:
+    description: "Enable/disable compiling with debugging symbols"
+    manual: true
+    default: false

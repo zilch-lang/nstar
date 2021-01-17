@@ -35,7 +35,7 @@ instance ( Serializable n e (Elf_Ehdr n)
          , Serializable n e (Elf_Sym n)
          , Serializable n e (Elf_Rela n)
          ) => Serializable n e (Object n) where
-  put e (Obj fileHeader programHeaders sectionHeaders binaryData symbols relocs) = do
+  put e (Obj fileHeader programHeaders sectionHeaders symbols relocs binaryData) = do
     put @n e fileHeader
     put @n e programHeaders
     put @n e sectionHeaders
@@ -48,8 +48,10 @@ data C_Object (n :: Size)
       (Ptr (Elf_Ehdr n))
       (Ptr (Ptr (Elf_Phdr n)))
       (Ptr (Ptr (Elf_Shdr n)))
+      (Ptr (Ptr (Elf_Rela n)))
       (Ptr (Ptr (Elf_Sym n)))
       (Ptr CUChar)
+      CULong
       CULong
       CULong
       CULong
@@ -62,34 +64,39 @@ instance Storable (C_Object S64) where
     C_Obj <$> (castPtr <$> {#get struct Elf64_Object->file_header#} ptr)
           <*> (castPtr <$> {#get struct Elf64_Object->segment_headers#} ptr)
           <*> (castPtr <$> {#get struct Elf64_Object->section_headers#} ptr)
+          <*> (castPtr <$> {#get struct Elf64_Object->relocations#} ptr)
           <*> (castPtr <$> {#get struct Elf64_Object->symbols#} ptr)
           <*> (castPtr <$> {#get struct Elf64_Object->binary_data#} ptr)
           <*> {#get struct Elf64_Object->segments_len#} ptr
           <*> {#get struct Elf64_Object->sections_len#} ptr
           <*> {#get struct Elf64_Object->symbols_len#} ptr
+          <*> {#get struct Elf64_Object->relocations_len#} ptr
           <*> {#get struct Elf64_Object->binary_data_len#} ptr
-  poke ptr (C_Obj fh phs shs syms d pl sl syml dl) = do
+  poke ptr (C_Obj fh phs shs rels syms d pl sl syml relsl dl) = do
     {#set struct Elf64_Object->file_header#} ptr (castPtr fh)
     {#set struct Elf64_Object->segment_headers#} ptr (castPtr phs)
     {#set struct Elf64_Object->section_headers#} ptr (castPtr shs)
+    {#set struct Elf64_Object->relocations#} ptr (castPtr rels)
     {#set struct Elf64_Object->symbols#} ptr (castPtr syms)
     {#set struct Elf64_Object->binary_data#} ptr (castPtr d)
     {#set struct Elf64_Object->segments_len#} ptr pl
     {#set struct Elf64_Object->sections_len#} ptr sl
     {#set struct Elf64_Object->symbols_len#} ptr syml
+    {#set struct Elf64_Object->relocations_len#} ptr relsl
     {#set struct Elf64_Object->binary_data_len#} ptr dl
 
 peekObject :: ( Storable (C_Object n)
               , Storable (Elf_Ehdr n)
               , Storable (Elf_Shdr n)
               , Storable (Elf_Phdr n)
-              , Storable (Elf_Sym n) ) => Ptr (C_Object n) -> IO (Object n)
+              , Storable (Elf_Sym n)
+              , Storable (Elf_Rela n) ) => Ptr (C_Object n) -> IO (Object n)
 peekObject ptr = do
-  C_Obj fh phs shs syms d pl sl syml dl <- peek ptr
+  C_Obj fh phs shs rels syms d pl sl syml relsl dl <- peek ptr
   fileHeader <- peek fh
   segmentHeaders <- traverse peek =<< peekArray (fromIntegral pl) phs
   sectionHeaders <- traverse peek =<< peekArray (fromIntegral sl) shs
+  relocations <- traceShow relsl $ traverse peek =<< peekArray (fromIntegral relsl) rels
   symbols <- traverse peek =<< peekArray (fromIntegral syml) syms
   binData <- peekArray (fromIntegral dl) (castPtr d :: Ptr Word8)
-  pure (Obj fileHeader segmentHeaders sectionHeaders symbols [] binData)
-  -- TODO: handle relocation symbols
+  pure (Obj fileHeader segmentHeaders sectionHeaders symbols relocations binData)
