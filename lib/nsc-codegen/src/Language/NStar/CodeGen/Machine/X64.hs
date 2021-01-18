@@ -115,6 +115,9 @@ compileInstrInterX64 (ADD (Reg src :@ _) (Reg dst :@ _)) [Register 64, Register 
 -- REX.W + 81 /0 id	ADD r/m64, imm32	MI	Valid	        N.E.	                Add imm32 sign-extended to 64-bits to r/m64.
 compileInstrInterX64 (ADD src@(Imm _ :@ _) (Reg dst :@ _)) [_, Register 64] =
   ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x0] <>) <$> compileExprX64 64 (unLoc src)
+-- REX.W + 81 /5 id	SUB r/m64, imm32	MI	Valid	        N.E.	                Subtract imm32 sign-extended to 64-bits from r/m64.
+compileInstrInterX64 (SUB src@(Imm _ :@ _) (Reg dst :@ _)) [_, Register 64] =
+  ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <>) <$> compileExprX64 64 (unLoc src)
 compileInstrInterX64 i args                                    =
   error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
 
