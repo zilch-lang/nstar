@@ -112,6 +112,9 @@ compileInstrInterX64 (POP (Reg src :@ _)) [Register 64] =
 -- REX.W + 01 /r	ADD r/m64, r64	        MR	Valid	        N.E.	                Add r64 to r/m64.
 compileInstrInterX64 (ADD (Reg src :@ _) (Reg dst :@ _)) [Register 64, Register 64] =
   pure [rexW, Byte 0x01, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
+-- REX.W + 81 /0 id	ADD r/m64, imm32	MI	Valid	        N.E.	                Add imm32 sign-extended to 64-bits to r/m64.
+compileInstrInterX64 (ADD src@(Imm _ :@ _) (Reg dst :@ _)) [_, Register 64] =
+  ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x0] <>) <$> compileExprX64 64 (unLoc src)
 compileInstrInterX64 i args                                    =
   error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
 
