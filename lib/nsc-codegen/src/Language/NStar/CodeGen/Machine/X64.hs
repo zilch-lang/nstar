@@ -85,12 +85,15 @@ compileInstrInterX64 RET []                                    =
   pure [Byte 0xC3]
 compileInstrInterX64 RET args                                  =
   internalError $ "Expected [] but got " <> show args <> " as arguments for " <> show RET
+-- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
+compileInstrInterX64 (MOV (Name n :@ _) (Reg dst :@ _)) [_, Register 64] =
+  pure [rexW, Byte $ 0xB8 + registerNumber (unLoc dst), Symbol64 (unLoc n)]
 -- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
 compileInstrInterX64 (MOV (Indexed (Imm (I disp :@ _) :@ _) (Name l :@ _) :@ _) (Reg dst :@ _)) [_, Register 64] =
   pure [rexW, Byte 0x8B, modRM 0x0 (registerNumber (unLoc dst)) 0x4, sib 0x0 0x4 0x5, Symbol32 (unLoc l) disp]
--- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
-compileInstrInterX64 (MOV (Name n :@ _) (Reg dst :@ _)) [_, Register 64] =
-  pure [rexW, Byte $ 0x8B + registerNumber (unLoc dst), Symbol64 (unLoc n)]
+-- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
+compileInstrInterX64 (MOV (Indexed (Imm (I disp :@ _) :@ _) (Reg src :@ _) :@ _) (Reg dst :@ _)) [_, Register 64] =
+  pure $ [rexW, Byte 0x8B, modRM 0x1 (registerNumber (unLoc dst)) (registerNumber (unLoc src))] <> (Byte <$> int8 disp)
 -- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
 compileInstrInterX64 (MOV src@(Imm _ :@ _) (Reg dst :@ _)) [Unsigned 64, Register 64] =
   ([rexW, Byte (0xB8 + registerNumber (unLoc dst))] <>) <$> compileExprX64 64 (unLoc src)
@@ -132,6 +135,9 @@ int64 = BS.unpack . runPut . putInt64le . fromIntegral
 
 int32 :: Integer -> [Word8]
 int32 = BS.unpack . runPut . putInt32le . fromIntegral
+
+int8 :: Integer -> [Word8]
+int8 = BS.unpack . runPut . putInt8 . fromIntegral
 
 char8 :: Char -> [Word8]
 char8 = BS.unpack . runPut . putWord8 . fromIntegral . ord
