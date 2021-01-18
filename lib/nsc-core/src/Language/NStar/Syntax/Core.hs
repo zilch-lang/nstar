@@ -248,6 +248,8 @@ data Token where
   Jmp :: Token
   -- | The @call@ instruction
   Call :: Token
+  -- | The @push@ instruction
+  Push :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@

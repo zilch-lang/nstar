@@ -162,6 +162,7 @@ parseInstruction = lexeme $ Instr <$> MP.choice
   , parseRet
   , parseJmp
   , parseCall
+  , parsePush
   ]
 
 parseUnsafeBlock :: (?parserFlags :: ParserFlags) => Parser Statement
@@ -327,3 +328,8 @@ parseCall =
   parseSymbol Call *>
     (CALL <$> located parseLabel
           <*> MP.option [] (betweenAngles (parseSpecialization `MP.sepBy` parseSymbol Comma)))
+
+parsePush :: (?parserFlags :: ParserFlags) => Parser Instruction
+parsePush =
+  parseSymbol Push *>
+        (PUSH <$> located parseExpr)
