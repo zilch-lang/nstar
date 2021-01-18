@@ -1,3 +1,4 @@
+section code {
 main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r0: s64 }::s }
       call g<*{ %sp: sptr s, %r0: s64 }::s>
       ret
@@ -5,3 +6,4 @@ main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r0: s64 }::s }
 g: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r3: s64 }::s }
    mov 0, %r3
    ret
+}

@@ -10,8 +10,8 @@ import Test.Hspec
 import System.FilePath.Glob (glob)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
-import Language.NStar.Syntax (lexFile, parseFile)
-import Language.NStar.Typechecker (typecheck)
+import Language.NStar.Syntax (lexFile, parseFile, postProcessAST)
+import Language.NStar.Typechecker (typecheck, postProcessTypedAST)
 import Language.NStar.Branchchecker (branchcheck)
 import Language.NStar.CodeGen (compileToElf, compile, SupportedArch(..), Endianness(..), Size(..))
 import Data.List (isInfixOf)
@@ -80,7 +80,9 @@ check file = do
 
         (tokens, _) <- first (, Lx) $ lexFile file content
         (ast, _) <- first (, Ps) $ parseFile file tokens
+        ast <- pure $ postProcessAST ast
         (ast, _) <- first (, Tc) $ typecheck ast
+        ast <- pure $ postProcessTypedAST ast
         _ <- first (, Bc) $ branchcheck ast
         _ <- first (, Cg) $ maybeToEither errorCallCodeGen $ teaspoon (compile @S64 LE $ compileToElf X64 ast)
         pure ast

@@ -1,1 +1,3 @@
+section code {
 mov $0, %r0
+}

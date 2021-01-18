@@ -46,6 +46,8 @@ executables:
     - text
     - bytestring
     - mtl
+    - directory
+    - filepath
 
 tests:
   nsc-tests:

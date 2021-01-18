@@ -6,13 +6,13 @@
 module Data.Elf.Internal.SectionHeader
 ( Elf_Shdr(..)
   -- * @'sh_type'@
-, sht_null, sht_progbits, sht_nobits, sht_strtab, sht_symtab
+, sht_null, sht_progbits, sht_nobits, sht_strtab, sht_symtab, sht_rela
 ) where
 
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))
 import GHC.TypeNats (Nat)
-import Data.Elf.Internal.Serialize (Serializable(..), SerializableValueSet)
+import Data.Elf.Internal.Serialize (Serializable(..))
 import Data.Elf.Internal.BusSize (Size(..))
 
 #include <elf.h>
@@ -34,10 +34,30 @@ data Elf_Shdr n = Elf_Shdr
 instance Storable (Elf_Shdr S64) where
   sizeOf _ = {#sizeof Elf64_Shdr#}
   alignment _ = {#alignof Elf64_Shdr#}
-  peek _ = undefined
-  poke _ _ = undefined
+  peek ptr =
+    Elf_Shdr <$> (fromIntegral <$> {#get struct Elf64_Shdr->sh_name#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Shdr->sh_type#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Shdr->sh_flags#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Shdr->sh_addr#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Shdr->sh_offset#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Shdr->sh_size#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Shdr->sh_link#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Shdr->sh_info#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Shdr->sh_addralign#} ptr)
+             <*> (fromIntegral <$> {#get struct Elf64_Shdr->sh_entsize#} ptr)
+  poke ptr Elf_Shdr{..} = do
+    {#set struct Elf64_Shdr->sh_name#} ptr (fromIntegral sh_name)
+    {#set struct Elf64_Shdr->sh_type#} ptr (fromIntegral sh_type)
+    {#set struct Elf64_Shdr->sh_flags#} ptr (fromIntegral sh_flags)
+    {#set struct Elf64_Shdr->sh_addr#} ptr (fromIntegral sh_addr)
+    {#set struct Elf64_Shdr->sh_offset#} ptr (fromIntegral sh_offset)
+    {#set struct Elf64_Shdr->sh_size#} ptr (fromIntegral sh_size)
+    {#set struct Elf64_Shdr->sh_link#} ptr (fromIntegral sh_link)
+    {#set struct Elf64_Shdr->sh_info#} ptr (fromIntegral sh_info)
+    {#set struct Elf64_Shdr->sh_addralign#} ptr (fromIntegral sh_addralign)
+    {#set struct Elf64_Shdr->sh_entsize#} ptr (fromIntegral sh_entsize)
 
-instance (SerializableValueSet S64 e) => Serializable S64 e (Elf_Shdr S64) where
+instance Serializable S64 e (Elf_Shdr S64) where
   put e Elf_Shdr{..} = do
     put @S64 e sh_name
     put @S64 e sh_type
@@ -53,17 +73,20 @@ instance (SerializableValueSet S64 e) => Serializable S64 e (Elf_Shdr S64) where
 -- Section types
 
 -- | Section header table entry unused
-sht_null :: ValueSet n => Elf_Word n
+sht_null :: Elf_Word n
 sht_null = {#const SHT_NULL#}
 -- | Program data
-sht_progbits :: ValueSet n => Elf_Word n
+sht_progbits :: Elf_Word n
 sht_progbits = {#const SHT_PROGBITS#}
 -- | Program space with no data (bss)
-sht_nobits :: ValueSet n => Elf_Word n
+sht_nobits :: Elf_Word n
 sht_nobits = {#const SHT_NOBITS#}
 -- | Symbol table
-sht_symtab :: ValueSet n => Elf_Word n
+sht_symtab :: Elf_Word n
 sht_symtab = {#const SHT_SYMTAB#}
 -- | String table
-sht_strtab :: ValueSet n => Elf_Word n
+sht_strtab :: Elf_Word n
 sht_strtab = {#const SHT_STRTAB#}
+-- | Relocation entries with addends
+sht_rela :: Elf_Word n
+sht_rela = {#const SHT_RELA#}

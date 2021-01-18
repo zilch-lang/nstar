@@ -1,1 +1,3 @@
+section code {
 f: { %sp: sptr s64::*u64::*{} }
+}

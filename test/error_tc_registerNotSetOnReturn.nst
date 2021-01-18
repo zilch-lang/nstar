@@ -1,3 +1,4 @@
+section code {
 f: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
    call g<*{ %sp: sptr s }::s>
    mov %r3, %r0        # %rbx has not been set nor returned by `g` so it's an error
@@ -5,3 +6,4 @@ f: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
 
 g: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
    ret
+}

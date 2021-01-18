@@ -1,4 +1,6 @@
+section code {
 f: forall (s: Ts). { %sp: sptr s }
    jmp g<s64>
 
 g: forall (s: Ts). { %sp: sptr s64::s }
+}

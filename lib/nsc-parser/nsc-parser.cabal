@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 652c2dfd616559b149313e977a8df5675115237aae9cf93d776cd662d77fe1d7
+-- hash: 4b59b0c9d4ea14898c65dffbfb7e09136082659de99f93b4190547ee2fc5c1db
 
 name:           nsc-parser
 version:        0.0.1.0
@@ -17,6 +17,8 @@ library
       Language.NStar.Syntax.Internal
       Language.NStar.Syntax.Lexer
       Language.NStar.Syntax.Parser
+      Language.NStar.Syntax.PostProcess.ConcatenateSections
+      Language.NStar.Syntax.PostProcessor
   other-modules:
       Paths_nsc_parser
   hs-source-dirs:

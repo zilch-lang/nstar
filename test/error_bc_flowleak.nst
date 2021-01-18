@@ -1,4 +1,6 @@
+section code {
 f: {}
    jmp g<>
 
 g: {}
+}

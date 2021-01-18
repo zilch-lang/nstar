@@ -11,16 +11,28 @@ import Text.Diagnose (PrettyText(..))
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 import Language.NStar.Syntax.Core
 import qualified Data.Text as Text
-import Data.Located (unLoc, Located)
+import Data.Located (unLoc, Located((:@)))
 import qualified Data.Map as Map
 
 instance PrettyText Program where
-  prettyText (Program stts) =
-    vsep (fmap prettyText stts)
+  prettyText (Program stts) = vsep (fmap prettyText stts)
+
+instance PrettyText Section where
+  prettyText (Code sect)   = text "section code {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (Data sect)   = text "section data {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (ROData sect) = text "section rodata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (UData sect)  = text "section udata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+
+instance PrettyText Binding where
+  prettyText (Bind name ty cst) = prettyText name <> colon <+> prettyText ty <> line <> indent 4 (prettyText cst)
+
+instance PrettyText ReservedSpace where
+  prettyText (ReservedBind name ty) = prettyText name <> colon <+> prettyText ty
 
 instance PrettyText Statement where
-  prettyText (Label name ty is) = prettyText name <> colon <+> prettyText ty <> line <> vsep (fmap prettyText is)
-  prettyText (Instr i)          = prettyText i
+  prettyText (Label name ty) = prettyText name <> colon <+> prettyText ty
+  prettyText (Instr i)       = prettyText i
+  prettyText (Unsafe is)     = text "unsafe {" <> line <> vsep (fmap prettyText is) <> line <> "}"
 
 instance PrettyText Kind where
   prettyText T8 = text "T8"
@@ -64,11 +76,20 @@ instance PrettyText Instruction where
   prettyText (RET)          = text "ret"
   prettyText (JMP lbl tys)  = text "jmp" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
   prettyText (CALL lbl tys) = text "call" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
+  prettyText (ADD inc dst)  = text "add" <+> prettyText inc <> comma <+> prettyText dst
+  prettyText (PUSH val)     = text "push" <+> prettyText val
+  prettyText (POP dst)      = text "pop" <+> prettyText dst
+  prettyText (SUB inc dst)  = text "sub" <+> prettyText inc <> comma <+> prettyText dst
+
+instance PrettyText Constant where
+  prettyText (CInteger (i :@ _))   = integer i
+  prettyText (CCharacter (c :@ _)) = char c
+  prettyText (CArray csts)         = lbracket <> hsep (fmap prettyText csts) <+> rbracket
 
 instance PrettyText Expr where
   prettyText (Imm i) = prettyText i
   prettyText (Name n) = text (Text.unpack (unLoc n))
-  prettyText (Indexed idx e) = integer (unLoc idx) <> parens (prettyText e)
+  prettyText (Indexed idx e) = prettyText idx <> parens (prettyText e)
   prettyText (Reg r) = prettyText r
   prettyText (Spec e ty) = prettyText e <> angles (prettyText ty)
 

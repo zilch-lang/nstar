@@ -32,7 +32,7 @@ import Data.Foldable (foldl')
 
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
 typecheck :: (?tcFlags :: TypecheckerFlags) => Program -> Either (Diagnostic s String m) (TypedProgram, Diagnostic s String m)
-typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, Ctx mempty mempty mempty Nothing)))
+typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, mempty)))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
         toDiagnostic' = foldl' (<++>) diagnostic . fmap fromTypecheckWarning
 
@@ -42,10 +42,11 @@ typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT 
 --
 --   Typechecks a program, and return an elaborated form of it.
 typecheckProgram :: (?tcFlags :: TypecheckerFlags) => Program -> Typechecker TypedProgram
-typecheckProgram p@(Program []) = pure (TProgram [])
-typecheckProgram (Program stts) = do
-  registerAllLabels stts
-  res <- TProgram . mconcat <$> mapM (flip typecheckStatement False) stts
+typecheckProgram (Program [Data dataSect :@ p1, ROData rodataSect :@ p2, UData udataSect :@ p3, Code code :@ p4]) = do
+  registerAllLabels code
+  registerAllDataLabels dataSect
+
+  instrs <- concat <$> mapM (flip typecheckStatement False) code
 
   -- Check that the type of `main` is actually usable, and that states
   -- can be guaranteed at compile time.
@@ -64,7 +65,8 @@ typecheckProgram (Program stts) = do
   --
   -- For more information, see this: <http://dbp-consulting.com/tutorials/debugging/linuxProgramStartup.html>
 
-  pure res
+  pure (TProgram (TData dataSect :@ p1) (TROData [] :@ p2) (TUData [] :@ p3) (TCode instrs :@ p4))
+typecheckProgram (Program _) = error "Unexpected invalid Program"
 
 -- | Brings all the labels with their corresponding types into the type environment.
 --
@@ -75,11 +77,22 @@ typecheckProgram (Program stts) = do
 --   worsening the overall complexity of the typechecking.
 registerAllLabels :: (?tcFlags :: TypecheckerFlags) => [Located Statement] -> Typechecker ()
 registerAllLabels = mapM_ addLabelType . filter isLabel
-  where isLabel (unLoc -> Label _ _ _) = True
-        isLabel _                      = False
+  where isLabel (unLoc -> Label _ _) = True
+        isLabel _                    = False
 
-        addLabelType (unLoc -> Label name ty _) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
-        addLabelType (unLoc -> t)               = error ("Adding type of non-label '" <> show t <> "' is impossible.")
+        addLabelType (unLoc -> Label name ty) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
+        addLabelType (unLoc -> t)             = error ("Adding type of non-label '" <> show t <> "' is impossible.")
+
+-- | Brings all the data labels with their current types into the context.
+--
+--   This allows to access labels that are not in the @code@ section when typechecking instructions.
+registerAllDataLabels :: (?tcFlags :: TypecheckerFlags) => [Located Binding] -> Typechecker ()
+registerAllDataLabels = mapM_ addBinding
+  where
+    addBinding (unLoc -> Bind name ty (val :@ p)) = do
+      liftEither (first FromReport $ kindcheck ty)
+      unify ty =<< typecheckConstant val p
+      addDataLabel name (Ptr ty :@ p)
 
 -- | Typechecks a statement.
 --
@@ -88,15 +101,13 @@ registerAllLabels = mapM_ addLabelType . filter isLabel
 --
 --   When it's an instruction, just typecheck the instruction accordingly.
 typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> Bool -> Typechecker [Located TypedStatement]
-typecheckStatement (Label name ty is :@ p) isUnsafe = do
+typecheckStatement (Label name ty :@ p) isUnsafe = do
   let (binders, record) = removeForallQuantifierIfAny ty
   setCurrentTypeContext (toRegisterMap record)
   setCurrentKindContext (Map.fromList $ first toVarName <$> binders)
   setLabel name
 
-  instrs <- forM is (flip typecheckStatement isUnsafe)
-
-  pure $ [TLabel name :@ p] <> mconcat instrs
+  pure $ [TLabel name :@ p]
  where
    removeForallQuantifierIfAny (unLoc -> ForAll b ty) = (b, ty)
    removeForallQuantifierIfAny ty                     = (mempty, ty)
@@ -106,8 +117,8 @@ typecheckStatement (Label name ty is :@ p) isUnsafe = do
 
    toVarName (Var v :@ _) = v
    toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
-typecheckStatement (Instr i :@ p) isUnsafe        = pure . (:@ p) <$> typecheckInstruction i p isUnsafe
-typecheckStatement (Unsafe is :@ p) _             = mconcat <$> forM is (flip typecheckStatement True)
+typecheckStatement (Instr i :@ p) isUnsafe      = pure . (:@ p) <$> typecheckInstruction i p isUnsafe
+typecheckStatement (Unsafe is :@ p) _           = mconcat <$> forM is (flip typecheckStatement True)
 
 typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Position -> Bool -> Typechecker TypedStatement
 typecheckInstruction i p unsafe = do

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 080f068d9e864cf3aa03201a4959ee0d3a356ed9213d8f728ece0a96b226c95e
+-- hash: e9b14e225f62ecb0b4bfbc0d0243b9b3055abea24f0cbfea80dbce7e91e8e9a7
 
 name:           nsc-lib
 version:        0.0.1.0
@@ -59,7 +59,9 @@ executable nsc
       base >=4.7 && <5
     , bytestring
     , diagnose
+    , directory
     , elfgen
+    , filepath
     , mtl
     , nsc-branchchecker
     , nsc-codegen

@@ -27,16 +27,48 @@ import Data.Data (Data)
 import Data.Typeable (Typeable)
 
 newtype Program
-  = Program [Located Statement]  -- ^ A program is a possibily empty list of statements
+  = Program [Located Section]  -- ^ A program is a (possibly empty) list of sections
 
 deriving instance Show Program
+
+data Section where
+  -- | The @code@ section
+  Code :: [Located Statement]
+       -> Section
+  -- | The @data@ section
+  Data :: [Located Binding]
+       -> Section
+  -- | The @rodata@ section
+  ROData :: [Located Binding]
+         -> Section
+  -- | The @udata@ section
+  UData :: [Located ReservedSpace]
+        -> Section
+
+deriving instance Show Section
+
+data Binding where
+  -- | An initialized data binding
+  Bind :: Located Text
+       -> Located Type
+       -> Located Constant
+       -> Binding
+
+deriving instance Show Binding
+
+data ReservedSpace where
+  -- | An uninitialized data binding (in the @udata@ section)
+  ReservedBind :: Located Text
+               -> Located Type
+               -> ReservedSpace
+
+deriving instance Show ReservedSpace
 
 -- | A statement is either
 data Statement where
   -- | A typed label
   Label :: Located Text           -- ^ The label's name. It may not be empty
         -> Located Type           -- ^ The "label's type", describing the minimal type expected when jumping to this label
-        -> [Located Statement]    -- ^ The label's associated instructions
         -> Statement
   -- | An instruction call
   Instr :: Instruction -> Statement
@@ -110,11 +142,11 @@ deriving instance Ord Register
 
 -- | N*'s instruction set
 data Instruction where
-  -- | @mov a, v@ is the same as @a <- v@.
+  -- | @mov a, v@ is the same as @v <- a@.
   MOV :: Located Expr         -- ^ The destination of the move. It must be addressable
       -> Located Expr         -- ^ The source value moved into the destination
       -> Instruction
-  -- | @ret@ returns the value in @'RAX'@ to the caller.
+  -- | @ret@ returns to the address on top of the stack.
   RET :: Instruction
   -- | @jmp@ alters the control flow by unconditionally jumping to the given address.
   JMP :: Located Expr
@@ -125,10 +157,37 @@ data Instruction where
   CALL :: Located Expr
        -> [Located Type]
        -> Instruction
+  -- |
+  ADD :: Located Expr    -- ^ The source operand
+      -> Located Expr    -- ^ The increment value
+      -> Instruction
+  -- |
+  PUSH :: Located Expr
+       -> Instruction
+  -- |
+  POP :: Located Expr
+      -> Instruction
+  -- |
+  SUB :: Located Expr
+      -> Located Expr
+      -> Instruction
 
   -- TODO: add more instructions
 
 deriving instance Show Instruction
+
+data Constant where
+  -- | A constant integer
+  CInteger :: Located Integer
+           -> Constant
+  -- | A constant character
+  CCharacter :: Located Char
+             -> Constant
+  -- | An array of constants
+  CArray :: [Located Constant]
+         -> Constant
+
+deriving instance Show Constant
 
 data Expr where
   -- | An immediate value (@$⟨val⟩@)
@@ -138,7 +197,7 @@ data Expr where
   Name :: Located Text
        -> Expr
   -- | An indexed expression (@⟨idx⟩[⟨expr⟩]@)
-  Indexed :: Located Integer        -- ^ \- @⟨idx⟩@
+  Indexed :: Located Expr           -- ^ \- @⟨idx⟩@
           -> Located Expr           -- ^ \- @⟨expr⟩@
           -> Expr
   -- | A register (one of the available 'Register's)
@@ -211,6 +270,8 @@ data Token where
   Dot :: Token
   -- | Negation "@-@"
   Minus :: Token
+  -- | Addition "@+@"
+  Plus :: Token
   -- Keywords
   -- | \"@forall@\" type variable binder in type
   Forall :: Token
@@ -218,6 +279,8 @@ data Token where
   Sptr :: Token
   -- | \"@unsafe@\" block
   UnSafe :: Token
+  -- | \"@section@\" block
+  Section :: Token
   -- Comments
   -- | A comment starting with "@#@" and spanning until the end of the current line
   InlineComment :: Text        -- ^ The content of the comment

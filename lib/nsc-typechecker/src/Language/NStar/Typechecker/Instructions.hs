@@ -9,7 +9,7 @@ import Language.NStar.Typechecker.TC
 import Language.NStar.Typechecker.Free
 import Language.NStar.Typechecker.Subst
 import Language.NStar.Typechecker.Core
-import Language.NStar.Syntax.Core (Expr(..), Immediate(..))
+import Language.NStar.Syntax.Core (Expr(..), Immediate(..), Constant(..))
 import Data.Located (Located(..), unLoc, getPos, Position)
 import qualified Data.Map as Map
 import Control.Monad.State (gets)
@@ -18,14 +18,14 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Maybe (fromJust)
-import Data.Foldable (fold)
+import Data.Foldable (fold, foldlM)
 import Console.NStar.Flags (TypecheckerFlags(..))
 import Internal.Error (internalError)
 import qualified Language.NStar.Typechecker.Env as Env (lookup)
 import Control.Monad (forM)
 import Data.Bifunctor (first)
 import Language.NStar.Typechecker.Kinds (unifyKinds, kindcheckType, runKindchecker)
-import Control.Monad (forM_)
+import Control.Monad (forM_, when)
 import Data.Functor ((<&>))
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker [Located Type]
@@ -105,19 +105,19 @@ tc_mov (src :@ p1) (dest :@ p2) unsafe p = do
   --
   -- For all those assertions, we also have to check that type sizes do match.
   case (src, dest) of
-    (Imm i, Reg r) -> do
-      ty <- typecheckExpr src p1
+    (Reg r1, Reg r2) -> do
+      ty1 <- typecheckExpr src p1 unsafe
+      -- TODO: size check
+      -- No need at the moment, we only have 8-bytes big registers.
+      gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r2 ty1
+      pure [Register 64 :@ p1, Register 64 :@ p2] -- TODO: fetch actual size of register
+    (_, Reg r) -> do
+      ty <- typecheckExpr src p1 unsafe
       -- TODO: size check
       -- At the moment, this isn't a problem: we only handle immediates that are actually
       -- smaller than the max size (8 bytes) possible.
       gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r ty
       pure [ty, Register 64 :@ p2] -- TODO: fetch actual size of register
-    (Reg r1, Reg r2) -> do
-      ty1 <- typecheckExpr src p1
-      -- TODO: size check
-      -- No need at the moment, we only have 8-bytes big registers.
-      gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r2 ty1
-      pure [Register 64 :@ p1, Register 64 :@ p2] -- TODO: fetch actual size of register
     _ -> error $ "Missing `mov` typechecking implementation for '" <> show src <> "' and '" <> show dest <> "'."
 
 tc_jmp :: (?tcFlags :: TypecheckerFlags) => Located Expr -> [Located Type] -> Position -> Typechecker [Located Type]
@@ -243,14 +243,46 @@ tc_call (t :@ p1) ty sp = internalError $ "Cannot handle call to non-label expre
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 
-typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Typechecker (Located Type)
-typecheckExpr (Imm (I _ :@ _)) p  = pure (Unsigned 64 :@ p)
-typecheckExpr (Imm (C _ :@ _)) p  = pure (Signed 8 :@ p)
-typecheckExpr (Reg r) p           = do
+typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Bool -> Typechecker (Located Type)
+typecheckExpr (Imm (I _ :@ _)) p _  = pure (Unsigned 64 :@ p)
+typecheckExpr (Imm (C _ :@ _)) p _  = pure (Signed 8 :@ p)
+typecheckExpr (Reg r) p _           = do
   ctx <- gets (currentTypeContext . snd)
   maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) pure (Map.lookup r ctx)
-typecheckExpr (Indexed _ e) p     = typecheckExpr (unLoc e) p
-typecheckExpr e p                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
+typecheckExpr (Indexed (off :@ p1) (e :@ p2)) p unsafe    = do
+  ty <- typecheckExpr off p1 unsafe
+  unify ty (Signed 64 :@ p)
+
+  ty2 :@ p3 <- typecheckExpr e p2 unsafe
+  case ty2 of
+    Ptr t  ->
+      case off of
+        Imm _ -> pure t -- TODO: check if immediate offset is correct
+        _ | unsafe -> pure t
+          | otherwise -> throwError (UnsafeOperationOutOfUnsafeBlock p)
+    SPtr s -> error $ "Unimplemented `typecheckExpr` for pointer offset on '" <> show ty2 <> "'."
+    _      -> throwError (NonPointerTypeOnOffset ty2 p3)
+typecheckExpr (Name n@(name :@ _)) p _ = do
+  ctx <- gets (dataSections . snd)
+  maybe (throwError (UnknownDataLabel name p)) pure (Map.lookup n ctx)
+typecheckExpr e p _                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
+
+typecheckConstant :: (?tcFlags :: TypecheckerFlags) => Constant -> Position -> Typechecker (Located Type)
+typecheckConstant (CInteger _) p   = pure (Unsigned 64 :@ p)
+typecheckConstant (CCharacter _) p = pure (Signed 8 :@ p)
+typecheckConstant (CArray csts) p  =
+  if | (c1:cs) <- csts -> do
+         types <- forM csts \ (c :@ p) -> typecheckConstant c p
+         let (t1:ts) = types
+         when (not (null ts)) do
+           () <$ foldlM2 (\ acc t1 t2 -> mappend acc <$> unify t1 t2) mempty (t1:ts)
+         pure (Ptr t1 :@ p)
+     | otherwise       -> do
+         v <- freshVar "d" p
+         pure (Ptr v :@ p)
+  where
+    foldlM2 :: (Monad m) => (b -> a -> a -> m b) -> b -> [a] -> m b
+    foldlM2 f e l = foldlM (uncurry . f) e (zip l (drop 1 l))
 
 --------------------------------------------------------------------------------
 
