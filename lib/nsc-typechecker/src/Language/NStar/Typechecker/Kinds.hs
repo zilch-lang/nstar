@@ -68,7 +68,7 @@ kindcheckType ctx (ForAll newCtx ty :@ _)                = kindcheckType (Map.fr
 kindcheckType ctx (Var v :@ _)                           = maybe (throwError (UnboundTypeVariable v)) pure (Map.lookup v ctx)
 kindcheckType _ (FVar v :@ _)                            = throwError (UnboundTypeVariable v)
 kindcheckType ctx (Ptr t :@ p)                           = (T8 :@ p) <$ kindcheckType ctx t
-kindcheckType ctx (SPtr t@(_ :@ p1) :@ p)                = (Ts :@ p) <$ (requireStackType p1 =<< kindcheckType ctx t)
+kindcheckType ctx (SPtr t@(_ :@ p1) :@ p)                = (T8 :@ p) <$ (requireStackType p1 =<< kindcheckType ctx t)
 kindcheckType ctx (Cons t1@(_ :@ p1) t2@(_ :@ p2) :@ p)  = do
   liftA2 (*>) (requireDataType p1) (requireSized p1) =<< kindcheckType ctx t1
   requireStackType p2 =<< kindcheckType ctx t2
