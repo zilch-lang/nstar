@@ -62,14 +62,20 @@ tc_ret p = do
   catchError (unify (Record currentCtx False :@ p) minimalCtx)
              (const $ throwError (NoReturnAddress p currentCtx))
 
-  let removeStackTop (SPtr (Cons _ t :@ _) :@ p1) = SPtr t :@ p1
-      removeStackTop (t :@ _)                     = error $ "Cannot extract stack top of type '" <> show t <> "'"
+  let removeStackTop (SPtr (Cons _ t :@ _) :@ p1) = pure (SPtr t :@ p1)
+      removeStackTop (t :@ p1)                    = throwError (NonStackPointerRegister t p p1)
 
-      getStackTop (SPtr (Cons t _ :@ _) :@ _) = t
-      getStackTop (t :@ _)                    = error $ "Cannot extract stack top of type '" <> show t <> "'"
+      getStackTop (SPtr (Cons t _ :@ _) :@ _)  = pure t
+      getStackTop (t :@ p1)                    = throwError (NonStackPointerRegister t p p1)
 
-  let returnShouldBe = Ptr (Record (Map.adjust removeStackTop (SP :@ p) currentCtx) False :@ p) :@ p
-      returnCtx = getStackTop $ fromJust (Map.lookup (SP :@ p) currentCtx)
+  newStack <- case Map.lookup (SP :@ p) currentCtx of
+    Just s  -> do
+      ns <- removeStackTop s
+      pure (Map.adjust (const ns) (SP :@ p) currentCtx)
+    Nothing -> throwError (MissingRegistersInContext [SP] p)
+
+  let returnShouldBe = Ptr (Record newStack False :@ p) :@ p
+  returnCtx <- getStackTop $ fromJust (Map.lookup (SP :@ p) currentCtx)
 
   let changeErrorIfMissingKey (DomainsDoNotSubtype (m1 :@ _) (m2 :@ _)) =
         ContextIsMissingOnReturn p (getPos returnCtx) (Map.keysSet m1 Set.\\ Map.keysSet m2)
