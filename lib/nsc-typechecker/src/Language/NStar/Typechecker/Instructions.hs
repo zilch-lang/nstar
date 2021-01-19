@@ -245,6 +245,35 @@ tc_call (Name n :@ p1) tys p = do
     fromVar t            = internalError $ "Cannot get name of non type-variable " <> show t
 tc_call (t :@ p1) ty sp = internalError $ "Cannot handle call to non-label expression " <> show t
 
+tc_push :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Bool -> Position -> Typechecker [Located Type]
+tc_push (e :@ p1) unsafe p = do
+  -- This is impossible to push a codespace address, and is check in @typecheckExpr@
+  -- because a name can only come from a data section (therefore forbidding literals to code-space addresses).
+  --
+  -- Pushing a value alters the current stack pointer @%sp@ and adds the type of the value pushed on top
+  -- of it. Thus @push 0@ makes the stack come from @sptr s@ tu @sptr u64::s@ (or any other unsigned type).
+  --
+  -- It is impossible to push a value if there is no stack pointer in the current typing
+  -- context (which would lead to the empty stack type, which does not exist).
+
+  currentCtx <- gets (currentTypeContext . snd)
+  stackTy <- maybe (throwError (RegisterNotFoundInContext SP p (Map.keysSet currentCtx))) pure $ Map.lookup (SP :@ p) currentCtx
+  kindCtx <- gets (currentKindContext . snd)
+
+  exprTy <- typecheckExpr e p1 unsafe
+
+  case stackTy of
+    SPtr ty :@ p1 -> do
+      stackKind <- liftEither $ first FromReport (runKindchecker (kindcheckType kindCtx ty))
+      liftEither $ first FromReport (runKindchecker (unifyKinds stackKind (Ts :@ p)))
+
+      setCurrentTypeContext $ Map.adjust (const $ SPtr (Cons exprTy ty :@ p1) :@ p1) (SP :@ p) currentCtx
+      pure ()
+    ty :@ p1 -> throwError (NonStackPointerRegister ty p p1)
+
+  pure [exprTy]
+tc_push (e :@ p1) _ sp = internalError $ "Cannot handle PUSH from " <> show e
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

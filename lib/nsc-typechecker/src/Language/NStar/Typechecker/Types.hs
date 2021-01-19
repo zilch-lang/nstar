@@ -128,4 +128,5 @@ typecheckInstruction i p unsafe = do
       MOV src dst  -> tc_mov src dst unsafe p
       JMP lbl tys  -> tc_jmp lbl tys p
       CALL lbl tys -> tc_call lbl tys p
-      _           -> error $ "Unrecognized instruction '" <> show i <> "'."
+      PUSH src     -> tc_push src unsafe p
+      _            -> error $ "Unrecognized instruction '" <> show i <> "'."
