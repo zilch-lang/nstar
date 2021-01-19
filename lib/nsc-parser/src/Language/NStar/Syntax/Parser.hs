@@ -163,6 +163,7 @@ parseInstruction = lexeme $ Instr <$> MP.choice
   , parseJmp
   , parseCall
   , parsePush
+  , parsePop
   ]
 
 parseUnsafeBlock :: (?parserFlags :: ParserFlags) => Parser Statement
@@ -333,3 +334,8 @@ parsePush :: (?parserFlags :: ParserFlags) => Parser Instruction
 parsePush =
   parseSymbol Push *>
         (PUSH <$> located parseExpr)
+
+parsePop :: (?parserFlags :: ParserFlags) => Parser Instruction
+parsePop =
+  parseSymbol Pop *>
+        (POP <$> located parseAddressExpr)

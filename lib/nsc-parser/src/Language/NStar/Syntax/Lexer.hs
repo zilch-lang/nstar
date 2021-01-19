@@ -120,6 +120,7 @@ identifierOrKeyword = lexeme $ located do
       "jmp"     -> Jmp
       "call"    -> Call
       "push"    -> Push
+      "pop"     -> Pop
       -- Registers
       "r0"      -> R0'
       "r1"      -> R1'

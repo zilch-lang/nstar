@@ -250,6 +250,8 @@ data Token where
   Call :: Token
   -- | The @push@ instruction
   Push :: Token
+  -- | The @pop@ instruction
+  Pop :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@
