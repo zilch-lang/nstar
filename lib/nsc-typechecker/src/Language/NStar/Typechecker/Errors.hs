@@ -41,6 +41,7 @@ data TypecheckError
   | NonPointerTypeOnOffset Type Position
   | UnknownDataLabel Text Position
   | UnsafeOperationOutOfUnsafeBlock Position
+  | NonStackPointerRegister Type Position Position
 
 data TypecheckWarning
 
@@ -68,6 +69,7 @@ fromTypecheckError (MissingRegistersInContext rs p)             = missingRegiste
 fromTypecheckError (NonPointerTypeOnOffset t p)                 = typeIsNotAPointer t p
 fromTypecheckError (UnknownDataLabel n p)                       = unknownDataLabel n p
 fromTypecheckError (UnsafeOperationOutOfUnsafeBlock p)          = unsafeNotInUnsafeBlock p
+fromTypecheckError (NonStackPointerRegister ty p p')            = spIsNotAStackRegister ty p p'
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -213,4 +215,11 @@ unsafeNotInUnsafeBlock :: Position -> Report String
 unsafeNotInUnsafeBlock p =
   reportError "Unsafe operation not enclosed in an 'unsafe' block."
     [ (p, This "This is considered an unsafe operation, therefore must be placed in an 'unsafe block'") ]
+    []
+
+spIsNotAStackRegister :: Type -> Position -> Position -> Report String
+spIsNotAStackRegister ty p1 p =
+  reportError "%sp is not a stack pointer."
+    [ (p1, This $ "%sp was found to be of the type: '" <> show (prettyText ty) <> "'")
+    , (p, Where "Infered from here") ]
     []
