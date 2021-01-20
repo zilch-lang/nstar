@@ -27,6 +27,7 @@ import Data.Bifunctor (first)
 import Language.NStar.Typechecker.Kinds (unifyKinds, kindcheckType, runKindchecker)
 import Control.Monad (forM_, when)
 import Data.Functor ((<&>))
+import Debug.Trace (traceShow)
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker [Located Type]
 tc_ret p = do
@@ -273,6 +274,48 @@ tc_push (e :@ p1) unsafe p = do
 
   pure [exprTy]
 tc_push (e :@ p1) _ sp = internalError $ "Cannot handle PUSH from " <> show e
+
+tc_pop :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Bool -> Position -> Typechecker [Located Type]
+tc_pop (e :@ p1) unsafe p = do
+  -- Pop expects an unabstract (not a type variable) stack with /at least/ one element in it in %sp.
+  --
+  -- Pop cannot remove a code-space address from the top of the stack (meaning that the top of the stack
+  -- cannot be something of the form @*{}@).
+  --
+  -- After this instruction, the stack only contains its tail (the stack without its head).
+  --
+  -- If @pop@ping into a register, alter the context with the new type for the register.
+  -- If @pop@ping into a memory address (more generally pointer offset), unify both types.
+
+  currentCtx <- gets (currentTypeContext . snd)
+  spTy <- case Map.lookup (SP :@ p) currentCtx of
+    Nothing -> throwError (RegisterNotFoundInContext SP p (Map.keysSet currentCtx))
+    Just ty -> pure ty
+
+  stack <- freshVar "@" p
+  sub1 <- unify spTy (SPtr stack :@ p)
+  let stack' = apply sub1 stack
+
+  stackTail <- freshVar "$" p
+  stackHead <- freshVar "^" p
+  sub2 <- unify stack' (Cons stackHead stackTail :@ p)
+  let stackTail' = apply sub2 stackTail
+      stackHead' = apply sub2 stackHead
+
+  case stackHead' of
+    Ptr (Record _ _ :@ _) :@ _ -> throwError (CannotPopCodeAddress p)
+    _                          -> pure ()
+
+  -- TODO: handle pointer offsets
+  case e of
+    Reg r -> do
+      setCurrentTypeContext $ Map.insert r stackHead'
+                            $ Map.insert (SP :@ p) (SPtr stackTail' :@ p) currentCtx
+      pure [Register 64 :@ p]
+    _     -> do
+      exprTy <- typecheckExpr e p1 unsafe
+      error $ "Not handled: pop into " <> show e
+tc_pop (e :@ p1) _ sp = internalError $ "Cannot POP into " <> show e
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
