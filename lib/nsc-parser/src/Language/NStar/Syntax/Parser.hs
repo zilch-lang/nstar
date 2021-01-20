@@ -164,6 +164,7 @@ parseInstruction = lexeme $ Instr <$> MP.choice
   , parseCall
   , parsePush
   , parsePop
+  , parseNop
   ]
 
 parseUnsafeBlock :: (?parserFlags :: ParserFlags) => Parser Statement
@@ -339,3 +340,6 @@ parsePop :: (?parserFlags :: ParserFlags) => Parser Instruction
 parsePop =
   parseSymbol Pop *>
         (POP <$> located parseAddressExpr)
+
+parseNop :: (?parserFlags :: ParserFlags) => Parser Instruction
+parseNop = NOP <$ parseSymbol Nop

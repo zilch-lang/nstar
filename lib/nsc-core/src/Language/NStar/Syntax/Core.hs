@@ -171,6 +171,8 @@ data Instruction where
   SUB :: Located Expr
       -> Located Expr
       -> Instruction
+  -- |
+  NOP :: Instruction
 
   -- TODO: add more instructions
 
@@ -252,6 +254,8 @@ data Token where
   Push :: Token
   -- | The @pop@ instruction
   Pop :: Token
+  -- | The @nop@ instruction
+  Nop :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@

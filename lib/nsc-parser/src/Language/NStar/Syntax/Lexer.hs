@@ -121,6 +121,7 @@ identifierOrKeyword = lexeme $ located do
       "call"    -> Call
       "push"    -> Push
       "pop"     -> Pop
+      "nop"     -> Nop
       -- Registers
       "r0"      -> R0'
       "r1"      -> R1'

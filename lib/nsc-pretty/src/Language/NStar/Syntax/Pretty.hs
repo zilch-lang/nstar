@@ -80,6 +80,7 @@ instance PrettyText Instruction where
   prettyText (PUSH val)     = text "push" <+> prettyText val
   prettyText (POP dst)      = text "pop" <+> prettyText dst
   prettyText (SUB inc dst)  = text "sub" <+> prettyText inc <> comma <+> prettyText dst
+  prettyText (NOP)          = text "nop"
 
 instance PrettyText Constant where
   prettyText (CInteger (i :@ _))   = integer i
