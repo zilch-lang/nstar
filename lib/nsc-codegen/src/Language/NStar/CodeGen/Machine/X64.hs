@@ -124,6 +124,9 @@ compileInstrInterX64 (ADD src@(Imm _ :@ _) (Reg dst :@ _)) [_, Register 64] =
 -- REX.W + 81 /5 id	SUB r/m64, imm32	MI	Valid	        N.E.	                Subtract imm32 sign-extended to 64-bits from r/m64.
 compileInstrInterX64 (SUB src@(Imm _ :@ _) (Reg dst :@ _)) [_, Register 64] =
   ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <>) <$> compileExprX64 64 (unLoc src)
+-- NP 90	        NOP	                ZO	Valid	        Valid	                One byte no-operation instruction.
+compileInstrInterX64 NOP [] =
+  pure [Byte 0x90]
 compileInstrInterX64 i args                                    =
   error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
 
