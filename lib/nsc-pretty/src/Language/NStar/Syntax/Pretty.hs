@@ -54,7 +54,7 @@ instance PrettyText Type where
   prettyText (Cons t1 t2) = prettyText t1 <> colon <> colon <> prettyText t2
   prettyText (Ptr t) = text "*" <> prettyText t
   prettyText (SPtr t) = text "sptr" <+> prettyText t
-  prettyText (Record maps open) = encloseSep lbrace rbrace comma (Map.foldlWithKey f [] maps <> [if open then text "| _" else empty])
+  prettyText (Record maps open) = encloseSep lbrace rbrace comma (Map.foldlWithKey f [] maps)
     where f list reg ty = (prettyText reg <+> colon <+> prettyText ty) : list
   prettyText (ForAll binds ty) = text "forall" <+> hsep (output <$> binds) <> dot <+> prettyText ty
     where output (var, kind) = parens $ prettyText var <+> colon <+> prettyText kind
