@@ -51,32 +51,33 @@ tc_ret p = do
   -- 2- we must be able to extract a pointer to a context, on top of the stack
   -- 3- everything we want to return in the context must already be found in the current context
 
-  funName <- gets (currentLabel . snd) >>= \case
+  gets (currentLabel . snd) >>= \case
     Nothing -> throwError (ToplevelReturn p)
-    Just l  -> pure l
-
+    Just l  -> pure ()
 
   stackVar <- freshVar "@" p
-  let minimalCtx = Record (Map.singleton (SP :@ p) (SPtr (Cons (Ptr (Record mempty True :@ p) :@ p) stackVar :@ p) :@ p)) True :@ p
-  currentCtx <- gets (currentTypeContext . snd)
+  retStack <- freshVar "@" p
 
-  catchError (unify (Record currentCtx False :@ p) minimalCtx)
+  currentCtx <- gets (currentTypeContext . snd)
+  spTy <- case Map.lookup (SP :@ p) currentCtx of
+    Nothing -> throwError (RegisterNotFoundInContext SP p (Map.keysSet currentCtx))
+    Just ty -> pure ty
+
+  sub1 <- unify spTy (SPtr stackVar :@ p)
+  let stackVar' = apply sub1 stackVar
+
+  catchError (unify stackVar' (Cons (Ptr (Record mempty True :@ p) :@ p) retStack :@ p))
              (const $ throwError (NoReturnAddress p currentCtx))
 
-  let removeStackTop (SPtr (Cons _ t :@ _) :@ p1) = pure (SPtr t :@ p1)
-      removeStackTop (t :@ p1)                    = throwError (NonStackPointerRegister t p p1)
-
-      getStackTop (SPtr (Cons t _ :@ _) :@ _)  = pure t
-      getStackTop (t :@ p1)                    = throwError (NonStackPointerRegister t p p1)
-
-  newStack <- case Map.lookup (SP :@ p) currentCtx of
-    Just s  -> do
-      ns <- removeStackTop s
-      pure (Map.adjust (const ns) (SP :@ p) currentCtx)
-    Nothing -> throwError (MissingRegistersInContext [SP] p)
+  stackHead <- freshVar "^" p
+  stackTail <- freshVar "$" p
+  sub <- unify stackVar' (Cons stackHead stackTail :@ p)
+  let stackHead' = apply sub stackHead
+      stackTail' = apply sub stackTail
+      newStack = Map.insert (SP :@ p) (SPtr stackTail' :@ p) currentCtx
 
   let returnShouldBe = Ptr (Record newStack False :@ p) :@ p
-  returnCtx <- getStackTop $ fromJust (Map.lookup (SP :@ p) currentCtx)
+      returnCtx = stackHead'
 
   let changeErrorIfMissingKey (DomainsDoNotSubtype (m1 :@ _) (m2 :@ _)) =
         ContextIsMissingOnReturn p (getPos returnCtx) (Map.keysSet m1 Set.\\ Map.keysSet m2)
@@ -273,7 +274,6 @@ tc_push (e :@ p1) unsafe p = do
     ty :@ p1 -> throwError (NonStackPointerRegister ty p p1)
 
   pure [exprTy]
-tc_push (e :@ p1) _ sp = internalError $ "Cannot handle PUSH from " <> show e
 
 tc_pop :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Bool -> Position -> Typechecker [Located Type]
 tc_pop (e :@ p1) unsafe p = do
@@ -315,7 +315,6 @@ tc_pop (e :@ p1) unsafe p = do
     _     -> do
       exprTy <- typecheckExpr e p1 unsafe
       error $ "Not handled: pop into " <> show e
-tc_pop (e :@ p1) _ sp = internalError $ "Cannot POP into " <> show e
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
