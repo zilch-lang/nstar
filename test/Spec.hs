@@ -3,6 +3,7 @@
 {-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Main (main) where
 
@@ -13,11 +14,9 @@ import qualified Data.Text.IO as Text
 import Language.NStar.Syntax (lexFile, parseFile, postProcessAST)
 import Language.NStar.Typechecker (typecheck, postProcessTypedAST)
 import Language.NStar.Branchchecker (branchcheck)
-import Language.NStar.CodeGen (compileToElf, compile, SupportedArch(..), Endianness(..), Size(..))
 import Data.List (isInfixOf)
-import Text.Diagnose ((<~<), prettyText, diagnostic, (<++>), reportError, Diagnostic)
+import Text.Diagnose ((<~<), prettyText)
 import Data.Bifunctor (first)
-import Control.Spoon (teaspoon)
 import Console.NStar.Flags (LexerFlags(..), ParserFlags(..), TypecheckerFlags(..))
 
 data Error
@@ -25,7 +24,6 @@ data Error
   | Ps
   | Tc
   | Bc
-  | Cg
   | Any
   | No
  deriving Eq
@@ -35,7 +33,6 @@ instance Show Error where
   show Ps = "parsing"
   show Tc = "type-checking"
   show Bc = "branch-checking"
-  show Cg = "code generation"
   show Any = "any"
   show No = "no"
 
@@ -69,7 +66,6 @@ check file = do
            | "error_ps_" `isInfixOf` file -> Ps
            | "error_tc_" `isInfixOf` file -> Tc
            | "error_bc_" `isInfixOf` file -> Bc
-           | "error_cg_" `isInfixOf` file -> Cg
            | "error_" `isInfixOf` file    -> Any
            | otherwise                    -> No
 
@@ -78,13 +74,12 @@ check file = do
         let ?parserFlags = ParserFlags {}
         let ?tcFlags     = TypecheckerFlags {}
 
-        (tokens, _) <- first (, Lx) $ lexFile file content
-        (ast, _) <- first (, Ps) $ parseFile file tokens
-        ast <- pure $ postProcessAST ast
-        (ast, _) <- first (, Tc) $ typecheck ast
-        ast <- pure $ postProcessTypedAST ast
-        _ <- first (, Bc) $ branchcheck ast
-        _ <- first (, Cg) $ maybeToEither errorCallCodeGen $ teaspoon (compile @S64 LE $ compileToElf X64 ast)
+        (tokens, _) <- first (, Lx) $! lexFile file content
+        (ast, _) <- first (, Ps) $! parseFile file tokens
+        ast <- pure $! postProcessAST ast
+        (ast, _) <- first (, Tc) $! typecheck ast
+        ast <- pure $! postProcessTypedAST ast
+        _ <- first (, Bc) $! branchcheck ast
         pure ast
 
   specify file $
@@ -99,9 +94,3 @@ check file = do
                                                show (prettyText (d <~< (file, lines $ Text.unpack content))))
       Right _ | expectedError /= No    -> expectationFailure ("Test should have failed in " <> show expectedError <> " phase, but passed all phases!")
               | otherwise              -> pure () -- test passes as expected
-
-maybeToEither :: e -> Maybe a -> Either e a
-maybeToEither e = maybe (Left e) Right
-
-errorCallCodeGen :: Diagnostic [] String Char
-errorCallCodeGen = diagnostic <++> reportError "Error call during code generation" [] []
