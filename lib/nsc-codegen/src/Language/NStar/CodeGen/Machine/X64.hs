@@ -109,6 +109,9 @@ compileInstrInterX64 (CALL (Name n :@ _) _) []                             =
 -- 50+rd	        PUSH r64	        O	Valid	        N.E.	                Push r64.
 compileInstrInterX64 (PUSH (Reg src :@ _)) [Register 64] =
   pure [Byte $ 0x50 + registerNumber (unLoc src)]
+-- 68 id	        PUSH imm32	        I	Valid	        Valid	                Push imm32.
+compileInstrInterX64 (PUSH src) [Unsigned 64] =
+  ([Byte 0x68] <>) <$> compileExprX64 32 (unLoc src)
 -- 58+ rd	        POP r64	        O	Valid	        N.E.	                Pop top of stack into r64; increment stack pointer. Cannot encode 32-bit operand size.
 compileInstrInterX64 (POP (Reg src :@ _)) [Register 64] =
   pure [Byte $ 0x58 + registerNumber (unLoc src)]
@@ -126,6 +129,7 @@ compileInstrInterX64 i args                                    =
 
 compileExprX64 :: Integer -> Expr -> Compiler [InterOpcode]
 compileExprX64 n (Imm i) = case (n, unLoc i) of
+  (32, I int) -> pure (Byte <$> int32 int)
   (64, I int) -> pure (Byte <$> int64 int)
   (64, C c)   -> pure (Byte <$> char8 c)
 -- ^^^^^ all these matches are intentionally left incomplete.
