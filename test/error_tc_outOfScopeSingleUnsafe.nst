@@ -1,0 +1,7 @@
+section code {
+    unsafe ret
+    unsafe { ret }
+    unsafe {
+        ret
+    }
+}

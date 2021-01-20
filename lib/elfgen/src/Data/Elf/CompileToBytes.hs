@@ -15,18 +15,17 @@ import Data.Elf.Internal.Endianness (Endianness(..))
 import Data.Elf.Internal.Serialize (Serializable(..), runPut)
 import Data.Elf.Object (ElfObject)
 import Data.ByteString.Lazy (ByteString, writeFile)
-import Data.Elf.Internal.Compile (unabstract)
+import Data.Elf.Internal.Compile (unabstract, CompileFor)
 import Data.Elf.Internal.Object (Object)
 import Data.Elf.Internal.FileHeader (Elf_Ehdr)
 import Data.Elf.Internal.ProgramHeader (Elf_Phdr)
 import Data.Elf.Internal.SectionHeader (Elf_Shdr)
-import Data.Elf.Types (ValueSet)
-import Data.Elf.Internal.Compile.ForArch (CompileFor)
+import Data.Elf.Types (ReifySize)
 import Data.Elf.FileHeader (ElfHeader)
 import Data.Elf.ProgramHeader (ProgramHeader)
 import Data.Elf.SectionHeader (SectionHeader)
-import Data.Elf.Symbol (ElfSymbol)
-import Data.Elf.Internal.Symbol (Elf_Sym)
+import Data.Elf.Symbol (RelocationSymbol, ElfSymbol)
+import Data.Elf.Internal.Symbol (Elf_Rela, Elf_Sym)
 
 -- | Completely compiles an abstract ELF file down to a 'ByteString' ready to be written to a file.
 --
@@ -35,14 +34,10 @@ import Data.Elf.Internal.Symbol (Elf_Sym)
 --   [An unabstracting stage] Where the abstract ELF file is broken down into a concrete representation ready to be serialized.
 --   [A serialization stage] Where the concrete representation is compiled down to simple binary data following the ELF specifications.
 compile :: forall (n :: Size) e.
-           ( ValueSet n
-           , Serializable n e (Elf_Ehdr n)
-           , Serializable n e (Elf_Phdr n)
-           , Serializable n e (Elf_Shdr n)
-           , Serializable n e (Elf_Sym n)
-           , CompileFor n ElfHeader Elf_Ehdr
-           , CompileFor n ProgramHeader Elf_Phdr
-           , CompileFor n SectionHeader Elf_Shdr
-           , CompileFor n ElfSymbol Elf_Sym
-           ) => Endianness e -> ElfObject n -> ByteString
-compile e = runPut . put @n e . unabstract
+           ( ReifySize n
+           , CompileFor n ElfObject Object
+           , Serializable n e (Object n)
+           ) => Endianness e -> ElfObject n -> IO ByteString
+compile e o = do
+  obj <- unabstract o
+  pure (runPut (put @n e obj))

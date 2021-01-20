@@ -1,6 +1,8 @@
-f: { %rax: u64 }
+section code {
+f: { %r0: u64 }
    jmp g
 
 g: {}
-   mov 0, %rax
+   mov 0, %r0
    jmp f
+}

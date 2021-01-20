@@ -1,4 +1,6 @@
-w: { %rax: u64 }
+section code {
+w: { %r0: u64 }
    jmp k<>
 
-k: forall (a: T8). { %rbx: a }
+k: forall (a: T8). { %r3: a }
+}

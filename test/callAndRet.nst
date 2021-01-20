@@ -1,7 +1,9 @@
-main: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s, %rax: s64 }::s }
-      call g<*{ %rsp: sptr s, %rax: s64 }::s>
+section code {
+main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r0: s64 }::s }
+      call g<*{ %sp: sptr s, %r0: s64 }::s>
       ret
 
-g: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s, %rax: s64 }::s }
-   mov 0, %rax
+g: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r0: s64 }::s }
+   mov 0, %r0
    ret
+}

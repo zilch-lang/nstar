@@ -1,7 +1,9 @@
-f: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s }::s }
-   call g<*{ %rsp: sptr s }::s>
-   mov %rbx, %rax        # %rbx has not been set nor returned by `g` so it's an error
+section code {
+f: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
+   call g<*{ %sp: sptr s }::s>
+   mov %r3, %r0        # %rbx has not been set nor returned by `g` so it's an error
    ret
 
-g: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s }::s }
+g: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
    ret
+}

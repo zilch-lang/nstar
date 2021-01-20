@@ -1,1 +1,3 @@
-mov %eax, %rax
+section code {
+mov %r8, %r0
+}

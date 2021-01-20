@@ -1,2 +1,4 @@
-f: forall (x: Ta). { %rsp: *s64 }
-   mov %rax, %rax    # test comment
+section code {
+f: forall (x: Ta). { %sp: *s64 }
+   mov %r0, %r0    # test comment
+}

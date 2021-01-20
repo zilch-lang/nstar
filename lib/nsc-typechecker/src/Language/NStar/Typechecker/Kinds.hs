@@ -68,7 +68,7 @@ kindcheckType ctx (ForAll newCtx ty :@ _)                = kindcheckType (Map.fr
 kindcheckType ctx (Var v :@ _)                           = maybe (throwError (UnboundTypeVariable v)) pure (Map.lookup v ctx)
 kindcheckType _ (FVar v :@ _)                            = throwError (UnboundTypeVariable v)
 kindcheckType ctx (Ptr t :@ p)                           = (T8 :@ p) <$ kindcheckType ctx t
-kindcheckType ctx (SPtr t@(_ :@ p1) :@ p)                = (Ts :@ p) <$ (requireStackType p1 =<< kindcheckType ctx t)
+kindcheckType ctx (SPtr t@(_ :@ p1) :@ p)                = (T8 :@ p) <$ (requireStackType p1 =<< kindcheckType ctx t)
 kindcheckType ctx (Cons t1@(_ :@ p1) t2@(_ :@ p2) :@ p)  = do
   liftA2 (*>) (requireDataType p1) (requireSized p1) =<< kindcheckType ctx t1
   requireStackType p2 =<< kindcheckType ctx t2
@@ -76,8 +76,8 @@ kindcheckType ctx (Cons t1@(_ :@ p1) t2@(_ :@ p2) :@ p)  = do
 kindcheckType ctx (Record mappings _ :@ p)               =
   (Ta :@ p) <$ Map.traverseWithKey handleTypeFromRegister mappings
        -- FIXME: Kind checking does not take into account the size of the types, so if they are sized, they all are 8-bytes big at the moment.
- where handleTypeFromRegister (RSP :@ _) ty@(_ :@ p) = requireStackType p =<< kindcheckType ctx ty
-       handleTypeFromRegister _ ty@(_ :@ p)          = liftA2 (*>) (requireDataType p) (requireSized p) =<< kindcheckType ctx ty
+ where handleTypeFromRegister (SP :@ _) (SPtr ty :@ _)   = requireStackType p =<< kindcheckType ctx ty
+       handleTypeFromRegister _ ty@(_ :@ p)              = liftA2 (*>) (requireDataType p) (requireSized p) =<< kindcheckType ctx ty
 kindcheckType _ (Register _ :@ p)                        = pure (T8 :@ p)
      -- NOTE: just a kind placeholder. rN types never appear after parsing.
 

@@ -1,0 +1,11 @@
+section data {
+x: u64
+   9
+y: u64
+   8
+}
+
+section code {
+main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
+    ret
+}

@@ -8,7 +8,7 @@ import Control.Monad.Except
 import Control.Monad.State
 import Language.NStar.Branchchecker.Errors
 import Language.NStar.Typechecker.Core
-import Data.Bifunctor (first, second)
+import Data.Bifunctor (first, second, bimap)
 import Control.Monad (forM_, unless)
 import Data.Located (Located(..), unLoc)
 import Data.Text (Text)
@@ -20,15 +20,18 @@ import Debug.Trace (traceShow)
 import Internal.Error (internalError)
 import Control.Applicative ((<|>))
 import Language.NStar.Syntax.Core hiding (Token(..))
+import Data.Foldable (foldl')
+import Control.Monad.Writer (WriterT, runWriterT)
 
-type Checker a = StateT (Maybe (Located Text), JumpGraph) (Except BranchcheckerError) a
+type Checker a = StateT (Maybe (Located Text), JumpGraph) (WriterT [BranchcheckerWarning] (Except BranchcheckerError)) a
 
-branchcheck :: TypedProgram -> Either (Diagnostic s String m) ()
-branchcheck p = first toDiagnostic $ runExcept (evalStateT (branchcheckProgram p) (Nothing, Graph.empty))
+branchcheck :: TypedProgram -> Either (Diagnostic s String m) (Diagnostic s String m)
+branchcheck p = bimap toDiagnostic (toDiagnostic' . snd) $ runExcept (runWriterT (evalStateT (branchcheckProgram p) (Nothing, Graph.empty)))
   where toDiagnostic = (diagnostic <++>) . fromBranchcheckerError
+        toDiagnostic' = foldl' (<++>) diagnostic . fmap fromBranchcheckerWarning
 
 branchcheckProgram :: TypedProgram -> Checker ()
-branchcheckProgram (TProgram stts) = do
+branchcheckProgram (TProgram (TData d :@ _) (TROData rd :@ _) (TUData ud :@ _) (TCode stts :@ _)) = do
   forM_ stts registerAllLabelsAsVertices
   forM_ stts registerEdges
 

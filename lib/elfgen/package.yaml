@@ -2,7 +2,25 @@ name: elfgen
 version: 1.0.0
 
 library:
-  source-dirs: src
+  source-dirs:
+  - src
+  - cbits
+  include-dirs:
+  - cbits/include
+  c-sources:
+  - cbits/elf64/object.c
+  - cbits/elf64/compile.c
+  - cbits/elf64/fix.c
+  - cbits/elf64/internal_fix.c
+  - cbits/strings.c
+  cpp-options:
+  - -Wall
+  - -Wextra
+
+  when:
+  - condition: flag(debug)
+    cpp-options:
+    - -g
 
 default-extensions:
 - LambdaCase
@@ -26,3 +44,11 @@ dependencies:
 - binary
 - containers
 - text
+- some
+- insert-ordered-containers
+
+flags:
+  debug:
+    description: "Enable/disable compiling with debugging symbols"
+    manual: true
+    default: false

@@ -3,10 +3,6 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 
 {-|
   Module: Language.NStar.Syntax.Lexer
@@ -21,7 +17,6 @@ module Language.NStar.Syntax.Lexer
 
 import Language.NStar.Syntax.Core (Token(..), LToken)
 import Language.NStar.Syntax.Internal (located, megaparsecBundleToDiagnostic)
-import Language.NStar.Syntax.Hints (Hintable(..))
 import qualified Text.Megaparsec as MP
 import qualified Text.Megaparsec.Char as MPC
 import qualified Text.Megaparsec.Char.Lexer as MPL
@@ -29,30 +24,15 @@ import Data.Text (Text)
 import qualified Data.Text as Text (pack, toLower)
 import Data.Char (isSpace)
 import Data.Function ((&))
-import Text.Diagnose (Diagnostic, hint)
-import Data.Bifunctor (first)
-import Data.Data (Data)
-import Data.Typeable (Typeable)
+import Text.Diagnose (Diagnostic, diagnostic, (<++>))
+import Data.Bifunctor (first, second, bimap)
 import Control.Applicative (liftA2)
 import Console.NStar.Flags (LexerFlags(..))
+import Control.Monad.Writer (WriterT, runWriterT)
+import Data.Foldable (foldl')
+import Language.NStar.Syntax.Errors
 
-type Lexer a = MP.Parsec LexicalError Text a
-
--- | The type of possible custom lexical errors, detected during lexing.
-data LexicalError
-  = UnrecognizedEscapeSequence  -- ^ An escape sequence as not been recognized or is not valid
-  deriving (Ord, Eq, Typeable, Data, Read)
-
-instance Show LexicalError where
-  show UnrecognizedEscapeSequence = "unrecognized character escape sequence"
-
-instance MP.ShowErrorComponent LexicalError where
-  showErrorComponent = show
-
-instance Hintable LexicalError String where
-  hints UnrecognizedEscapeSequence =
-    [hint "Valid escape sequences are all documented at <https://github.com/nihil-lang/nsc/blob/develop/docs/escape-sequences.md>."]
-
+type Lexer a = WriterT [LexicalWarning] (MP.Parsec LexicalError Text) a
 
 -- | @space@ only parses any whitespace (not accounting for newlines and vertical tabs) and discards them.
 space :: (?lexerFlags :: LexerFlags) => Lexer ()
@@ -77,9 +57,11 @@ symbol' = MPL.symbol' space
 lexFile :: (?lexerFlags :: LexerFlags)
         => FilePath                                     -- ^ File name
         -> Text                                         -- ^ File content
-        -> Either (Diagnostic [] String Char) [LToken]
-lexFile = first (megaparsecBundleToDiagnostic "Lexical error on input") .: MP.runParser lexProgram
-  where (.:) = (.) . (.)
+        -> Either (Diagnostic [] String Char) ([LToken], Diagnostic [] String Char)
+lexFile file input =
+  bimap (megaparsecBundleToDiagnostic "Lexical error on input") (second toDiagnostic) $ MP.runParser (runWriterT lexProgram) file input
+  where
+    toDiagnostic warns = foldl' (<++>) diagnostic (fromLexicalWarning <$> warns)
 
 
 -- | Transforms a source code into a non-empty list of tokens (accounting for 'EOF').
@@ -121,7 +103,7 @@ anySymbol = lexeme . located . MP.choice $ sat <$> symbols
      , (Comma, ",")
      , (DoubleColon, "::"), (Colon, ":")
      , (Dot, ".")
-     , (Minus, "-") ]
+     , (Minus, "-"), (Plus, "+") ]
 
 -- | Tries to parse an identifier. If the result appears to be a keyword, it instead returns a keyword.
 identifierOrKeyword :: (?lexerFlags :: LexerFlags) => Lexer LToken
@@ -133,24 +115,29 @@ identifierOrKeyword = lexeme $ located do
     transform :: Text -> Token
     transform w@(Text.toLower -> rw) = case rw of
       -- Instructions
-      "mov"    -> Mov
-      "ret"    -> Ret
-      "jmp"    -> Jmp
-      "call"   -> Call
+      "mov"     -> Mov
+      "ret"     -> Ret
+      "jmp"     -> Jmp
+      "call"    -> Call
+      "push"    -> Push
+      "pop"     -> Pop
+      "nop"     -> Nop
       -- Registers
-      "rax"    -> Rax
-      "rbx"    -> Rbx
-      "rcx"    -> Rcx
-      "rdx"    -> Rdx
-      "rdi"    -> Rdi
-      "rsi"    -> Rsi
-      "rsp"    -> Rsp
-      "rbp"    -> Rbp
+      "r0"      -> R0'
+      "r1"      -> R1'
+      "r2"      -> R2'
+      "r3"      -> R3'
+      "r4"      -> R4'
+      "r5"      -> R5'
+      "sp"      -> SP'
+      "bp"      -> BP'
       -- Keywords
-      "forall" -> Forall
-      "sptr"   -> Sptr
+      "forall"  -> Forall
+      "sptr"    -> Sptr
+      "unsafe"  -> UnSafe
+      "section" -> Section
       -- Identifier
-      _        -> Id w
+      _         -> Id w
 
 -- | Parses a literal value (integer or character).
 literal :: (?lexerFlags :: LexerFlags) => Lexer LToken

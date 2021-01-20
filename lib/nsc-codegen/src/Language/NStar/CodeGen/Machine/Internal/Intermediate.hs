@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Language.NStar.CodeGen.Machine.Internal.Intermediate
 ( InterOpcode(..)
 ) where
@@ -11,8 +13,14 @@ import Data.Text (Text)
 -- ^ Represents an intermediate instruction, where jumps and labels are explicit.
 data InterOpcode
   -- | Any byte
-  = Byte Word8
+  = Byte !Word8
   -- | A label (jump destination)
-  | Label Text
-  -- | An unconditional jump to a given label
-  | Jump Text
+  | Label !Text
+  -- | A jump to a given label
+  | Jump !Text
+  -- | A data access through a label (disp32)
+  | Symbol32 !Text
+      Integer -- ^ The offset from the label
+  -- | The address of a label (imm64)
+  | Symbol64 !Text
+  deriving (Show)

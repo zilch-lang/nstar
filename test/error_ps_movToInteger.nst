@@ -1,34 +1,3 @@
-/*
-    Related issue: #3
-    Integers have to be represented as text tokens, because
-    any leading '0' will get erased by the integer representation.
-    Integer are then `read` in the parser.
-
-    Incorrect error:
-
- [error]: Parse error on input
-      In: test/error_movToInteger.nst
-
-  9| mov %0123, %rax
-          ^ unrecognized register '123'
-
- Registers are fixed depending on the target architecture.
- Registers available in different architectures are documented here:
- <https://github.com/nihil-lang/nsc/blob/develop/docs/registers.md>.
-
-
-    Correct error:
-
- [error]: Parse error on input
-      In: test/error_movToInteger.nst
-
-  9| mov %0123, %rax
-          ^ unrecognized register '0123'
-
- Registers are fixed depending on the target architecture.
- Registers available in different architectures are documented here:
- <https://github.com/nihil-lang/nsc/blob/develop/docs/registers.md>.
-
-*/
-
-mov %rax, %0123
+section code {
+        mov %r0, %0123
+}

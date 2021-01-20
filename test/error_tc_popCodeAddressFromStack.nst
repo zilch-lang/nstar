@@ -1,0 +1,22 @@
+section code {
+main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r0: u64 }::s }
+  call g<*{ %sp: sptr s, %r0: u64 }::s>                                                                    # ctx = { %sp: sptr *{ %sp: sptr s, %r0: u64 }::s, %r0: u64 }
+  # dead code                                                                                              
+  jmp c_leak<s>                                                                                            # ctx = { %sp: sptr *{ %sp: sptr s, %r0: u64 }::s, %r0: u64 }
+c_leak: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r3: u64 }::s, %r0: u64 }
+  mov %r0, %r3                                                                                             # ctx = { %sp: sptr *{ %sp: sptr s, %r3: u64 }::s, %r0: u64, %r3: u64 }
+  ret                                                                                                      
+
+g: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r3: u64 }::s }
+  call leak<s>                                                                                             # ctx = { %sp: sptr *{ %sp: sptr s, %r3: u64 }::s, %r0: u64 }
+  jmp c_leak<s>                                                                                            # ctx = { %sp: sptr *{ %sp: sptr s, %r3: u64 }::s, %r0: u64 }
+
+  # dead code
+  mov 0, %r3                                                                                               # ctx = { %sp: sptr *{ %sp: sptr s, %r0: u64 }::s, %r0: u64 }
+  ret 
+
+leak: forall (s: Ts). { %sp: sptr *{ %sp: sptr *{ %sp: sptr s, %r3: u64 }::s, %r0: u64 }::*{ %sp: sptr *{ %sp: sptr s, %r3: u64 }::s, %r3: u64 }::s }
+  pop %r4                                                                                                  # error: code-space address is on top of the stack
+  mov 0, %r3                                                                                               # ctx = { %sp: sptr *{ %sp: sptr s, %r3: u64 }::s, %r3: u64 }
+  ret
+}

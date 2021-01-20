@@ -1,0 +1,5 @@
+section code {
+main: { %sp: u64 }
+      push 0
+      ret
+}

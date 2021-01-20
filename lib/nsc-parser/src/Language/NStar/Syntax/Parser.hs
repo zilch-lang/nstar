@@ -1,7 +1,3 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE EmptyDataDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
 
@@ -22,33 +18,19 @@ import qualified Text.Megaparsec as MP
 import qualified Text.Megaparsec.Char.Lexer as MPL
 import Language.NStar.Syntax.Core
 import Language.NStar.Syntax.Internal
-import Language.NStar.Syntax.Hints (Hintable(..))
-import Text.Diagnose (Diagnostic, hint)
-import Data.Bifunctor (first)
-import Data.Data (Data)
-import Data.Typeable (Typeable)
+import Text.Diagnose (Diagnostic, diagnostic, (<++>))
+import Data.Bifunctor (bimap, second)
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Data.Located (Located(..), unLoc)
+import Data.Located (Located(..), unLoc, getPos)
 import qualified Data.Map as Map (fromList)
 import Console.NStar.Flags (ParserFlags(..))
+import Control.Monad.Writer (WriterT, runWriterT)
+import Data.Foldable (foldl')
+import Language.NStar.Syntax.Errors
+import Debug.Trace (trace)
 
-type Parser a = MP.Parsec SemanticError [LToken] a
-
-data SemanticError
-  = NoSuchRegister Token
-  deriving (Eq, Ord, Data, Typeable)
-
-instance Show SemanticError where
-  show (NoSuchRegister t) = "unrecognized register " <> showToken t
-
-instance MP.ShowErrorComponent SemanticError where
-  showErrorComponent = show
-
-instance Hintable SemanticError String where
-  hints (NoSuchRegister _) =
-    [ hint "Registers are fixed depending on the target architecture."
-    , hint "Registers available in different architectures are documented here: <https://github.com/nihil-lang/nsc/blob/develop/docs/registers.md>." ]
+type Parser a = WriterT [ParseWarning] (MP.Parsec SemanticError [LToken]) a
 
 lexeme :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
 lexeme = MPL.lexeme (MPL.space MP.empty inlineComment multilineComment)
@@ -63,15 +45,24 @@ lexeme = MPL.lexeme (MPL.space MP.empty inlineComment multilineComment)
 -------------------------------------------------------------------------------------------------
 
 -- | Turns a list of tokens into an AST, as long as tokens are well ordered. Else, it throws an error.
-parseFile :: (?parserFlags :: ParserFlags) => FilePath -> [LToken] -> Either (Diagnostic [] String Char) Program
-parseFile = first (megaparsecBundleToDiagnostic "Parse error on input") .: MP.runParser parseProgram
-  where (.:) = (.) . (.)
+parseFile :: (?parserFlags :: ParserFlags) => FilePath -> [LToken] -> Either (Diagnostic [] String Char) (Program, Diagnostic [] String Char)
+parseFile file tokens = bimap (megaparsecBundleToDiagnostic "Parse error on input") (second toDiagnostic) $ MP.runParser (runWriterT parseProgram) file tokens
+  where toDiagnostic = foldl' (<++>) diagnostic . fmap fromParseWarning
 
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program
-parseProgram = noise *> (Program <$> MP.many instructions) <* parseEOF
-  where instructions = located (parseTypedLabel MP.<|> parseInstructionCall) <* (() <$ MP.many parseEOL MP.<|> parseEOF)
-        noise = lexeme (pure ()) *> MP.many (lexeme (MP.try parseEOL))
+parseProgram = MP.optional eol *> (Program <$> MP.many section) <* parseEOF
+  where section = located (MP.choice [ MP.try parseCodeSection, parseDataSection ]) <* eol
+
+parseCodeSection :: (?parserFlags :: ParserFlags) => Parser Section
+parseCodeSection = Code <$> (parseSymbol Section *> parseSymbol (Id "code") *> betweenBraces (MP.optional eol *> MP.many instruction))
+  where instruction = located (parseUnsafeBlock MP.<|> parseTypedLabel MP.<|> parseInstruction) <* eol
+
+parseDataSection :: (?parserFlags :: ParserFlags) => Parser Section
+parseDataSection = Data <$> (parseSymbol Section *> parseSymbol (Id "data") *> betweenBraces (MP.optional eol *> MP.many (located binding)))
+  where binding = Bind <$> (parseIdentifier <* parseSymbol Colon)
+                       <*> (located parseType <* eol)
+                       <*> (located parseConstant <* eol)
 
 -- | Parses the end of file. There is no guarantee that any parser will try to parse something after the end of file.
 --   This has to be dealt with on our own. No more token should be available after consuming the end of file.
@@ -98,14 +89,14 @@ parseSymbol t1 = MP.label (showToken t1) . lexeme $ MP.satisfy \ (t2 :@ _) -> t2
 parseRegister :: (?parserFlags :: ParserFlags) => Parser Register
 parseRegister = MP.label "a register" $ parseSymbol Percent *> reg
   where reg = MP.choice
-          [ RAX <$ parseSymbol Rax
-          , RBX <$ parseSymbol Rbx
-          , RCX <$ parseSymbol Rcx
-          , RDX <$ parseSymbol Rdx
-          , RSI <$ parseSymbol Rsi
-          , RDI <$ parseSymbol Rdi
-          , RSP <$ parseSymbol Rsp
-          , RBP <$ parseSymbol Rbp
+          [ R0 <$ parseSymbol R0'
+          , R1 <$ parseSymbol R1'
+          , R2 <$ parseSymbol R2'
+          , R3 <$ parseSymbol R3'
+          , R4 <$ parseSymbol R4'
+          , R5 <$ parseSymbol R5'
+          , SP <$ parseSymbol SP'
+          , BP <$ parseSymbol BP'
           , MP.lookAhead MP.anySingle >>= MP.customFailure . NoSuchRegister . unLoc ]
 
 parseInteger :: (?parserFlags :: ParserFlags) => Parser (Located Integer)
@@ -153,20 +144,37 @@ sepBy1 :: (?parserFlags :: ParserFlags) => Parser a -> Parser b -> Parser [a]
 sepBy1 p sep = (:) <$> p <*> MP.many (sep *> p)
 
 
+-----------------------------------
+
+eol :: (?parserFlags :: ParserFlags) => Parser ()
+eol = lexeme (pure ()) *> (MP.lookAhead parseEOF MP.<|> MP.skipSome (lexeme parseEOL))
+
 -- | Parses a typed label.
 parseTypedLabel :: (?parserFlags :: ParserFlags) => Parser Statement
 parseTypedLabel = lexeme $
   Label <$> (parseIdentifier <* parseSymbol Colon)
-        <*> located (parseForallType (parseRecordType True) MP.<|> parseRecordType True)
+        <*> (located (parseForallType (parseRecordType True) MP.<|> parseRecordType True))
 
 -- | Parses an instruction call from the N*'s instruction set.
-parseInstructionCall :: (?parserFlags :: ParserFlags) => Parser Statement
-parseInstructionCall = MP.choice $ fmap Instr <$>
+parseInstruction :: (?parserFlags :: ParserFlags) => Parser Statement
+parseInstruction = lexeme $ Instr <$> MP.choice
   [ parseMov
   , parseRet
   , parseJmp
   , parseCall
+  , parsePush
+  , parsePop
+  , parseNop
   ]
+
+parseUnsafeBlock :: (?parserFlags :: ParserFlags) => Parser Statement
+parseUnsafeBlock = lexeme $ fmap Unsafe $ parseSymbol UnSafe *> MP.choice
+  [ betweenBraces (MP.optional eol *> MP.choice
+                   [ pure <$> located parseInstruction
+                   , located (parseTypedLabel MP.<|> parseInstruction) `sepBy` eol ] <* MP.optional eol)
+  , pure <$> located parseInstruction
+  ]
+
 
 ------------------------------------------------------------------------------------------------------------
 
@@ -239,12 +247,13 @@ parseKind = MP.choice
 
 -- | Parses any kind of expression.
 parseExpr :: (?parserFlags :: ParserFlags) => Parser Expr
-parseExpr = parseValueExpr MP.<|> parseAddressExpr
+parseExpr = parseAddressExpr MP.<|> parseValueExpr
 
 -- | Parses only expressions that cannot be indexed.
 parseValueExpr :: (?parserFlags :: ParserFlags) => Parser Expr
 parseValueExpr = lexeme $ MP.choice
-  [ Imm <$> located parseImmediate ]
+  [ Imm <$> located parseImmediate
+  , Reg <$> located parseRegister ]
 
 -- | Parses an immediate literal value.
 parseImmediate :: (?parserFlags :: ParserFlags) => Parser Immediate
@@ -256,8 +265,8 @@ parseImmediate = MP.choice
 parseAddressExpr :: (?parserFlags :: ParserFlags) => Parser Expr
 parseAddressExpr = lexeme $ MP.choice
   [ parseLabel
-  , Reg <$> located parseRegister
-  , parseIndexedExpr ]
+  , MP.try parseIndexedExpr
+  , Reg <$> located parseRegister ]
 
 -- | Parses a literal label name.
 parseLabel :: (?parserFlags :: ParserFlags) => Parser Expr
@@ -265,14 +274,29 @@ parseLabel = Name <$> parseIdentifier
 
 -- | Parses an indexed addressable expression.
 parseIndexedExpr :: (?parserFlags :: ParserFlags) => Parser Expr
-parseIndexedExpr = MP.label "an indexed expression" $
-  Indexed <$> located parseSignedInteger
+parseIndexedExpr = MP.label "an indexed expression" $ do
+  source <- getPos <$> located (pure ())
+  Indexed <$> (MP.option (Imm (I 0 :@ source) :@ source) (located parseValueExpr))
           <*> betweenParens (located parseAddressExpr)
 
 parseSignedInteger :: (?parserFlags :: ParserFlags) => Parser Integer
-parseSignedInteger = (*) <$> sign <*> (unLoc <$> parseInteger)
+parseSignedInteger = MP.label "an integer" $ (*) <$> sign <*> (unLoc <$> parseInteger)
  where
-   sign = MP.choice [ -1 <$ parseSymbol Minus, 1 <$ pure () ]
+   sign = MP.choice [ -1 <$ parseSymbol Minus, 1 <$ parseSymbol Plus, 1 <$ pure () ]
+
+----------------------------------------------------------------------------------------------------------------
+
+parseConstant :: (?parserFlags :: ParserFlags) => Parser Constant
+parseConstant = parseIntegerConstant MP.<|> parseCharacterConstant MP.<|> parseArrayConstant
+
+parseIntegerConstant :: (?parserFlags :: ParserFlags) => Parser Constant
+parseIntegerConstant = MP.label "an integer constant" $ CInteger <$> located parseSignedInteger
+
+parseCharacterConstant :: (?parserFlags :: ParserFlags) => Parser Constant
+parseCharacterConstant = MP.label "a character constant" $ CCharacter <$> parseCharacter
+
+parseArrayConstant :: (?parserFlags :: ParserFlags) => Parser Constant
+parseArrayConstant = MP.label "an array constant" $ CArray <$> betweenBrackets (MP.many (located parseConstant))
 
 ----------------------------------------------------------------------------------------------------------------
 
@@ -306,3 +330,16 @@ parseCall =
   parseSymbol Call *>
     (CALL <$> located parseLabel
           <*> MP.option [] (betweenAngles (parseSpecialization `MP.sepBy` parseSymbol Comma)))
+
+parsePush :: (?parserFlags :: ParserFlags) => Parser Instruction
+parsePush =
+  parseSymbol Push *>
+        (PUSH <$> located parseExpr)
+
+parsePop :: (?parserFlags :: ParserFlags) => Parser Instruction
+parsePop =
+  parseSymbol Pop *>
+        (POP <$> located parseAddressExpr)
+
+parseNop :: (?parserFlags :: ParserFlags) => Parser Instruction
+parseNop = NOP <$ parseSymbol Nop

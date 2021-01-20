@@ -11,16 +11,28 @@ import Text.Diagnose (PrettyText(..))
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 import Language.NStar.Syntax.Core
 import qualified Data.Text as Text
-import Data.Located (unLoc, Located)
+import Data.Located (unLoc, Located((:@)))
 import qualified Data.Map as Map
 
 instance PrettyText Program where
-  prettyText (Program stts) =
-    vsep (fmap prettyText stts)
+  prettyText (Program stts) = vsep (fmap prettyText stts)
+
+instance PrettyText Section where
+  prettyText (Code sect)   = text "section code {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (Data sect)   = text "section data {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (ROData sect) = text "section rodata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (UData sect)  = text "section udata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+
+instance PrettyText Binding where
+  prettyText (Bind name ty cst) = prettyText name <> colon <+> prettyText ty <> line <> indent 4 (prettyText cst)
+
+instance PrettyText ReservedSpace where
+  prettyText (ReservedBind name ty) = prettyText name <> colon <+> prettyText ty
 
 instance PrettyText Statement where
   prettyText (Label name ty) = prettyText name <> colon <+> prettyText ty
   prettyText (Instr i)       = prettyText i
+  prettyText (Unsafe is)     = text "unsafe {" <> line <> vsep (fmap prettyText is) <> line <> "}"
 
 instance PrettyText Kind where
   prettyText T8 = text "T8"
@@ -42,7 +54,7 @@ instance PrettyText Type where
   prettyText (Cons t1 t2) = prettyText t1 <> colon <> colon <> prettyText t2
   prettyText (Ptr t) = text "*" <> prettyText t
   prettyText (SPtr t) = text "sptr" <+> prettyText t
-  prettyText (Record maps open) = encloseSep lbrace rbrace comma (Map.foldlWithKey f [] maps <> [if open then text "| _" else empty])
+  prettyText (Record maps open) = encloseSep lbrace rbrace comma (Map.foldlWithKey f [] maps)
     where f list reg ty = (prettyText reg <+> colon <+> prettyText ty) : list
   prettyText (ForAll binds ty) = text "forall" <+> hsep (output <$> binds) <> dot <+> prettyText ty
     where output (var, kind) = parens $ prettyText var <+> colon <+> prettyText kind
@@ -50,24 +62,35 @@ instance PrettyText Type where
 instance PrettyText Register where
   prettyText = (text "%" <>) . text . f
     where
-      f RAX = "rax"
-      f RBX = "rbx"
-      f RCX = "rcx"
-      f RDX = "rdx"
-      f RSI = "rsi"
-      f RDI = "rdi"
-      f RBP = "rbp"
-      f RSP = "rsp"
+      f R0 = "r0"
+      f R1 = "r1"
+      f R2 = "r2"
+      f R3 = "r3"
+      f R4 = "r4"
+      f R5 = "r5"
+      f BP = "bp"
+      f SP = "sp"
 
 instance PrettyText Instruction where
-  prettyText (MOV s d)     = text "mov" <+> prettyText s <> comma <+> prettyText d
-  prettyText (RET)         = text "ret"
-  prettyText (JMP lbl tys) = text "jmp" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
+  prettyText (MOV s d)      = text "mov" <+> prettyText s <> comma <+> prettyText d
+  prettyText (RET)          = text "ret"
+  prettyText (JMP lbl tys)  = text "jmp" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
+  prettyText (CALL lbl tys) = text "call" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
+  prettyText (ADD inc dst)  = text "add" <+> prettyText inc <> comma <+> prettyText dst
+  prettyText (PUSH val)     = text "push" <+> prettyText val
+  prettyText (POP dst)      = text "pop" <+> prettyText dst
+  prettyText (SUB inc dst)  = text "sub" <+> prettyText inc <> comma <+> prettyText dst
+  prettyText (NOP)          = text "nop"
+
+instance PrettyText Constant where
+  prettyText (CInteger (i :@ _))   = integer i
+  prettyText (CCharacter (c :@ _)) = char c
+  prettyText (CArray csts)         = lbracket <> hsep (fmap prettyText csts) <+> rbracket
 
 instance PrettyText Expr where
   prettyText (Imm i) = prettyText i
   prettyText (Name n) = text (Text.unpack (unLoc n))
-  prettyText (Indexed idx e) = integer (unLoc idx) <> parens (prettyText e)
+  prettyText (Indexed idx e) = prettyText idx <> parens (prettyText e)
   prettyText (Reg r) = prettyText r
   prettyText (Spec e ty) = prettyText e <> angles (prettyText ty)
 

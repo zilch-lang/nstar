@@ -1,4 +1,6 @@
-main: forall (s: Ts). { %rsp: sptr *{ %rsp: sptr s, %rbx: *s64 }::s }
-  mov 0, %rax
-  mov %rax, %rbx
+section code {
+main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r3: *s64 }::s }
+  mov 0, %r0
+  mov %r0, %r3
   ret
+}

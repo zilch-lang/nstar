@@ -27,9 +27,42 @@ import Data.Data (Data)
 import Data.Typeable (Typeable)
 
 newtype Program
-  = Program [Located Statement]  -- ^ A program is a possibily empty list of statements
+  = Program [Located Section]  -- ^ A program is a (possibly empty) list of sections
 
 deriving instance Show Program
+
+data Section where
+  -- | The @code@ section
+  Code :: [Located Statement]
+       -> Section
+  -- | The @data@ section
+  Data :: [Located Binding]
+       -> Section
+  -- | The @rodata@ section
+  ROData :: [Located Binding]
+         -> Section
+  -- | The @udata@ section
+  UData :: [Located ReservedSpace]
+        -> Section
+
+deriving instance Show Section
+
+data Binding where
+  -- | An initialized data binding
+  Bind :: Located Text
+       -> Located Type
+       -> Located Constant
+       -> Binding
+
+deriving instance Show Binding
+
+data ReservedSpace where
+  -- | An uninitialized data binding (in the @udata@ section)
+  ReservedBind :: Located Text
+               -> Located Type
+               -> ReservedSpace
+
+deriving instance Show ReservedSpace
 
 -- | A statement is either
 data Statement where
@@ -39,6 +72,8 @@ data Statement where
         -> Statement
   -- | An instruction call
   Instr :: Instruction -> Statement
+  -- | An unsafe block
+  Unsafe :: [Located Statement] -> Statement
 
 deriving instance Show Statement
 
@@ -96,13 +131,10 @@ deriving instance Show Kind
 deriving instance Eq Kind
 
 data Register where
-  -- | 64 bits single-value registers
-  RAX, RBX, RCX, RDX, RDI, RSI, RBP :: Register
-  -- | 64 bits stack registers
-  RSP :: Register
-  {- We do not permit using registers like %rip, %flags, etc.
-     Those are used internally by some instructions.
-  -}
+  -- | General purpose register
+  R0, R1, R2, R3, R4, R5 :: Register
+  -- | Pointer register
+  SP, BP :: Register
 
 deriving instance Show Register
 deriving instance Eq Register
@@ -110,11 +142,11 @@ deriving instance Ord Register
 
 -- | N*'s instruction set
 data Instruction where
-  -- | @mov a, v@ is the same as @a <- v@.
+  -- | @mov a, v@ is the same as @v <- a@.
   MOV :: Located Expr         -- ^ The destination of the move. It must be addressable
       -> Located Expr         -- ^ The source value moved into the destination
       -> Instruction
-  -- | @ret@ returns the value in @'RAX'@ to the caller.
+  -- | @ret@ returns to the address on top of the stack.
   RET :: Instruction
   -- | @jmp@ alters the control flow by unconditionally jumping to the given address.
   JMP :: Located Expr
@@ -125,10 +157,39 @@ data Instruction where
   CALL :: Located Expr
        -> [Located Type]
        -> Instruction
+  -- |
+  ADD :: Located Expr    -- ^ The source operand
+      -> Located Expr    -- ^ The increment value
+      -> Instruction
+  -- |
+  PUSH :: Located Expr
+       -> Instruction
+  -- |
+  POP :: Located Expr
+      -> Instruction
+  -- |
+  SUB :: Located Expr
+      -> Located Expr
+      -> Instruction
+  -- |
+  NOP :: Instruction
 
   -- TODO: add more instructions
 
 deriving instance Show Instruction
+
+data Constant where
+  -- | A constant integer
+  CInteger :: Located Integer
+           -> Constant
+  -- | A constant character
+  CCharacter :: Located Char
+             -> Constant
+  -- | An array of constants
+  CArray :: [Located Constant]
+         -> Constant
+
+deriving instance Show Constant
 
 data Expr where
   -- | An immediate value (@$⟨val⟩@)
@@ -138,7 +199,7 @@ data Expr where
   Name :: Located Text
        -> Expr
   -- | An indexed expression (@⟨idx⟩[⟨expr⟩]@)
-  Indexed :: Located Integer        -- ^ \- @⟨idx⟩@
+  Indexed :: Located Expr           -- ^ \- @⟨idx⟩@
           -> Located Expr           -- ^ \- @⟨expr⟩@
           -> Expr
   -- | A register (one of the available 'Register's)
@@ -179,7 +240,7 @@ data Token where
   Id :: Text -> Token
   -- Registers
   -- | Registers reserved words
-  Rax, Rbx, Rcx, Rdx, Rdi, Rsi, Rsp, Rbp :: Token
+  R0', R1', R2', R3', R4', R5', SP', BP' :: Token
   -- Instructions
   -- | The @mov@ instruction
   Mov :: Token
@@ -189,6 +250,12 @@ data Token where
   Jmp :: Token
   -- | The @call@ instruction
   Call :: Token
+  -- | The @push@ instruction
+  Push :: Token
+  -- | The @pop@ instruction
+  Pop :: Token
+  -- | The @nop@ instruction
+  Nop :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@
@@ -211,11 +278,17 @@ data Token where
   Dot :: Token
   -- | Negation "@-@"
   Minus :: Token
+  -- | Addition "@+@"
+  Plus :: Token
   -- Keywords
   -- | \"@forall@\" type variable binder in type
   Forall :: Token
   -- | \"@sptr@\" stack pointer quantifier
   Sptr :: Token
+  -- | \"@unsafe@\" block
+  UnSafe :: Token
+  -- | \"@section@\" block
+  Section :: Token
   -- Comments
   -- | A comment starting with "@#@" and spanning until the end of the current line
   InlineComment :: Text        -- ^ The content of the comment

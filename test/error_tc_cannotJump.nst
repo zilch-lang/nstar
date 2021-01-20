@@ -1,5 +1,7 @@
-f: { %rax: s64 }
+section code {
+f: { %r0: s64 }
    jmp g
 
-g: { %rax: *s64 }
-   mov 0, %rbx
+g: { %r0: *s64 }
+   mov 0, %r3
+}

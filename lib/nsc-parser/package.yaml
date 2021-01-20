@@ -14,6 +14,7 @@ dependencies:
 - nsc-core
 - megaparsec >=8.0
 - nsc-flags
+- mtl
 
 ghc-options:
 - -Wno-name-shadowing

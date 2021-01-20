@@ -45,6 +45,9 @@ executables:
     - nsc-flags
     - text
     - bytestring
+    - mtl
+    - directory
+    - filepath
 
 tests:
   nsc-tests:
@@ -60,4 +63,3 @@ tests:
     - hspec
     - text
     - Glob
-    - spoon

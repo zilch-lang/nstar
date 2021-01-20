@@ -12,7 +12,7 @@
 module Language.NStar.Typechecker.Errors where
 
 import Text.Diagnose (Report, Marker(..), hint, reportError, reportWarning, prettyText)
-import Language.NStar.Typechecker.Core (Type(Record), Register(RSP), Kind)
+import Language.NStar.Typechecker.Core (Type(Record), Register(SP), Kind)
 import Data.Located (Position(..), Located(..))
 import Language.NStar.Typechecker.Pretty()
 import Data.Map (Map)
@@ -38,6 +38,16 @@ data TypecheckError
   | TooMuchSpecialization Int Int Position
   | CannotJumpBecauseOf Position TypecheckError
   | MissingRegistersInContext [Register] Position
+  | NonPointerTypeOnOffset Type Position
+  | UnknownDataLabel Text Position
+  | UnsafeOperationOutOfUnsafeBlock Position
+  | NonStackPointerRegister Type Position Position
+  | CannotPopCodeAddress Type Position
+
+data TypecheckWarning
+
+fromTypecheckWarning :: TypecheckWarning -> Report String
+fromTypecheckWarning _ = reportWarning "" [] []
 
 -- | Transforms a typechcking error into a report.
 fromTypecheckError :: TypecheckError -> Report String
@@ -57,6 +67,11 @@ fromTypecheckError (CannotInferSpecialization nbGot nbExpect p) = cannotInferSpe
 fromTypecheckError (TooMuchSpecialization ng ne p)              = tooMuchSpecialization ng ne p
 fromTypecheckError (CannotJumpBecauseOf p err)                  = cannotJumpAt p <> reportWarning "\n" [] [] <> fromTypecheckError err
 fromTypecheckError (MissingRegistersInContext rs p)             = missingRegistersInContext rs p
+fromTypecheckError (NonPointerTypeOnOffset t p)                 = typeIsNotAPointer t p
+fromTypecheckError (UnknownDataLabel n p)                       = unknownDataLabel n p
+fromTypecheckError (UnsafeOperationOutOfUnsafeBlock p)          = unsafeNotInUnsafeBlock p
+fromTypecheckError (NonStackPointerRegister ty p p')            = spIsNotAStackRegister ty p p'
+fromTypecheckError (CannotPopCodeAddress t p)                   = cannotPopCodespaceAddress t p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -73,7 +88,7 @@ retWithoutReturnAddress p ctx =
                    | otherwise         -> "No stack found at this point") ]
     []
  where
-   rsp = Map.lookup (RSP :@ dummyPos) ctx
+   rsp = Map.lookup (SP :@ dummyPos) ctx
    dummyPos = Position (1, 1) (1, 1) "dummy"
 
 -- | Happens when we try to create a substitution like @a ~ [a]@, where a given free type variable would be infinitely replaced,
@@ -182,6 +197,38 @@ cannotJumpAt p =
 
 missingRegistersInContext :: [Register] -> Position -> Report String
 missingRegistersInContext rs p =
-  reportError ("Context is missing some register binds")
+  reportError ("Context is missing some register binds.")
     [ (p, This ("Missing registers: " <> intercalate ", " (show . prettyText <$> rs))) ]
+    []
+
+typeIsNotAPointer :: Type -> Position -> Report String
+typeIsNotAPointer ty p =
+  reportError ("Infered type is not a pointer.")
+    [ (p, This ("Type infered: " <> show (prettyText ty))) ]
+    []
+
+unknownDataLabel :: Text -> Position -> Report String
+unknownDataLabel name p =
+  reportError ("Label '" <> Text.unpack name <> "' not found in data sections.")
+    [ (p, This "Expected to be found in any data section, but not found") ]
+    []
+
+unsafeNotInUnsafeBlock :: Position -> Report String
+unsafeNotInUnsafeBlock p =
+  reportError "Unsafe operation not enclosed in an 'unsafe' block."
+    [ (p, This "This is considered an unsafe operation, therefore must be placed in an 'unsafe block'") ]
+    []
+
+spIsNotAStackRegister :: Type -> Position -> Position -> Report String
+spIsNotAStackRegister ty p1 p =
+  reportError "%sp is not a stack pointer."
+    [ (p1, This $ "%sp was found to be of the type: '" <> show (prettyText ty) <> "'")
+    , (p, Where "Infered from here") ]
+    []
+
+cannotPopCodespaceAddress :: Type -> Position -> Report String
+cannotPopCodespaceAddress ty p =
+  reportError "Cannot pop a code-space address off the stack"
+    [ (p, This "Tried to pop the top of the stack")
+    , (p, Where $ "%sp has type '" <> show (prettyText ty) <> "'") ]
     []

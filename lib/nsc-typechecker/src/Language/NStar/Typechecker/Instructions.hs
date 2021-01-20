@@ -9,7 +9,7 @@ import Language.NStar.Typechecker.TC
 import Language.NStar.Typechecker.Free
 import Language.NStar.Typechecker.Subst
 import Language.NStar.Typechecker.Core
-import Language.NStar.Syntax.Core (Expr(..), Immediate(..))
+import Language.NStar.Syntax.Core (Expr(..), Immediate(..), Constant(..))
 import Data.Located (Located(..), unLoc, getPos, Position)
 import qualified Data.Map as Map
 import Control.Monad.State (gets)
@@ -18,15 +18,16 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Maybe (fromJust)
-import Data.Foldable (fold)
+import Data.Foldable (fold, foldlM)
 import Console.NStar.Flags (TypecheckerFlags(..))
 import Internal.Error (internalError)
 import qualified Language.NStar.Typechecker.Env as Env (lookup)
 import Control.Monad (forM)
 import Data.Bifunctor (first)
 import Language.NStar.Typechecker.Kinds (unifyKinds, kindcheckType, runKindchecker)
-import Control.Monad (forM_)
+import Control.Monad (forM_, when)
 import Data.Functor ((<&>))
+import Debug.Trace (traceShow)
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker [Located Type]
 tc_ret p = do
@@ -50,26 +51,33 @@ tc_ret p = do
   -- 2- we must be able to extract a pointer to a context, on top of the stack
   -- 3- everything we want to return in the context must already be found in the current context
 
-  funName <- gets (currentLabel . snd) >>= \case
+  gets (currentLabel . snd) >>= \case
     Nothing -> throwError (ToplevelReturn p)
-    Just l  -> pure l
-
+    Just l  -> pure ()
 
   stackVar <- freshVar "@" p
-  let minimalCtx = Record (Map.singleton (RSP :@ p) (SPtr (Cons (Ptr (Record mempty True :@ p) :@ p) stackVar :@ p) :@ p)) True :@ p
-  currentCtx <- gets (currentTypeContext . snd)
+  retStack <- freshVar "@" p
 
-  catchError (unify (Record currentCtx False :@ p) minimalCtx)
+  currentCtx <- gets (currentTypeContext . snd)
+  spTy <- case Map.lookup (SP :@ p) currentCtx of
+    Nothing -> throwError (RegisterNotFoundInContext SP p (Map.keysSet currentCtx))
+    Just ty -> pure ty
+
+  sub1 <- unify spTy (SPtr stackVar :@ p)
+  let stackVar' = apply sub1 stackVar
+
+  catchError (unify stackVar' (Cons (Ptr (Record mempty True :@ p) :@ p) retStack :@ p))
              (const $ throwError (NoReturnAddress p currentCtx))
 
-  let removeStackTop (SPtr (Cons _ t :@ _) :@ p1) = SPtr t :@ p1
-      removeStackTop (t :@ _)                     = error $ "Cannot extract stack top of type '" <> show t <> "'"
+  stackHead <- freshVar "^" p
+  stackTail <- freshVar "$" p
+  sub <- unify stackVar' (Cons stackHead stackTail :@ p)
+  let stackHead' = apply sub stackHead
+      stackTail' = apply sub stackTail
+      newStack = Map.insert (SP :@ p) (SPtr stackTail' :@ p) currentCtx
 
-      getStackTop (SPtr (Cons t _ :@ _) :@ _) = t
-      getStackTop (t :@ _)                    = error $ "Cannot extract stack top of type '" <> show t <> "'"
-
-  let returnShouldBe = Ptr (Record (Map.adjust removeStackTop (RSP :@ p) currentCtx) False :@ p) :@ p
-      returnCtx = getStackTop $ fromJust (Map.lookup (RSP :@ p) currentCtx)
+  let returnShouldBe = Ptr (Record newStack False :@ p) :@ p
+      returnCtx = stackHead'
 
   let changeErrorIfMissingKey (DomainsDoNotSubtype (m1 :@ _) (m2 :@ _)) =
         ContextIsMissingOnReturn p (getPos returnCtx) (Map.keysSet m1 Set.\\ Map.keysSet m2)
@@ -83,8 +91,8 @@ tc_ret p = do
   pure []
 
 
-tc_mov :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Position -> Typechecker [Located Type]
-tc_mov (src :@ p1) (dest :@ p2) p = do
+tc_mov :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Bool -> Position -> Typechecker [Located Type]
+tc_mov (src :@ p1) (dest :@ p2) unsafe p = do
   -- There are many ways of handling `mov`s, and it all depends on what arguments are given.
   --
   -- > mov <immediate>, <register>
@@ -105,19 +113,19 @@ tc_mov (src :@ p1) (dest :@ p2) p = do
   --
   -- For all those assertions, we also have to check that type sizes do match.
   case (src, dest) of
-    (Imm i, Reg r) -> do
-      ty <- typecheckExpr src p1
+    (Reg r1, Reg r2) -> do
+      ty1 <- typecheckExpr src p1 unsafe
+      -- TODO: size check
+      -- No need at the moment, we only have 8-bytes big registers.
+      gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r2 ty1
+      pure [Register 64 :@ p1, Register 64 :@ p2] -- TODO: fetch actual size of register
+    (_, Reg r) -> do
+      ty <- typecheckExpr src p1 unsafe
       -- TODO: size check
       -- At the moment, this isn't a problem: we only handle immediates that are actually
       -- smaller than the max size (8 bytes) possible.
       gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r ty
       pure [ty, Register 64 :@ p2] -- TODO: fetch actual size of register
-    (Reg r1, Reg r2) -> do
-      ty1 <- typecheckExpr src p1
-      -- TODO: size check
-      -- No need at the moment, we only have 8-bytes big registers.
-      gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r2 ty1
-      pure [Register 64 :@ p1, Register 64 :@ p2] -- TODO: fetch actual size of register
     _ -> error $ "Missing `mov` typechecking implementation for '" <> show src <> "' and '" <> show dest <> "'."
 
 tc_jmp :: (?tcFlags :: TypecheckerFlags) => Located Expr -> [Located Type] -> Position -> Typechecker [Located Type]
@@ -214,7 +222,7 @@ tc_call (Name n :@ p1) tys p = do
       addContextOnTop (Just ty) = case ty of
         SPtr stack :@ p3 -> Just $ SPtr (Cons (Ptr (Record mempty True :@ p) :@ p) stack :@ p) :@ p3
         t :@ _           -> internalError $ "Trying to add a return context on top of a non-stack type " <> show t
-  let newTypeCtx = Map.alter addContextOnTop (RSP :@ p) typeCtx
+  let newTypeCtx = Map.alter addContextOnTop (SP :@ p) typeCtx
   let targetCtx = Record newTypeCtx False :@ p
 
   catchError (unify ctxTy targetCtx)
@@ -226,7 +234,7 @@ tc_call (Name n :@ p1) tys p = do
       popContextOffStack t                             = internalError $ "Cannot pop stack or non-stack type " <> show t
 
       Record ctx _ :@ _               = ctxTy
-      Ptr (Record newCtx _ :@ _) :@ _ = popContextOffStack (fromJust $ Map.lookup (RSP :@ p) ctx)
+      Ptr (Record newCtx _ :@ _) :@ _ = popContextOffStack (fromJust $ Map.lookup (SP :@ p) ctx)
 
   setCurrentTypeContext newCtx
 
@@ -239,18 +247,128 @@ tc_call (Name n :@ p1) tys p = do
     fromVar t            = internalError $ "Cannot get name of non type-variable " <> show t
 tc_call (t :@ p1) ty sp = internalError $ "Cannot handle call to non-label expression " <> show t
 
+tc_push :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Bool -> Position -> Typechecker [Located Type]
+tc_push (e :@ p1) unsafe p = do
+  -- This is impossible to push a codespace address, and is check in @typecheckExpr@
+  -- because a name can only come from a data section (therefore forbidding literals to code-space addresses).
+  --
+  -- Pushing a value alters the current stack pointer @%sp@ and adds the type of the value pushed on top
+  -- of it. Thus @push 0@ makes the stack come from @sptr s@ tu @sptr u64::s@ (or any other unsigned type).
+  --
+  -- It is impossible to push a value if there is no stack pointer in the current typing
+  -- context (which would lead to the empty stack type, which does not exist).
+
+  currentCtx <- gets (currentTypeContext . snd)
+  stackTy <- maybe (throwError (RegisterNotFoundInContext SP p (Map.keysSet currentCtx))) pure $ Map.lookup (SP :@ p) currentCtx
+  kindCtx <- gets (currentKindContext . snd)
+
+  exprTy <- typecheckExpr e p1 unsafe
+
+  case stackTy of
+    SPtr ty :@ p1 -> do
+      stackKind <- liftEither $ first FromReport (runKindchecker (kindcheckType kindCtx ty))
+      liftEither $ first FromReport (runKindchecker (unifyKinds stackKind (Ts :@ p)))
+
+      setCurrentTypeContext $ Map.adjust (const $ SPtr (Cons exprTy ty :@ p1) :@ p1) (SP :@ p) currentCtx
+      pure ()
+    ty :@ p1 -> throwError (NonStackPointerRegister ty p p1)
+
+  pure [exprTy]
+
+tc_pop :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Bool -> Position -> Typechecker [Located Type]
+tc_pop (e :@ p1) unsafe p = do
+  -- Pop expects an unabstract (not a type variable) stack with /at least/ one element in it in %sp.
+  --
+  -- Pop cannot remove a code-space address from the top of the stack (meaning that the top of the stack
+  -- cannot be something of the form @*{}@).
+  --
+  -- After this instruction, the stack only contains its tail (the stack without its head).
+  --
+  -- If @pop@ping into a register, alter the context with the new type for the register.
+  -- If @pop@ping into a memory address (more generally pointer offset), unify both types.
+
+  currentCtx <- gets (currentTypeContext . snd)
+  spTy <- case Map.lookup (SP :@ p) currentCtx of
+    Nothing -> throwError (RegisterNotFoundInContext SP p (Map.keysSet currentCtx))
+    Just ty -> pure ty
+
+  stack <- freshVar "@" p
+  sub1 <- unify spTy (SPtr stack :@ p)
+  let stack' = apply sub1 stack
+
+  stackTail <- freshVar "$" p
+  stackHead <- freshVar "^" p
+  sub2 <- unify stack' (Cons stackHead stackTail :@ p)
+  let stackTail' = apply sub2 stackTail
+      stackHead' = apply sub2 stackHead
+
+  case stackHead' of
+    Ptr (Record _ _ :@ _) :@ _ -> throwError (CannotPopCodeAddress (unLoc spTy) p)
+    _                          -> pure ()
+
+  -- TODO: handle pointer offsets
+  case e of
+    Reg r -> do
+      setCurrentTypeContext $ Map.insert r stackHead'
+                            $ Map.insert (SP :@ p) (SPtr stackTail' :@ p) currentCtx
+      pure [Register 64 :@ p]
+    _     -> do
+      exprTy <- typecheckExpr e p1 unsafe
+      error $ "Not handled: pop into " <> show e
+
+tc_nop :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker [Located Type]
+tc_nop _ = do
+  -- @nop@ does nothing.
+  --
+  -- It does not alter the current context.
+  --
+  -- Its only purpose in code is padding.
+  pure []
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 
-typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Typechecker (Located Type)
-typecheckExpr (Imm (I _ :@ _)) p  = pure (Unsigned 64 :@ p)
-typecheckExpr (Imm (C _ :@ _)) p  = pure (Signed 8 :@ p)
-typecheckExpr (Reg r) p           = do
+typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Bool -> Typechecker (Located Type)
+typecheckExpr (Imm (I _ :@ _)) p _  = pure (Unsigned 64 :@ p)
+typecheckExpr (Imm (C _ :@ _)) p _  = pure (Signed 8 :@ p)
+typecheckExpr (Reg r) p _           = do
   ctx <- gets (currentTypeContext . snd)
   maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) pure (Map.lookup r ctx)
-typecheckExpr (Indexed _ e) p     = typecheckExpr (unLoc e) p
-typecheckExpr e p                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
+typecheckExpr (Indexed (off :@ p1) (e :@ p2)) p unsafe    = do
+  ty <- typecheckExpr off p1 unsafe
+  unify ty (Signed 64 :@ p)
+
+  ty2 :@ p3 <- typecheckExpr e p2 unsafe
+  case ty2 of
+    Ptr t  ->
+      case off of
+        Imm _ -> pure t -- TODO: check if immediate offset is correct
+        _ | unsafe -> pure t
+          | otherwise -> throwError (UnsafeOperationOutOfUnsafeBlock p)
+    SPtr s -> error $ "Unimplemented `typecheckExpr` for pointer offset on '" <> show ty2 <> "'."
+    _      -> throwError (NonPointerTypeOnOffset ty2 p3)
+typecheckExpr (Name n@(name :@ _)) p _ = do
+  ctx <- gets (dataSections . snd)
+  maybe (throwError (UnknownDataLabel name p)) pure (Map.lookup n ctx)
+typecheckExpr e p _                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
+
+typecheckConstant :: (?tcFlags :: TypecheckerFlags) => Constant -> Position -> Typechecker (Located Type)
+typecheckConstant (CInteger _) p   = pure (Unsigned 64 :@ p)
+typecheckConstant (CCharacter _) p = pure (Signed 8 :@ p)
+typecheckConstant (CArray csts) p  =
+  if | (c1:cs) <- csts -> do
+         types <- forM csts \ (c :@ p) -> typecheckConstant c p
+         let (t1:ts) = types
+         when (not (null ts)) do
+           () <$ foldlM2 (\ acc t1 t2 -> mappend acc <$> unify t1 t2) mempty (t1:ts)
+         pure (Ptr t1 :@ p)
+     | otherwise       -> do
+         v <- freshVar "d" p
+         pure (Ptr v :@ p)
+  where
+    foldlM2 :: (Monad m) => (b -> a -> a -> m b) -> b -> [a] -> m b
+    foldlM2 f e l = foldlM (uncurry . f) e (zip l (drop 1 l))
 
 --------------------------------------------------------------------------------
 

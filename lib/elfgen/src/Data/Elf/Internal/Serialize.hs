@@ -9,7 +9,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 
 module Data.Elf.Internal.Serialize
-( Serializable(..), SerializableValueSet
+( Serializable(..)
   -- * Re-export
 , B.runPut
 ) where
@@ -67,14 +67,18 @@ instance Serializable n e a => Serializable n e [a] where
     --
     -- NOTE: endianness does not do much regarding the order the list is serialized.
 
-type SerializableValueSet n e =
-  ( Serializable n e (Elf_UChar n)
-  , Serializable n e (Elf_Half n)
-  , Serializable n e (Elf_Word n)
-  , Serializable n e (Elf_Sword n)
-  , Serializable n e (Elf_Xword n)
-  , Serializable n e (Elf_Sxword n)
-  , Serializable n e (Elf_Addr n)
-  , Serializable n e (Elf_Off n)
-  , Serializable n e (Elf_Section n)
-  )
+instance Serializable n1 e (Elf_Addr n) where
+  put le (Elf32_Addr a) = put @n1 @e le a
+  put le (Elf64_Addr a) = put @n1 @e le a
+
+instance Serializable n1 e (Elf_Off n) where
+  put le (Elf32_Off o) = put @n1 @e le o
+  put le (Elf64_Off o) = put @n1 @e le o
+
+instance Serializable n1 e (Elf_Rel_Info n) where
+  put le (Elf32_Rel_Info i) = put @n1 @e le i
+  put le (Elf64_Rel_Info i) = put @n1 @e le i
+
+instance Serializable n1 e (Elf_Rel_Addend n) where
+  put le (Elf32_Rel_Addend a) = put @n1 @e le a
+  put le (Elf64_Rel_Addend a) = put @n1 @e le a
