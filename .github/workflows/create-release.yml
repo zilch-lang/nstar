@@ -75,7 +75,8 @@ jobs:
         
       - name: Get local bin path
         id: local-bin-path
-        run: echo ::set-output name=path::$(stack path | awk -F': ' '$1 == "local-bin" { print $2 }')
+        run: | 
+          echo ::set-output name=path::$(stack path | awk -F': ' '$1 == "local-bin" { print $2 }')
         
       - name: Upload executable file
         id: upload-release-asset 
