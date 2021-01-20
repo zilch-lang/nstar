@@ -316,6 +316,15 @@ tc_pop (e :@ p1) unsafe p = do
       exprTy <- typecheckExpr e p1 unsafe
       error $ "Not handled: pop into " <> show e
 
+tc_nop :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker [Located Type]
+tc_nop _ = do
+  -- @nop@ does nothing.
+  --
+  -- It does not alter the current context.
+  --
+  -- Its only purpose in code is padding.
+  pure []
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

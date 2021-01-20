@@ -130,4 +130,5 @@ typecheckInstruction i p unsafe = do
       CALL lbl tys -> tc_call lbl tys p
       PUSH src     -> tc_push src unsafe p
       POP dst      -> tc_pop dst unsafe p
+      NOP          -> tc_nop p
       _            -> error $ "Unrecognized instruction '" <> show i <> "'."
