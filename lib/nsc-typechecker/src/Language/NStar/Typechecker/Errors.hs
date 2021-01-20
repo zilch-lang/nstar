@@ -42,7 +42,7 @@ data TypecheckError
   | UnknownDataLabel Text Position
   | UnsafeOperationOutOfUnsafeBlock Position
   | NonStackPointerRegister Type Position Position
-  | CannotPopCodeAddress Position
+  | CannotPopCodeAddress Type Position
 
 data TypecheckWarning
 
@@ -71,7 +71,7 @@ fromTypecheckError (NonPointerTypeOnOffset t p)                 = typeIsNotAPoin
 fromTypecheckError (UnknownDataLabel n p)                       = unknownDataLabel n p
 fromTypecheckError (UnsafeOperationOutOfUnsafeBlock p)          = unsafeNotInUnsafeBlock p
 fromTypecheckError (NonStackPointerRegister ty p p')            = spIsNotAStackRegister ty p p'
-fromTypecheckError (CannotPopCodeAddress p)                     = cannotPopCodespaceAddress p
+fromTypecheckError (CannotPopCodeAddress t p)                   = cannotPopCodespaceAddress t p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -226,8 +226,9 @@ spIsNotAStackRegister ty p1 p =
     , (p, Where "Infered from here") ]
     []
 
-cannotPopCodespaceAddress :: Position -> Report String
-cannotPopCodespaceAddress p =
+cannotPopCodespaceAddress :: Type -> Position -> Report String
+cannotPopCodespaceAddress ty p =
   reportError "Cannot pop a code-space address off the stack"
-    [ (p, This "Tried to pop the top of the stack") ]
+    [ (p, This "Tried to pop the top of the stack")
+    , (p, Where $ "%sp has type '" <> show (prettyText ty) <> "'") ]
     []

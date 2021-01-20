@@ -303,7 +303,7 @@ tc_pop (e :@ p1) unsafe p = do
       stackHead' = apply sub2 stackHead
 
   case stackHead' of
-    Ptr (Record _ _ :@ _) :@ _ -> throwError (CannotPopCodeAddress p)
+    Ptr (Record _ _ :@ _) :@ _ -> throwError (CannotPopCodeAddress (unLoc spTy) p)
     _                          -> pure ()
 
   -- TODO: handle pointer offsets
