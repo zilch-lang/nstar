@@ -7,8 +7,9 @@ import Text.Diagnose (Report)
 import Language.NStar.CodeGen.Arch (SupportedArch(..))
 import Data.Word (Word8)
 import Language.NStar.CodeGen.Compiler (MachineInfo)
+import Language.NStar.CodeGen.PreProcessor
 
 
 compile :: SupportedArch -> TypedProgram -> MachineInfo
 compile arch prog = execWriter case arch of
-  X64 -> compileX64 prog -- error "TODO: opcode compilation not yet implemented for x64"
+  X64 -> compileX64 (preprocessX64 prog) -- error "TODO: opcode compilation not yet implemented for x64"
