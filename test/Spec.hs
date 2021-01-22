@@ -12,7 +12,7 @@ import System.FilePath.Glob (glob)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Language.NStar.Syntax (lexFile, parseFile, postProcessAST)
-import Language.NStar.Typechecker (typecheck, postProcessTypedAST)
+import Language.NStar.Typechecker (typecheck)
 import Language.NStar.Branchchecker (branchcheck)
 import Data.List (isInfixOf)
 import Text.Diagnose ((<~<), prettyText)
@@ -78,7 +78,6 @@ check file = do
         (ast, _) <- first (, Ps) $! parseFile file tokens
         ast <- pure $! postProcessAST ast
         (ast, _) <- first (, Tc) $! typecheck ast
-        ast <- pure $! postProcessTypedAST ast
         _ <- first (, Bc) $! branchcheck ast
         pure ast
 

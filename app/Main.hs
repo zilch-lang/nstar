@@ -11,7 +11,7 @@
 module Main (main) where
 
 import Language.NStar.Syntax (lexFile, parseFile, postProcessAST)
-import Language.NStar.Typechecker (typecheck, postProcessTypedAST)
+import Language.NStar.Typechecker (typecheck)
 import Language.NStar.Branchchecker (branchcheck)
 import Language.NStar.CodeGen (SupportedArch(..), compileToElf)
 -- ! Experimental; remove once tested
@@ -70,7 +70,6 @@ tryCompile flags file = do
 
         (tast, tcWarnings)    <- liftEither $ typecheck ast
         liftIO (printDiagnostic withColor stderr (tcWarnings <~< fileContent))
-        tast                  <- pure $ postProcessTypedAST tast
 
         when dumpTypedAST do
           liftIO $ createDirectoryIfMissing True (joinPath [".nsc", "dump"])
