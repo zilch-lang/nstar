@@ -43,6 +43,7 @@ data TypecheckError
   | UnsafeOperationOutOfUnsafeBlock Position
   | NonStackPointerRegister Type Position Position
   | CannotPopCodeAddress Type Position
+  | CannotMovToDestination Type Type Position Position
 
 data TypecheckWarning
 
@@ -72,6 +73,7 @@ fromTypecheckError (UnknownDataLabel n p)                       = unknownDataLab
 fromTypecheckError (UnsafeOperationOutOfUnsafeBlock p)          = unsafeNotInUnsafeBlock p
 fromTypecheckError (NonStackPointerRegister ty p p')            = spIsNotAStackRegister ty p p'
 fromTypecheckError (CannotPopCodeAddress t p)                   = cannotPopCodespaceAddress t p
+fromTypecheckError (CannotMovToDestination s d p1 p2)           = cannotMovToDestination s d p1 p2
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -228,7 +230,14 @@ spIsNotAStackRegister ty p1 p =
 
 cannotPopCodespaceAddress :: Type -> Position -> Report String
 cannotPopCodespaceAddress ty p =
-  reportError "Cannot pop a code-space address off the stack"
+  reportError "Cannot pop a code-space address off the stack."
     [ (p, This "Tried to pop the top of the stack")
     , (p, Where $ "%sp has type '" <> show (prettyText ty) <> "'") ]
+    []
+
+cannotMovToDestination :: Type -> Type -> Position -> Position -> Report String
+cannotMovToDestination ty1 ty2 p1 p2 =
+  reportError "Unable to move the source operand into the destination."
+    [ (p1, This $ "The source operand is of type " <> show (prettyText ty1))
+    , (p2, Where $ "The destination operand was found to accept values of type " <> show (prettyText ty2)) ]
     []
