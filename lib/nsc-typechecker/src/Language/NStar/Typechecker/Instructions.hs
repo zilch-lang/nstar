@@ -126,6 +126,13 @@ tc_mov (src :@ p1) (dest :@ p2) unsafe p = do
       -- smaller than the max size (8 bytes) possible.
       gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r ty
       pure [ty, Register 64 :@ p2] -- TODO: fetch actual size of register
+    (_, _) -> do
+      tySrc <- typecheckExpr src p1 unsafe
+      tyDst <- typecheckExpr dest p2 unsafe
+
+      unify tySrc tyDst `catchError` (const $ throwError (CannotMovToDestination (unLoc tySrc) (unLoc tyDst) p1 p2))
+
+      pure [tySrc, Ptr tyDst :@ p2]
     _ -> error $ "Missing `mov` typechecking implementation for '" <> show src <> "' and '" <> show dest <> "'."
 
 tc_jmp :: (?tcFlags :: TypecheckerFlags) => Located Expr -> [Located Type] -> Position -> Typechecker [Located Type]
