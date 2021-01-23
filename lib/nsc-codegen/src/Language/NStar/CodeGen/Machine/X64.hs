@@ -152,7 +152,7 @@ char8 = BS.unpack . runPut . putWord8 . fromIntegral . ord
 compileConstantX64 :: Constant -> [Word8]
 compileConstantX64 (CInteger (i :@ _))   = int64 i
 compileConstantX64 (CCharacter (c :@ _)) = char8 c
-compileConstantX64 (CArray csts)         = error $ "Not yet implemented: compileConstant " <> show (CArray csts)
+compileConstantX64 (CArray csts)         = mconcat (compileConstantX64 . unLoc <$> csts)
 
 ---------------------------------------------------------------------------------------------------------------------
 
