@@ -1,0 +1,13 @@
+section data {
+x: u64
+   8
+}
+
+section code {
+main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
+      push 2
+      pop (x)
+
+      mov (x), %r0
+      ret
+}
