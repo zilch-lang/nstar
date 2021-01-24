@@ -84,7 +84,7 @@ parseIdentifier = MP.label "an identifier" $ lexeme do
 
 -- | Parses a symbol and returns it.
 parseSymbol :: (?parserFlags :: ParserFlags) => Token -> Parser LToken
-parseSymbol t1 = MP.label (showToken t1) . lexeme $ MP.satisfy \ (t2 :@ _) -> t2 == t1
+parseSymbol t1 = MP.label (showToken t1) $ MP.satisfy \ (t2 :@ _) -> t2 == t1
 
 parseRegister :: (?parserFlags :: ParserFlags) => Parser (Located Register)
 parseRegister = MP.label "a register" $ located $ parseSymbol Percent *> reg
@@ -117,19 +117,19 @@ parseCharacter = MP.label "a character" $ lexeme do
 
 -- | Parses something between braces.
 betweenBraces :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
-betweenBraces = lexeme . MP.between (parseSymbol LBrace) (parseSymbol RBrace)
+betweenBraces = MP.between (parseSymbol LBrace) (parseSymbol RBrace)
 
 -- | Parses something between brackets.
 betweenBrackets :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
-betweenBrackets = lexeme . MP.between (parseSymbol LBracket) (parseSymbol RBracket)
+betweenBrackets = MP.between (parseSymbol LBracket) (parseSymbol RBracket)
 
 -- | Parses something between parentheses.
 betweenParens :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
-betweenParens = lexeme . MP.between (parseSymbol LParen) (parseSymbol RParen)
+betweenParens = MP.between (parseSymbol LParen) (parseSymbol RParen)
 
 -- | Parses something between angles.
 betweenAngles :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
-betweenAngles = lexeme . MP.between (parseSymbol LAngle) (parseSymbol RAngle)
+betweenAngles = MP.between (parseSymbol LAngle) (parseSymbol RAngle)
 
 
 -----------------------------------
