@@ -313,15 +313,19 @@ tc_pop (e :@ p1) unsafe p = do
     Ptr (Record _ _ :@ _) :@ _ -> throwError (CannotPopCodeAddress (unLoc spTy) p)
     _                          -> pure ()
 
-  -- TODO: handle pointer offsets
-  case e of
+  tys <- case e of
     Reg r -> do
-      setCurrentTypeContext $ Map.insert r stackHead'
-                            $ Map.insert (SP :@ p) (SPtr stackTail' :@ p) currentCtx
+      setCurrentTypeContext $ Map.insert r stackHead' currentCtx
       pure [Register 64 :@ p]
     _     -> do
       exprTy <- typecheckExpr e p1 unsafe
-      error $ "Not handled: pop into " <> show e
+      unify exprTy stackHead' `catchError` (const $ throwError (CannotPopIntoDestination (unLoc exprTy) (unLoc stackHead') (unLoc stackTail') p1 p))
+
+      pure [exprTy]
+
+  currentCtx <- gets (currentTypeContext . snd)
+  setCurrentTypeContext $ Map.insert (SP :@ p) (SPtr stackTail' :@ p) currentCtx
+  pure tys
 
 tc_nop :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker [Located Type]
 tc_nop _ = do
