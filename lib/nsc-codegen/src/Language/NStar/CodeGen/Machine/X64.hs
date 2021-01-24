@@ -100,6 +100,9 @@ compileInstrInterX64 (MOV (Indexed (Reg r1 :@ _) (Reg r2 :@ _) :@ _) (Reg dst :@
 -- REX.W + 89 /r	MOV r/m64,r64	        MR	Valid	        N.E.	                Move r64 to r/m64.
 compileInstrInterX64 (MOV (Reg src :@ _) (Indexed (Reg r1 :@ _) (Reg r2 :@ _) :@ _)) [_, _] =
   pure $ [rexW, Byte 0x89, modRM 0x0 (registerNumber (unLoc src)) 0x4, sib 0x0 (registerNumber (unLoc r1)) (registerNumber (unLoc r2))]
+-- REX.W + 89 /r	MOV r/m64,r64	        MR	Valid	        N.E.	                Move r64 to r/m64.
+compileInstrInterX64 (MOV (Indexed (Reg r1 :@ _) (Name n :@ _) :@ _) (Reg dst :@ _)) [_, _] =
+  pure $ [rexW, Byte 0x8B, modRM 0x2 (registerNumber (unLoc dst)) (registerNumber (unLoc r1)), Symbol32 (unLoc n) 0]
 -- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
 compileInstrInterX64 (MOV src@(Imm _ :@ _) (Reg dst :@ _)) [Unsigned 64, Register 64] =
   ([rexW, Byte (0xB8 + registerNumber (unLoc dst))] <>) <$> compileExprX64 64 (unLoc src)
