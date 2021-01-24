@@ -44,6 +44,7 @@ data TypecheckError
   | NonStackPointerRegister Type Position Position
   | CannotPopCodeAddress Type Position
   | CannotMovToDestination Type Type Position Position
+  | CannotPopIntoDestination Type Type Type Position Position
 
 data TypecheckWarning
 
@@ -74,6 +75,7 @@ fromTypecheckError (UnsafeOperationOutOfUnsafeBlock p)          = unsafeNotInUns
 fromTypecheckError (NonStackPointerRegister ty p p')            = spIsNotAStackRegister ty p p'
 fromTypecheckError (CannotPopCodeAddress t p)                   = cannotPopCodespaceAddress t p
 fromTypecheckError (CannotMovToDestination s d p1 p2)           = cannotMovToDestination s d p1 p2
+fromTypecheckError (CannotPopIntoDestination t1 t2 t3 p1 p2)    = cannotPopIntoDestination t1 t2 t3 p1 p2
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -240,4 +242,12 @@ cannotMovToDestination ty1 ty2 p1 p2 =
   reportError "Unable to move the source operand into the destination."
     [ (p1, This $ "The source operand is of type " <> show (prettyText ty1))
     , (p2, Where $ "The destination operand was found to accept values of type " <> show (prettyText ty2)) ]
+    []
+
+cannotPopIntoDestination :: Type -> Type -> Type -> Position -> Position -> Report String
+cannotPopIntoDestination expected sHead sTail p1 p2 =
+  reportError "Unable to pop the stack pointer into the destination."
+    [ (p2, This $ "Trying to pop a value of type " <> show (prettyText sHead))
+    , (p2, Where $ "The stack is infered to '" <> show (prettyText sHead) <> "::" <> show (prettyText sTail) <> "'" )
+    , (p1, Where $ "The destination operand was found to accept values of type " <> show (prettyText expected)) ]
     []
