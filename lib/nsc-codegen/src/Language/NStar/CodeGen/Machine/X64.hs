@@ -124,6 +124,9 @@ compileInstrInterX64 (PUSH src) [Unsigned 64] =
 -- 58+ rd	        POP r64	        O	Valid	        N.E.	                Pop top of stack into r64; increment stack pointer. Cannot encode 32-bit operand size.
 compileInstrInterX64 (POP (Reg src :@ _)) [Register 64] =
   pure [Byte $ 0x58 + registerNumber (unLoc src)]
+-- 8F /0	        POP r/m64	        M	Valid	        N.E.	                Pop top of stack into m64; increment stack pointer. Cannot encode 32-bit operand size.
+compileInstrInterX64 (POP (Indexed (Imm (I disp :@ _) :@ _) (Name l :@ _) :@ _)) [_] =
+  pure [Byte 0x8F, modRM 0x0 0x0 0x4, sib 0x0 0x4 0x5, Symbol32 (unLoc l) disp]
 -- REX.W + 01 /r	ADD r/m64, r64	        MR	Valid	        N.E.	                Add r64 to r/m64.
 compileInstrInterX64 (ADD (Reg src :@ _) (Reg dst :@ _)) [Register 64, Register 64] =
   pure [rexW, Byte 0x01, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
