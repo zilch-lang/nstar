@@ -6,6 +6,7 @@ import Language.NStar.CodeGen.Compiler
 import Language.NStar.Syntax.Core hiding (Label)
 import Language.NStar.Typechecker.Core
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
+import Language.NStar.CodeGen.Machine.Internal.X64.SIB
 import Data.Located (unLoc, Located(..))
 import Language.NStar.CodeGen.Errors
 import Control.Monad.Except (throwError)
@@ -39,17 +40,6 @@ modRM mod reg rm = Byte $
   .|. ((reg .&. 0b111) `shiftL` 3)
   .|. ((rm  .&. 0b111) `shiftL` 0)
 
--- | Creates the SIB byte from the scale, the index and the base.
---
---   >>> effective_address = scale * index + base + offset
-sib :: Word8     -- ^ The scale
-    -> Word8     -- ^ The index
-    -> Word8     -- ^ The base
-    -> InterOpcode
-sib scale index base = Byte $
-      ((scale .&. 0b11)  `shiftL` 6)
-  .|. ((index .&. 0b111) `shiftL` 3)
-  .|. ((base .&. 0b111)  `shiftL` 0)
 
 -- | Associates registers with their 4-bits encoding.
 --
@@ -63,7 +53,6 @@ registerNumber SP = 0x4  -- rsp
 registerNumber BP = 0x5  -- rbp
 registerNumber R4 = 0x6  -- rsi
 registerNumber R5 = 0x7  -- rdi
-
 compileX64 :: TypedProgram -> Compiler ()
 compileX64 prog@(TProgram (TData dataSect :@ _) _ _ _) = do
   intermediateOpcodes <- compileInterX64 prog
