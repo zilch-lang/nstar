@@ -113,12 +113,6 @@ tc_mov (src :@ p1) (dest :@ p2) unsafe p = do
   --
   -- For all those assertions, we also have to check that type sizes do match.
   case (src, dest) of
-    (Reg r1, Reg r2) -> do
-      ty1 <- typecheckExpr src p1 unsafe
-      -- TODO: size check
-      -- No need at the moment, we only have 8-bytes big registers.
-      gets (currentTypeContext . snd) >>= setCurrentTypeContext . Map.insert r2 ty1
-      pure [Register 64 :@ p1, Register 64 :@ p2] -- TODO: fetch actual size of register
     (_, Reg r) -> do
       ty <- typecheckExpr src p1 unsafe
       -- TODO: size check
