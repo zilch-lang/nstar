@@ -7,6 +7,7 @@ import Language.NStar.Syntax.Core hiding (Label)
 import Language.NStar.Typechecker.Core
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
 import Language.NStar.CodeGen.Machine.Internal.X64.SIB
+import Language.NStar.CodeGen.Machine.Internal.X64.ModRM
 import Data.Located (unLoc, Located(..))
 import Language.NStar.CodeGen.Errors
 import Control.Monad.Except (throwError)
@@ -28,18 +29,6 @@ import Data.Elf (RelocationType(..))
 -- | REX with only the W bit set, so it indicates 64-bit operand size, but no high registers.
 rexW :: InterOpcode
 rexW = Byte 0x48
-
--- | Creates the ModR/M byte from the mode, the destination register and the source register\/memory.
-modRM :: Word8    -- ^ [0b11]      register-direct addressing mode
-                  --   [otherwise] register-indirect addressing mode
-      -> Word8    -- ^ Destination register encoding, see 'registerNumber' for how to obtain it.
-      -> Word8    -- ^ Source register encoding, see 'registerNumber' for how to obtain it.
-      -> InterOpcode
-modRM mod reg rm = Byte $
-      ((mod .&. 0b11)  `shiftL` 6)
-  .|. ((reg .&. 0b111) `shiftL` 3)
-  .|. ((rm  .&. 0b111) `shiftL` 0)
-
 
 -- | Associates registers with their 4-bits encoding.
 --
