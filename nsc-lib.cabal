@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0394fb50843b52e90146fb1ec87bcd2c250513572b54c77633a8437361f5bfd4
+-- hash: 3bb0cd42d552b1aea5917437131c7e7bb0d87a4d415970c51d46d7dfbe83606e
 
 name:           nsc-lib
-version:        0.0.1.0
+version:        1.0.0
 description:    Please see the README on GitHub at <https://github.com/mesabloo/n-star#readme>
 homepage:       https://github.com/mesabloo/n-star#readme
 bug-reports:    https://github.com/mesabloo/n-star/issues
