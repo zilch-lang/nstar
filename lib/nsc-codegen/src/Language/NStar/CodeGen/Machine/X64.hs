@@ -86,13 +86,13 @@ compileInstrInterX64 RET []                                    =
 compileInstrInterX64 RET args                                  =
   internalError $ "Expected [] but got " <> show args <> " as arguments for " <> show RET
 -- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
-compileInstrInterX64 (MOV (Name n :@ _) (Reg dst :@ _)) [_, Register 64] =
+compileInstrInterX64 (MOV (Name n :@ _) (Reg dst :@ _)) [_, _] =
   pure [rexW, Byte $ 0xB8 + registerNumber (unLoc dst), Symbol64 (unLoc n)]
 -- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
-compileInstrInterX64 (MOV (Indexed (Imm (I disp :@ _) :@ _) (Name l :@ _) :@ _) (Reg dst :@ _)) [_, Register 64] =
+compileInstrInterX64 (MOV (Indexed (Imm (I disp :@ _) :@ _) (Name l :@ _) :@ _) (Reg dst :@ _)) [_, _] =
   pure [rexW, Byte 0x8B, modRM 0x0 (registerNumber (unLoc dst)) 0x4, sib 0x0 0x4 0x5, Symbol32 (unLoc l) disp]
 -- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
-compileInstrInterX64 (MOV (Indexed (Imm (I disp :@ _) :@ _) (Reg src :@ _) :@ _) (Reg dst :@ _)) [_, Register 64] =
+compileInstrInterX64 (MOV (Indexed (Imm (I disp :@ _) :@ _) (Reg src :@ _) :@ _) (Reg dst :@ _)) [_, _] =
   pure $ [rexW, Byte 0x8B, modRM 0x1 (registerNumber (unLoc dst)) (registerNumber (unLoc src))] <> (Byte <$> int8 disp)
 -- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
 compileInstrInterX64 (MOV (Indexed (Reg r1 :@ _) (Reg r2 :@ _) :@ _) (Reg dst :@ _)) [_, _] =
@@ -104,10 +104,10 @@ compileInstrInterX64 (MOV (Reg src :@ _) (Indexed (Reg r1 :@ _) (Reg r2 :@ _) :@
 compileInstrInterX64 (MOV (Indexed (Reg r1 :@ _) (Name n :@ _) :@ _) (Reg dst :@ _)) [_, _] =
   pure $ [rexW, Byte 0x8B, modRM 0x2 (registerNumber (unLoc dst)) (registerNumber (unLoc r1)), Symbol32 (unLoc n) 0]
 -- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
-compileInstrInterX64 (MOV src@(Imm _ :@ _) (Reg dst :@ _)) [Unsigned 64, Register 64] =
+compileInstrInterX64 (MOV src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
   ([rexW, Byte (0xB8 + registerNumber (unLoc dst))] <>) <$> compileExprX64 64 (unLoc src)
 -- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
-compileInstrInterX64 (MOV (Reg src :@ _) (Reg dst :@ _)) [Register 64, Register 64] =
+compileInstrInterX64 (MOV (Reg src :@ _) (Reg dst :@ _)) [_, _] =
   pure [rexW, Byte 0x8B, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
 -- E9 cd	        JMP rel32	        D	Valid	        Valid	                Jump near, relative, RIP = RIP + 32-bit displacement sign extended to 64-bits
 compileInstrInterX64 (JMP (Name n :@ _) _) []                              =
@@ -116,25 +116,25 @@ compileInstrInterX64 (JMP (Name n :@ _) _) []                              =
 compileInstrInterX64 (CALL (Name n :@ _) _) []                             =
   pure [Byte 0xE8, Jump (unLoc n)]
 -- 50+rd	        PUSH r64	        O	Valid	        N.E.	                Push r64.
-compileInstrInterX64 (PUSH (Reg src :@ _)) [Register 64] =
+compileInstrInterX64 (PUSH (Reg src :@ _)) [_] =
   pure [Byte $ 0x50 + registerNumber (unLoc src)]
 -- 68 id	        PUSH imm32	        I	Valid	        Valid	                Push imm32.
-compileInstrInterX64 (PUSH src) [Unsigned 64] =
+compileInstrInterX64 (PUSH src) [_] =
   ([Byte 0x68] <>) <$> compileExprX64 32 (unLoc src)
 -- 58+ rd	        POP r64	        O	Valid	        N.E.	                Pop top of stack into r64; increment stack pointer. Cannot encode 32-bit operand size.
-compileInstrInterX64 (POP (Reg src :@ _)) [Register 64] =
+compileInstrInterX64 (POP (Reg src :@ _)) [_] =
   pure [Byte $ 0x58 + registerNumber (unLoc src)]
 -- 8F /0	        POP r/m64	        M	Valid	        N.E.	                Pop top of stack into m64; increment stack pointer. Cannot encode 32-bit operand size.
 compileInstrInterX64 (POP (Indexed (Imm (I disp :@ _) :@ _) (Name l :@ _) :@ _)) [_] =
   pure [Byte 0x8F, modRM 0x0 0x0 0x4, sib 0x0 0x4 0x5, Symbol32 (unLoc l) disp]
 -- REX.W + 01 /r	ADD r/m64, r64	        MR	Valid	        N.E.	                Add r64 to r/m64.
-compileInstrInterX64 (ADD (Reg src :@ _) (Reg dst :@ _)) [Register 64, Register 64] =
+compileInstrInterX64 (ADD (Reg src :@ _) (Reg dst :@ _)) [_] =
   pure [rexW, Byte 0x01, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
 -- REX.W + 81 /0 id	ADD r/m64, imm32	MI	Valid	        N.E.	                Add imm32 sign-extended to 64-bits to r/m64.
-compileInstrInterX64 (ADD src@(Imm _ :@ _) (Reg dst :@ _)) [_, Register 64] =
+compileInstrInterX64 (ADD src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
   ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x0] <>) <$> compileExprX64 64 (unLoc src)
 -- REX.W + 81 /5 id	SUB r/m64, imm32	MI	Valid	        N.E.	                Subtract imm32 sign-extended to 64-bits from r/m64.
-compileInstrInterX64 (SUB src@(Imm _ :@ _) (Reg dst :@ _)) [_, Register 64] =
+compileInstrInterX64 (SUB src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
   ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <>) <$> compileExprX64 64 (unLoc src)
 -- NP 90	        NOP	                ZO	Valid	        Valid	                One byte no-operation instruction.
 compileInstrInterX64 NOP [] =
