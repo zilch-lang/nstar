@@ -26,6 +26,7 @@ import Data.Bits ((.&.), (.|.), shiftL)
 import Debug.Trace (traceShow)
 import Data.Bifunctor (second)
 import Data.Elf (RelocationType(..))
+import Language.NStar.CodeGen.Machine.X64.Ret (compileRet)
 import Language.NStar.CodeGen.Machine.X64.Call (compileCall)
 import Language.NStar.CodeGen.Machine.X64.Nop (compileNop)
 import Language.NStar.CodeGen.Machine.X64.Mov (compileMov)
@@ -47,11 +48,6 @@ compileStmtInterX64 (TInstr i ts) = compileInstrInterX64 (unLoc i) (unLoc <$> ts
 
 -- Opcode*	        Instruction	        Op/En	64-Bit Mode	Compat/Leg Mode	Description
 compileInstrInterX64 :: Instruction -> [Type] -> Compiler [InterOpcode]
--- C3	                RET	                ZO	Valid	        Valid	                Near return to calling procedure.
-compileInstrInterX64 RET []                                    =
-  pure [Byte 0xC3]
-compileInstrInterX64 RET args                                  =
-  internalError $ "Expected [] but got " <> show args <> " as arguments for " <> show RET
 -- E9 cd	        JMP rel32	        D	Valid	        Valid	                Jump near, relative, RIP = RIP + 32-bit displacement sign extended to 64-bits
 compileInstrInterX64 (JMP (Name n :@ _) _) []                              =
   pure [Byte 0xE9, Jump (unLoc n)]
@@ -76,6 +72,7 @@ compileInstrInterX64 (ADD src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
 -- REX.W + 81 /5 id	SUB r/m64, imm32	MI	Valid	        N.E.	                Subtract imm32 sign-extended to 64-bits from r/m64.
 compileInstrInterX64 (SUB src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
   ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <>) <$> compileExprX64 64 (unLoc src)
+compileInstrInterX64 (RET) args              = compileRet args
 compileInstrInterX64 (CALL dst _) args       = compileCall (unLoc dst) args
 compileInstrInterX64 (NOP) args              = compileNop args
 compileInstrInterX64 (MOV src dst) args      = compileMov (unLoc src) (unLoc dst) args
