@@ -30,6 +30,7 @@ import Language.NStar.CodeGen.Machine.X64.Ret (compileRet)
 import Language.NStar.CodeGen.Machine.X64.Jmp (compileJmp)
 import Language.NStar.CodeGen.Machine.X64.Call (compileCall)
 import Language.NStar.CodeGen.Machine.X64.Nop (compileNop)
+import Language.NStar.CodeGen.Machine.X64.Pop (compilePop)
 import Language.NStar.CodeGen.Machine.X64.Mov (compileMov)
 import Language.NStar.CodeGen.Machine.X64.Expression (int32, int64, compileConstantX64)
 
@@ -55,12 +56,6 @@ compileInstrInterX64 (PUSH (Reg src :@ _)) [_] =
 -- 68 id	        PUSH imm32	        I	Valid	        Valid	                Push imm32.
 compileInstrInterX64 (PUSH src) [_] =
   ([Byte 0x68] <>) <$> compileExprX64 32 (unLoc src)
--- 58+ rd	        POP r64	        O	Valid	        N.E.	                Pop top of stack into r64; increment stack pointer. Cannot encode 32-bit operand size.
-compileInstrInterX64 (POP (Reg src :@ _)) [_] =
-  pure [Byte $ 0x58 + registerNumber (unLoc src)]
--- 8F /0	        POP r/m64	        M	Valid	        N.E.	                Pop top of stack into m64; increment stack pointer. Cannot encode 32-bit operand size.
-compileInstrInterX64 (POP (Indexed (Imm (I disp :@ _) :@ _) (Name l :@ _) :@ _)) [_] =
-  pure [Byte 0x8F, modRM 0x0 0x0 0x4, sib 0x0 0x4 0x5, Symbol32 (unLoc l) disp]
 -- REX.W + 01 /r	ADD r/m64, r64	        MR	Valid	        N.E.	                Add r64 to r/m64.
 compileInstrInterX64 (ADD (Reg src :@ _) (Reg dst :@ _)) [_] =
   pure [rexW, Byte 0x01, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
@@ -74,6 +69,7 @@ compileInstrInterX64 (RET) args              = compileRet args
 compileInstrInterX64 (JMP dst _) args        = compileJmp (unLoc dst) args
 compileInstrInterX64 (CALL dst _) args       = compileCall (unLoc dst) args
 compileInstrInterX64 (NOP) args              = compileNop args
+compileInstrInterX64 (POP dst) args          = compilePop (unLoc dst) args
 compileInstrInterX64 (MOV src dst) args      = compileMov (unLoc src) (unLoc dst) args
 compileInstrInterX64 i args                  = internalError $ "not yet supported: compileInterInstrX64 " <> show i <> " " <> show args
 
