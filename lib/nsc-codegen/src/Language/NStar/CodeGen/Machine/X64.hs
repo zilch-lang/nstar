@@ -34,6 +34,7 @@ import Language.NStar.CodeGen.Machine.X64.Push (compilePush)
 import Language.NStar.CodeGen.Machine.X64.Pop (compilePop)
 import Language.NStar.CodeGen.Machine.X64.Mov (compileMov)
 import Language.NStar.CodeGen.Machine.X64.Add (compileAdd)
+import Language.NStar.CodeGen.Machine.X64.Sub (compileSub)
 import Language.NStar.CodeGen.Machine.X64.Expression (int32, int64, compileConstantX64)
 
 compileX64 :: TypedProgram -> Compiler ()
@@ -50,11 +51,7 @@ compileStmtInterX64 :: TypedStatement -> Compiler [InterOpcode]
 compileStmtInterX64 (TLabel name) = pure [Label (unLoc name)]
 compileStmtInterX64 (TInstr i ts) = compileInstrInterX64 (unLoc i) (unLoc <$> ts)
 
--- Opcode*	        Instruction	        Op/En	64-Bit Mode	Compat/Leg Mode	Description
 compileInstrInterX64 :: Instruction -> [Type] -> Compiler [InterOpcode]
--- REX.W + 81 /5 id	SUB r/m64, imm32	MI	Valid	        N.E.	                Subtract imm32 sign-extended to 64-bits from r/m64.
-compileInstrInterX64 (SUB src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
-  ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <>) <$> compileExprX64 64 (unLoc src)
 compileInstrInterX64 (RET) args              = compileRet args
 compileInstrInterX64 (JMP dst _) args        = compileJmp (unLoc dst) args
 compileInstrInterX64 (CALL dst _) args       = compileCall (unLoc dst) args
@@ -63,6 +60,7 @@ compileInstrInterX64 (PUSH src) args         = compilePush (unLoc src) args
 compileInstrInterX64 (POP dst) args          = compilePop (unLoc dst) args
 compileInstrInterX64 (MOV src dst) args      = compileMov (unLoc src) (unLoc dst) args
 compileInstrInterX64 (ADD src dst) args      = compileAdd (unLoc src) (unLoc dst) args
+compileInstrInterX64 (SUB src dst) args      = compileSub (unLoc src) (unLoc dst) args
 compileInstrInterX64 i args                  = internalError $ "not yet supported: compileInterInstrX64 " <> show i <> " " <> show args
 
 ---------------------------------------------------------------------------------------------------------------------
