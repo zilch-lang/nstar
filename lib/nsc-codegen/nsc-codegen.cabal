@@ -19,6 +19,7 @@ library
       Language.NStar.CodeGen.Machine.Internal.Intermediate
       Language.NStar.CodeGen.Machine.Internal.X64.ModRM
       Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding
+      Language.NStar.CodeGen.Machine.Internal.X64.REX
       Language.NStar.CodeGen.Machine.Internal.X64.SIB
       Language.NStar.CodeGen.Machine.X64
       Language.NStar.CodeGen.PreProcessor

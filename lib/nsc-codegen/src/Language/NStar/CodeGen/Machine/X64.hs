@@ -27,10 +27,6 @@ import Debug.Trace (traceShow)
 import Data.Bifunctor (second)
 import Data.Elf (RelocationType(..))
 
--- | REX with only the W bit set, so it indicates 64-bit operand size, but no high registers.
-rexW :: InterOpcode
-rexW = Byte 0x48
-
 compileX64 :: TypedProgram -> Compiler ()
 compileX64 prog@(TProgram (TData dataSect :@ _) _ _ _) = do
   intermediateOpcodes <- compileInterX64 prog
