@@ -24,6 +24,7 @@ library
       Language.NStar.CodeGen.Machine.X64
       Language.NStar.CodeGen.Machine.X64.Call
       Language.NStar.CodeGen.Machine.X64.Expression
+      Language.NStar.CodeGen.Machine.X64.Jmp
       Language.NStar.CodeGen.Machine.X64.Mov
       Language.NStar.CodeGen.Machine.X64.Nop
       Language.NStar.CodeGen.Machine.X64.Ret
