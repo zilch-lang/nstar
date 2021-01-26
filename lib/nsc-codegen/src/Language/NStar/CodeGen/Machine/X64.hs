@@ -28,6 +28,7 @@ import Data.Bifunctor (second)
 import Data.Elf (RelocationType(..))
 import Language.NStar.CodeGen.Machine.X64.Call (compileCall)
 import Language.NStar.CodeGen.Machine.X64.Nop (compileNop)
+import Language.NStar.CodeGen.Machine.X64.Mov (compileMov)
 import Language.NStar.CodeGen.Machine.X64.Expression (int32, int64, compileConstantX64)
 
 compileX64 :: TypedProgram -> Compiler ()
@@ -51,30 +52,6 @@ compileInstrInterX64 RET []                                    =
   pure [Byte 0xC3]
 compileInstrInterX64 RET args                                  =
   internalError $ "Expected [] but got " <> show args <> " as arguments for " <> show RET
--- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
-compileInstrInterX64 (MOV (Name n :@ _) (Reg dst :@ _)) [_, _] =
-  pure [rexW, Byte $ 0xB8 + registerNumber (unLoc dst), Symbol64 (unLoc n)]
--- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
-compileInstrInterX64 (MOV (Indexed (Imm (I disp :@ _) :@ _) (Name l :@ _) :@ _) (Reg dst :@ _)) [_, _] =
-  pure [rexW, Byte 0x8B, modRM 0x0 (registerNumber (unLoc dst)) 0x4, sib 0x0 0x4 0x5, Symbol32 (unLoc l) disp]
--- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
-compileInstrInterX64 (MOV (Indexed (Imm (I disp :@ _) :@ _) (Reg src :@ _) :@ _) (Reg dst :@ _)) [_, _] =
-  pure $ [rexW, Byte 0x8B, modRM 0x1 (registerNumber (unLoc dst)) (registerNumber (unLoc src))] <> (Byte <$> int8 disp)
--- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
-compileInstrInterX64 (MOV (Indexed (Reg r1 :@ _) (Reg r2 :@ _) :@ _) (Reg dst :@ _)) [_, _] =
-  pure $ [rexW, Byte 0x8B, modRM 0x0 (registerNumber (unLoc dst)) 0x4, sib 0x0 (registerNumber (unLoc r1)) (registerNumber (unLoc r2))]
--- REX.W + 89 /r	MOV r/m64,r64	        MR	Valid	        N.E.	                Move r64 to r/m64.
-compileInstrInterX64 (MOV (Reg src :@ _) (Indexed (Reg r1 :@ _) (Reg r2 :@ _) :@ _)) [_, _] =
-  pure $ [rexW, Byte 0x89, modRM 0x0 (registerNumber (unLoc src)) 0x4, sib 0x0 (registerNumber (unLoc r1)) (registerNumber (unLoc r2))]
--- REX.W + 89 /r	MOV r/m64,r64	        MR	Valid	        N.E.	                Move r64 to r/m64.
-compileInstrInterX64 (MOV (Indexed (Reg r1 :@ _) (Name n :@ _) :@ _) (Reg dst :@ _)) [_, _] =
-  pure $ [rexW, Byte 0x8B, modRM 0x2 (registerNumber (unLoc dst)) (registerNumber (unLoc r1)), Symbol32 (unLoc n) 0]
--- REX.W + B8+ rd io	MOV r64, imm64	        OI	Valid	        N.E.	                Move imm64 to r64.
-compileInstrInterX64 (MOV src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
-  ([rexW, Byte (0xB8 + registerNumber (unLoc dst))] <>) <$> compileExprX64 64 (unLoc src)
--- REX.W + 8B /r	MOV r64,r/m64	        RM	Valid	        N.E.	                Move r/m64 to r64.
-compileInstrInterX64 (MOV (Reg src :@ _) (Reg dst :@ _)) [_, _] =
-  pure [rexW, Byte 0x8B, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
 -- E9 cd	        JMP rel32	        D	Valid	        Valid	                Jump near, relative, RIP = RIP + 32-bit displacement sign extended to 64-bits
 compileInstrInterX64 (JMP (Name n :@ _) _) []                              =
   pure [Byte 0xE9, Jump (unLoc n)]
@@ -101,6 +78,7 @@ compileInstrInterX64 (SUB src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
   ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <>) <$> compileExprX64 64 (unLoc src)
 compileInstrInterX64 (CALL dst _) args       = compileCall (unLoc dst) args
 compileInstrInterX64 (NOP) args              = compileNop args
+compileInstrInterX64 (MOV src dst) args      = compileMov (unLoc src) (unLoc dst) args
 compileInstrInterX64 i args                  = internalError $ "not yet supported: compileInterInstrX64 " <> show i <> " " <> show args
 
 ---------------------------------------------------------------------------------------------------------------------
