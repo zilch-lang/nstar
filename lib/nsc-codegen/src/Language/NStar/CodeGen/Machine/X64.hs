@@ -26,6 +26,7 @@ import Data.Bits ((.&.), (.|.), shiftL)
 import Debug.Trace (traceShow)
 import Data.Bifunctor (second)
 import Data.Elf (RelocationType(..))
+import Language.NStar.CodeGen.Machine.X64.Expression (int32, int64, compileConstantX64)
 
 compileX64 :: TypedProgram -> Compiler ()
 compileX64 prog@(TProgram (TData dataSect :@ _) _ _ _) = do
@@ -105,29 +106,6 @@ compileInstrInterX64 NOP [] =
 compileInstrInterX64 i args                                    =
   error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
 
-compileExprX64 :: Integer -> Expr -> Compiler [InterOpcode]
-compileExprX64 n (Imm i) = case (n, unLoc i) of
-  (32, I int) -> pure (Byte <$> int32 int)
-  (64, I int) -> pure (Byte <$> int64 int)
-  (64, C c)   -> pure (Byte <$> char8 c)
--- ^^^^^ all these matches are intentionally left incomplete.
-
-int64 :: Integer -> [Word8]
-int64 = BS.unpack . runPut . putInt64le . fromIntegral
-
-int32 :: Integer -> [Word8]
-int32 = BS.unpack . runPut . putInt32le . fromIntegral
-
-int8 :: Integer -> [Word8]
-int8 = BS.unpack . runPut . putInt8 . fromIntegral
-
-char8 :: Char -> [Word8]
-char8 = BS.unpack . runPut . putWord8 . fromIntegral . ord
-
-compileConstantX64 :: Constant -> [Word8]
-compileConstantX64 (CInteger (i :@ _))   = int64 i
-compileConstantX64 (CCharacter (c :@ _)) = char8 c
-compileConstantX64 (CArray csts)         = mconcat (compileConstantX64 . unLoc <$> csts)
 
 ---------------------------------------------------------------------------------------------------------------------
 
