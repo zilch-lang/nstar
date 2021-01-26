@@ -4,15 +4,13 @@ module Language.NStar.CodeGen.Machine.Internal.X64.ModRM
 ( -- * Calculating the ModR/M byte
   -- $modrm
 
-  -- * ModR/M constructors
-modRM, modRMRegOffsetIntoReg, modRMRegAsOffsetIntoReg, modRMRegIntoRegAsOffset, modRMRegToReg
+  -- * ModR/M byte constructor
+modRM
 ) where
 
 import Data.Word (Word8)
 import Data.Bits (shiftL, (.&.), (.|.))
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
-import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
-import Language.NStar.Syntax.Core (Register)
 
 {- $modrm
 
@@ -121,19 +119,3 @@ modRM mod reg rm = Byte $
       ((mod .&. 0b11)  `shiftL` 6)
   .|. ((reg .&. 0b111) `shiftL` 3)
   .|. ((rm  .&. 0b111) `shiftL` 0)
-
--- | Creates the ModR\/M byte corresponding to moving from a register offset to a register (@N(reg_src) -> reg_dst@).
-modRMRegOffsetIntoReg :: Register -> Register -> InterOpcode
-modRMRegOffsetIntoReg rOff r2 = modRM 0b01 (registerNumber r2) (registerNumber rOff)
-
--- | Creates the ModR\/M byte corresponding to moving from a register as an offset to a register (@reg_offset(???) -> reg_dst@).
-modRMRegAsOffsetIntoReg :: Register -> Register -> InterOpcode
-modRMRegAsOffsetIntoReg rOff r2 = modRM 0b10 (registerNumber r2) (registerNumber rOff)
-
--- | Creates the ModR\/M byte corresponding to moving from a register to a register as an offset (@reg_src -> reg_offset(???)@).
-modRMRegIntoRegAsOffset :: Register -> Register -> InterOpcode
-modRMRegIntoRegAsOffset r1 rOff = modRM 0b10 (registerNumber rOff) (registerNumber r1)
-
--- | Creates the ModR\/M byte corresponding to moving between two registers.
-modRMRegToReg :: Register -> Register -> InterOpcode
-modRMRegToReg src dst = modRM 0b11 (registerNumber dst) (registerNumber src)

@@ -3,15 +3,14 @@
 module Language.NStar.CodeGen.Machine.Internal.X64.SIB
 ( -- * Calculating the SIB byte
   -- $sib
-  -- * SIB constructors
-sib, sibDisp32, sibRegDisp
+
+  -- * SIB Byte constructor
+sib
 ) where
 
-import Language.NStar.Syntax.Core (Register)
 import Data.Word (Word8)
 import Data.Bits (shiftL, (.&.), (.|.))
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
-import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
 
 {- $sib
 
@@ -121,17 +120,3 @@ sib scale index base = Byte $
       ((scale .&. 0b11)  `shiftL` 6)
   .|. ((index .&. 0b111) `shiftL` 3)
   .|. ((base .&. 0b111)  `shiftL` 0)
-
--- | Creates a SIB byte indicating a 32 bit displacement from an address.
-sibDisp32 :: InterOpcode
-sibDisp32 = sib 0x0 0x4 0x5
-
--- | Creates a SIB byte indicating a displacement of the form @[base + index * scale]@ where @base@ and @index@ are registers.
-sibRegDisp :: Register -> Register -> Word8 -> InterOpcode
-sibRegDisp base index scale = sib scaleEnum (registerNumber index) (registerNumber base)
-  where scaleEnum = case scale of
-          1 -> 0b00
-          2 -> 0b01
-          4 -> 0b10
-          8 -> 0b11
-          _ -> error ("Invalid scale specifier " <> show scale)
