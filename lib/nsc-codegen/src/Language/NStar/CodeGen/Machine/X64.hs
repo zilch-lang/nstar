@@ -26,6 +26,7 @@ import Data.Bits ((.&.), (.|.), shiftL)
 import Debug.Trace (traceShow)
 import Data.Bifunctor (second)
 import Data.Elf (RelocationType(..))
+import Language.NStar.CodeGen.Machine.X64.Nop (compileNop)
 import Language.NStar.CodeGen.Machine.X64.Expression (int32, int64, compileConstantX64)
 
 compileX64 :: TypedProgram -> Compiler ()
@@ -100,12 +101,8 @@ compileInstrInterX64 (ADD src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
 -- REX.W + 81 /5 id	SUB r/m64, imm32	MI	Valid	        N.E.	                Subtract imm32 sign-extended to 64-bits from r/m64.
 compileInstrInterX64 (SUB src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
   ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <>) <$> compileExprX64 64 (unLoc src)
--- NP 90	        NOP	                ZO	Valid	        Valid	                One byte no-operation instruction.
-compileInstrInterX64 NOP [] =
-  pure [Byte 0x90]
-compileInstrInterX64 i args                                    =
-  error $ "not yet implemented: compileInterInstrX64 " <> show i <> " " <> show args
-
+compileInstrInterX64 (NOP) args              = compileNop args
+compileInstrInterX64 i args                  = internalError $ "not yet supported: compileInterInstrX64 " <> show i <> " " <> show args
 
 ---------------------------------------------------------------------------------------------------------------------
 
