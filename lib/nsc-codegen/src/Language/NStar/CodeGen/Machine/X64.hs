@@ -33,6 +33,7 @@ import Language.NStar.CodeGen.Machine.X64.Nop (compileNop)
 import Language.NStar.CodeGen.Machine.X64.Push (compilePush)
 import Language.NStar.CodeGen.Machine.X64.Pop (compilePop)
 import Language.NStar.CodeGen.Machine.X64.Mov (compileMov)
+import Language.NStar.CodeGen.Machine.X64.Add (compileAdd)
 import Language.NStar.CodeGen.Machine.X64.Expression (int32, int64, compileConstantX64)
 
 compileX64 :: TypedProgram -> Compiler ()
@@ -51,12 +52,6 @@ compileStmtInterX64 (TInstr i ts) = compileInstrInterX64 (unLoc i) (unLoc <$> ts
 
 -- Opcode*	        Instruction	        Op/En	64-Bit Mode	Compat/Leg Mode	Description
 compileInstrInterX64 :: Instruction -> [Type] -> Compiler [InterOpcode]
--- REX.W + 01 /r	ADD r/m64, r64	        MR	Valid	        N.E.	                Add r64 to r/m64.
-compileInstrInterX64 (ADD (Reg src :@ _) (Reg dst :@ _)) [_] =
-  pure [rexW, Byte 0x01, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
--- REX.W + 81 /0 id	ADD r/m64, imm32	MI	Valid	        N.E.	                Add imm32 sign-extended to 64-bits to r/m64.
-compileInstrInterX64 (ADD src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
-  ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x0] <>) <$> compileExprX64 64 (unLoc src)
 -- REX.W + 81 /5 id	SUB r/m64, imm32	MI	Valid	        N.E.	                Subtract imm32 sign-extended to 64-bits from r/m64.
 compileInstrInterX64 (SUB src@(Imm _ :@ _) (Reg dst :@ _)) [_, _] =
   ([rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <>) <$> compileExprX64 64 (unLoc src)
@@ -67,6 +62,7 @@ compileInstrInterX64 (NOP) args              = compileNop args
 compileInstrInterX64 (PUSH src) args         = compilePush (unLoc src) args
 compileInstrInterX64 (POP dst) args          = compilePop (unLoc dst) args
 compileInstrInterX64 (MOV src dst) args      = compileMov (unLoc src) (unLoc dst) args
+compileInstrInterX64 (ADD src dst) args      = compileAdd (unLoc src) (unLoc dst) args
 compileInstrInterX64 i args                  = internalError $ "not yet supported: compileInterInstrX64 " <> show i <> " " <> show args
 
 ---------------------------------------------------------------------------------------------------------------------

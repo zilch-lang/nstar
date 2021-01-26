@@ -22,6 +22,7 @@ library
       Language.NStar.CodeGen.Machine.Internal.X64.REX
       Language.NStar.CodeGen.Machine.Internal.X64.SIB
       Language.NStar.CodeGen.Machine.X64
+      Language.NStar.CodeGen.Machine.X64.Add
       Language.NStar.CodeGen.Machine.X64.Call
       Language.NStar.CodeGen.Machine.X64.Expression
       Language.NStar.CodeGen.Machine.X64.Jmp
