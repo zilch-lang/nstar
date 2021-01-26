@@ -65,8 +65,8 @@ import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNum
 -}
 
 compilePop :: Expr -> [Type] -> Compiler [InterOpcode]
-compilePop (Reg dst) [_]              = pure [Byte $ 0x58 + registerNumber (unLoc dst)]
-compilePop (Indexed index base) [_]   = pure $ [Byte 0x8F] <> case (unLoc index, unLoc base) of
-  (Imm (I disp :@ _), Name l) -> [modRM 0x0 0x0 0x4, sib 0x0 0x4 0x5, Symbol32 (unLoc l) disp]
-  (_, _)                      -> internalError $ "Unsupported instruction 'pop " <> show index <> "(" <> show base <> ") [_]'."
+compilePop (Reg dst) [_]                                        =
+  pure [Byte $ 0x58 + registerNumber (unLoc dst)]
+compilePop (Indexed (Imm (I disp :@ _) :@ _) (Name l :@ _)) [_] =
+  pure [Byte 0x8F, modRM 0x0 0x0 0x4, sib 0x0 0x4 0x5, Symbol32 (unLoc l) disp]
 compilePop dst ts                     = internalError $ "Unsupported instruction 'pop " <> show dst <> " " <> show ts <> "'."
