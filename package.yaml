@@ -63,3 +63,5 @@ tests:
     - hspec
     - text
     - Glob
+    - deepseq
+    - spoon
