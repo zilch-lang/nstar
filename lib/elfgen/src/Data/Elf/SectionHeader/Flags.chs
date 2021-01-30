@@ -1,5 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Data.Elf.SectionHeader.Flags
 ( SFlags
@@ -12,12 +13,14 @@ module Data.Elf.SectionHeader.Flags
 import Data.Bits (Bits, shiftL)
 import Data.Elf.Types (Elf_Xword)
 import Data.Elf.Internal.BusSize
+import GHC.Generics (Generic)
 
 #include <elf.h>
 
 type SFlags = Flag
 -- | Section flags
 newtype Flag (n :: Size) = Flag (Elf_Xword n)
+  deriving (Generic)
 --  deriving (Show, Eq, Ord, Num, Bits, Integral, Real, Enum)
 deriving instance Show (Flag n)
 deriving instance Eq (Flag n)

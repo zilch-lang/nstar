@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Data.Elf.Symbol
 ( ElfSymbol(..)
@@ -23,6 +24,7 @@ import Foreign.Storable (Storable(..))
 import Foreign.Ptr (Ptr, castPtr)
 import Foreign.Marshal.Alloc (malloc, free)
 import Data.Word (Word64)
+import GHC.Generics (Generic)
 
 #include "symbol.h"
 
@@ -33,7 +35,7 @@ data ElfSymbol (n :: Size)
       SymbolType       -- ^ Symbol type
       SymbolBinding    -- ^ Symbol binding
       SymbolVisibility -- ^ Symbol visibility
-  deriving (Eq, Show)
+  deriving (Eq, Show, Generic)
 
 instance Ord (ElfSymbol n) where
   ElfSymbol _ t1 _ _ <= ElfSymbol _ t2 _ _ = t1 <= t2
@@ -47,13 +49,13 @@ data SymbolType
   | ST_File String     -- ^ Symbol's name is file name
   | ST_Common          -- ^ Symbol is a common data object
   | ST_TLS             -- ^ Symbol is a thread-local data object
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Generic)
 
 -- | Symbol binding type
-{#enum symbol_binding as SymbolBinding {SB_LOCAL as SB_Local, SB_GLOBAL as SB_Global, SB_WEAK as SB_Weak} deriving (Eq, Ord, Show)#}
+{#enum symbol_binding as SymbolBinding {SB_LOCAL as SB_Local, SB_GLOBAL as SB_Global, SB_WEAK as SB_Weak} deriving (Eq, Ord, Show, Generic)#}
 
 -- | Symbol visibility specification
-{#enum symbol_visibility as SymbolVisibility {SV_DEFAULT as SV_Default, SV_INTERNAL as SV_Internal, SV_HIDDEN as SV_Hidden, SV_PROTECTED as SV_Protected} deriving (Eq, Ord, Show)#}
+{#enum symbol_visibility as SymbolVisibility {SV_DEFAULT as SV_Default, SV_INTERNAL as SV_Internal, SV_HIDDEN as SV_Hidden, SV_PROTECTED as SV_Protected} deriving (Eq, Ord, Show, Generic)#}
 
 {#enum symbol_type_ as C_SymbolType' {ST_NOTYPE as STT_NoType, ST_OBJECT as STT_Object, ST_FUNC as STT_Func, ST_SECTION as STT_Section, ST_FILE as STT_File, ST_COMMON as STT_Common, ST_TLS as STT_TLS}#}
 
@@ -187,17 +189,17 @@ data RelocationSymbol (n :: Size)
       RelocationOrigin -- ^ Symbol name
       RelocationType   -- ^ Relocation type
       Integer          -- ^ Relocation offset in section
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Generic)
 
 data RelocationOrigin
   -- | Relocating from a section
   = SectionReloc
       String        -- ^ Section name
       Integer       -- ^ Offset from beginning of section
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Generic)
 
 -- | Symbol relocation type
-{#enum symbol_relocation_type as RelocationType {RT_X86_64_NONE as R_x86_64_None, RT_X86_64_32 as R_x86_64_32, RT_X86_64_32S as R_x86_64_32s, RT_X86_64_64 as R_x86_64_64} deriving (Eq, Ord)#}
+{#enum symbol_relocation_type as RelocationType {RT_X86_64_NONE as R_x86_64_None, RT_X86_64_32 as R_x86_64_32, RT_X86_64_32S as R_x86_64_32s, RT_X86_64_64 as R_x86_64_64} deriving (Eq, Ord, Generic)#}
 
 {#enum relocation_origin_type as RelocType {ORIGIN_SECTION as OrigSection}#}
 

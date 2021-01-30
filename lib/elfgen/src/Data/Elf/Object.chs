@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Data.Elf.Object where
 
@@ -13,6 +14,7 @@ import Foreign.C.Types (CULong)
 import Foreign.Storable (Storable(..))
 import Foreign.Marshal.Array (peekArray, newArray)
 import Foreign.Marshal.Alloc (malloc, free)
+import GHC.Generics (Generic)
 
 #include "object.h"
 
@@ -23,6 +25,7 @@ data ElfObject n
   , segments      :: [ProgramHeader n]     -- ^ Program headers
   , sections      :: [SectionHeader n]     -- ^ Section headers
   }
+  deriving (Generic)
 
 data C_ElfObject (n :: Size)
   = C_ElfObject

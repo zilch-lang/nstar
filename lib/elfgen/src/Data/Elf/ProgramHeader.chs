@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Data.Elf.ProgramHeader
 ( ProgramHeader(..)
@@ -19,6 +20,7 @@ import Foreign.C.Types (CChar)
 import Foreign.C.String (CString, peekCString, newCString)
 import Foreign.Marshal.Array (peekArray, newArray)
 import Foreign.Marshal.Alloc (malloc, free)
+import GHC.Generics (Generic)
 
 #include "segment_header.h"
 
@@ -36,6 +38,7 @@ data ProgramHeader (n :: Size)
   | PInterp
       String     -- ^ Path to the dynamic interpreter
       (PFlags n)
+  deriving (Generic)
 deriving instance Eq (ProgramHeader n)
 deriving instance Ord (ProgramHeader n)
 
