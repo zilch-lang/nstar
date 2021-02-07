@@ -180,7 +180,7 @@ parseForallType pty = located $
 
 -- | Parses a non-stack type. To parse a stack type, see 'parseStackType'.
 parseType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseType = lexeme $ MP.choice
+parseType = MP.choice
   [ parseRecordType True
   , parseSignedType
   , parseUnsignedType
@@ -210,15 +210,15 @@ parseUnsignedType = located $ fmap Unsigned . MP.choice $ unsigned <$> [ 64 ]
 
 -- | Parses a pointer to a type.
 parsePointerType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parsePointerType = located $ lexeme (parseSymbol Star) *> (Ptr <$> parseType)
+parsePointerType = lexeme . located $ lexeme (parseSymbol Star) *> (Ptr <$> parseType)
 
 -- | Parses a pointer to a stack type.
 parseStackPointerType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseStackPointerType = located $ lexeme (parseSymbol Sptr) *> (SPtr <$> parseStackType)
+parseStackPointerType = lexeme . located $ lexeme (parseSymbol Sptr) *> (SPtr <$> parseStackType)
 
 -- | Parses a stack type.
 parseStackType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseStackType = foldr1 cons <$> (parseType `MP.sepBy1` lexeme (parseSymbol DoubleColon))
+parseStackType = foldr1 cons <$> (parseType `MP.sepBy1` (lexeme (pure ()) *> lexeme (parseSymbol DoubleColon)))
   where
     cons stack@(_ :@ p) ty = Cons stack ty :@ p
 
@@ -310,8 +310,8 @@ parseJmp = located $
 
 parseSpecialization :: (?parserFlags :: ParserFlags) => Parser (Located Type)
 parseSpecialization = MP.choice
-  [ MP.try parseStackType
-  , MP.try (betweenParens parseStackType)
+  [ MP.try (lexeme parseStackType)
+  , MP.try (betweenParens (lexeme parseStackType))
   , parseType
   ]
 
