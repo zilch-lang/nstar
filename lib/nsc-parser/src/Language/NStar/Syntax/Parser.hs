@@ -121,19 +121,19 @@ parseCharacter = MP.label "a character" $ lexeme do
 
 -- | Parses something between braces.
 betweenBraces :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
-betweenBraces = MP.between (lexeme $ parseSymbol LBrace) (lexeme $ parseSymbol RBrace)
+betweenBraces = MP.between (lexeme $ parseSymbol LBrace) (parseSymbol RBrace)
 
 -- | Parses something between brackets.
 betweenBrackets :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
-betweenBrackets = MP.between (lexeme $ parseSymbol LBracket) (lexeme $ parseSymbol RBracket)
+betweenBrackets = MP.between (lexeme $ parseSymbol LBracket) (parseSymbol RBracket)
 
 -- | Parses something between parentheses.
 betweenParens :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
-betweenParens = MP.between (lexeme $ parseSymbol LParen) (lexeme $ parseSymbol RParen)
+betweenParens = MP.between (lexeme $ parseSymbol LParen) (parseSymbol RParen)
 
 -- | Parses something between angles.
 betweenAngles :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
-betweenAngles = MP.between (lexeme $ parseSymbol LAngle) (lexeme $ parseSymbol RAngle)
+betweenAngles = MP.between (lexeme $ parseSymbol LAngle) (parseSymbol RAngle)
 
 
 -----------------------------------
