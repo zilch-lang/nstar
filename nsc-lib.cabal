@@ -24,7 +24,6 @@ source-repository head
 
 library
   exposed-modules:
-      Language.NStar.Branchchecker
       Language.NStar.CodeGen
       Language.NStar.Syntax
       Language.NStar.Typechecker
@@ -38,7 +37,6 @@ library
       base >=4.7 && <5
     , diagnose
     , elfgen
-    , nsc-branchchecker
     , nsc-codegen
     , nsc-core
     , nsc-parser
@@ -61,7 +59,6 @@ executable nsc
     , elfgen
     , filepath
     , mtl
-    , nsc-branchchecker
     , nsc-codegen
     , nsc-core
     , nsc-flags
@@ -87,7 +84,6 @@ test-suite nsc-tests
     , diagnose
     , elfgen
     , hspec
-    , nsc-branchchecker
     , nsc-codegen
     , nsc-core
     , nsc-flags

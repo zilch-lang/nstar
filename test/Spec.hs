@@ -14,7 +14,6 @@ import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Language.NStar.Syntax (lexFile, parseFile, postProcessAST)
 import Language.NStar.Typechecker (typecheck)
-import Language.NStar.Branchchecker (branchcheck)
 import Language.NStar.CodeGen
 import Data.List (isInfixOf)
 import Text.Diagnose ((<~<), prettyText, Diagnostic, reportError, Marker(..), diagnostic, (<++>))
@@ -27,7 +26,6 @@ data Error
   = Lx
   | Ps
   | Tc
-  | Bc
   | Cg
   | Any
   | No
@@ -37,7 +35,6 @@ instance Show Error where
   show Lx = "lexing"
   show Ps = "parsing"
   show Tc = "type-checking"
-  show Bc = "branch-checking"
   show Cg = "codegen"
   show Any = "any"
   show No = "no"
@@ -71,7 +68,6 @@ check file = do
         if | "error_lx_" `isInfixOf` file -> Lx
            | "error_ps_" `isInfixOf` file -> Ps
            | "error_tc_" `isInfixOf` file -> Tc
-           | "error_bc_" `isInfixOf` file -> Bc
            | "error_" `isInfixOf` file    -> Any
            | otherwise                    -> No
 
@@ -84,7 +80,6 @@ check file = do
         (ast, _) <- first (, Ps) $! parseFile file tokens
         ast <- pure $! postProcessAST ast
         (ast, _) <- first (, Tc) $! typecheck ast
-        _ <- first (, Bc) $! branchcheck ast
         _ <- maybeToEither errorCallCodeGen $ teaspoon (compileToElf @S64 X64 ast `deepseq` ())
         pure ast
 

@@ -1,4 +1,0 @@
-section code {
-main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
-  mov 0, %r0
-}
