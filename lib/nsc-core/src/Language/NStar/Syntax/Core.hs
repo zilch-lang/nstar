@@ -300,6 +300,8 @@ data Token where
   EOL :: Token
   -- | End Of File
   EOF :: Token
+  -- | An horizontal space
+  HSpace :: Token
 
 deriving instance Show Token
 deriving instance Eq Token

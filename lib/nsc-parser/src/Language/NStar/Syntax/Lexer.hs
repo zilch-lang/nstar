@@ -36,8 +36,8 @@ type Lexer a = WriterT [LexicalWarning] (MP.Parsec LexicalError Text) a
 
 -- | @space@ only parses any whitespace (not accounting for newlines and vertical tabs) and discards them.
 space :: (?lexerFlags :: LexerFlags) => Lexer ()
-space = MPL.space spc MP.empty MP.empty
-  where spc = () <$ MP.satisfy (and . (<$> [isSpace, (/= '\n'), (/= '\r'), (/= '\v'), (/= '\f')]) . (&))
+space = MPL.space MP.empty MP.empty MP.empty
+--  where spc = () <$
 
 -- | @lexeme p@ applies @p@ and ignores any space after, if @p@ succeeds. If @p@ fails, @lexeme p@ also fails.
 lexeme :: (?lexerFlags :: LexerFlags) => Lexer a -> Lexer a
@@ -69,7 +69,7 @@ lexProgram :: (?lexerFlags :: LexerFlags) => Lexer [LToken]
 lexProgram = lexeme (pure ()) *> ((<>) <$> tokens <*> ((: []) <$> eof))
   where
     tokens = MP.many . lexeme $ MP.choice
-      [ comment, identifierOrKeyword, literal, anySymbol, eol ]
+      [ comment, identifierOrKeyword, literal, anySymbol, eol, whitespace ]
 
 -- | Parses an end of line and returns 'EOL'.
 eol :: (?lexerFlags :: LexerFlags) => Lexer LToken
@@ -80,6 +80,9 @@ eol = located (EOL <$ MPC.eol)
 --   Note that all files end with 'EOF'.
 eof :: (?lexerFlags :: LexerFlags) => Lexer LToken
 eof = located (EOF <$ MP.eof)
+
+whitespace :: (?lexerFlags :: LexerFlags) => Lexer LToken
+whitespace = located $ HSpace <$ MP.some (MP.satisfy (and . (<$> [isSpace, (/= '\n'), (/= '\r'), (/= '\v'), (/= '\f')]) . (&)))
 
 -- | Parses any kind of comment, inline or multiline.
 comment :: (?lexerFlags :: LexerFlags) => Lexer LToken
