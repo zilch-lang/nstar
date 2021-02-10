@@ -109,7 +109,9 @@ anySymbol = located . MP.choice $ uncurry sat <$> symbols
      , (Minus, "-"), (Plus, "+")
      , (Equal, "=")
      , (Arrow, "->"), (Arrow, "→")
-     , (Pipe, "|") ]
+     , (Pipe, "|")
+     , (Semi, ";")
+     ]
 
 -- | Tries to parse an identifier. If the result appears to be a keyword, it instead returns a keyword.
 identifierOrKeyword :: (?lexerFlags :: LexerFlags) => Lexer LToken

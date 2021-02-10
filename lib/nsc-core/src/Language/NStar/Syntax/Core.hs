@@ -289,6 +289,8 @@ data Token where
   Equal :: Token
   -- | Separator "@->@" or "@→@"
   Arrow :: Token
+  -- | Instruction separator "@;@"
+  Semi :: Token
   -- Keywords
   -- | \"@forall@\" (or "@∀@") type variable binder in type
   Forall :: Token
