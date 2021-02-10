@@ -24,20 +24,20 @@ instance PrettyText Section where
   prettyText (UData sect)  = text "section udata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
 
 instance PrettyText Binding where
-  prettyText (Bind name ty cst) = prettyText name <> colon <+> prettyText ty <> line <> indent 4 (prettyText cst)
+  prettyText (Bind name ty cst) = prettyText name <> colon <+> prettyText ty <+> equals <+> prettyText cst
 
 instance PrettyText ReservedSpace where
   prettyText (ReservedBind name ty) = prettyText name <> colon <+> prettyText ty
 
 instance PrettyText Statement where
-  prettyText (Label name ty) = prettyText name <> colon <+> prettyText ty
-  prettyText (Instr i)       = prettyText i
-  prettyText (Unsafe is)     = text "unsafe {" <> line <> vsep (fmap prettyText is) <> line <> "}"
+  prettyText (Label name ty block) = prettyText name <> colon <+> prettyText ty <+> equals <+> prettyBlock block
+    where prettyBlock (is, unsafe) = (if unsafe then text "unsafe " else empty) <> mconcat (punctuate semi (fmap prettyText is))
 
 instance PrettyText Kind where
   prettyText T8 = text "T8"
   prettyText Ta = text "Ta"
   prettyText Ts = text "Ts"
+  prettyText Tc = text "Tc"
 
 instance PrettyText Text.Text where
   prettyText t = text (Text.unpack t)
@@ -54,10 +54,16 @@ instance PrettyText Type where
   prettyText (Cons t1 t2) = prettyText t1 <> colon <> colon <> prettyText t2
   prettyText (Ptr t) = text "*" <> prettyText t
   prettyText (SPtr t) = text "sptr" <+> prettyText t
-  prettyText (Record maps open) = encloseSep lbrace rbrace comma (Map.foldlWithKey f [] maps)
+  prettyText (Record maps st cont open) =
+    lbrace <+> mconcat (punctuate comma (Map.foldlWithKey f [] maps)) <+> text "|" <+> prettyText st <+> text "->" <+> prettyText cont <+> rbrace
     where f list reg ty = (prettyText reg <+> colon <+> prettyText ty) : list
   prettyText (ForAll binds ty) = text "forall" <+> hsep (output <$> binds) <> dot <+> prettyText ty
     where output (var, kind) = parens $ prettyText var <+> colon <+> prettyText kind
+
+instance PrettyText Cont where
+  prettyText (RegC r)   = prettyText r
+  prettyText (IndexC i) = prettyText i
+  prettyText (VarC v)   = prettyText v
 
 instance PrettyText Register where
   prettyText = (text "%" <>) . text . f
