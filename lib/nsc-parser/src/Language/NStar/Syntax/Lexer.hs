@@ -106,7 +106,10 @@ anySymbol = located . MP.choice $ uncurry sat <$> symbols
      , (Comma, ",")
      , (DoubleColon, "::"), (Colon, ":")
      , (Dot, ".")
-     , (Minus, "-"), (Plus, "+") ]
+     , (Minus, "-"), (Plus, "+")
+     , (Equal, "=")
+     , (Arrow, "->"), (Arrow, "→")
+     , (Pipe, "|") ]
 
 -- | Tries to parse an identifier. If the result appears to be a keyword, it instead returns a keyword.
 identifierOrKeyword :: (?lexerFlags :: LexerFlags) => Lexer LToken
@@ -136,6 +139,7 @@ identifierOrKeyword = located do
       "bp"      -> BP'
       -- Keywords
       "forall"  -> Forall
+      "∀"       -> Forall
       "sptr"    -> Sptr
       "unsafe"  -> UnSafe
       "section" -> Section
