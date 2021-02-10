@@ -127,6 +127,8 @@ data Kind where
   Ts :: Kind
   -- | Kind of unsized types
   Ta :: Kind
+  -- | Kind of continuations
+  Tc :: Kind
 
 deriving instance Show Kind
 deriving instance Eq Kind
