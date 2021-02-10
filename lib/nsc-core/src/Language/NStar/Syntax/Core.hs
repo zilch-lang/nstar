@@ -285,7 +285,10 @@ data Token where
   Plus :: Token
   -- | Separator "@|@"
   Pipe :: Token
+  -- | Separator "@=@"
+  Equal :: Token
   -- | Separator "@->@" or "@→@"
+  Arrow :: Token
   -- Keywords
   -- | \"@forall@\" (or "@∀@") type variable binder in type
   Forall :: Token
