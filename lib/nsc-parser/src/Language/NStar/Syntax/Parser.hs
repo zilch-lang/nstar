@@ -193,7 +193,6 @@ parseType = MP.choice
   , parseSignedType
   , parseUnsignedType
   , parsePointerType
-  , parseStackPointerType
   , parseVariableType
   , betweenParens parseType
   ]
@@ -203,7 +202,7 @@ parseRecordType :: (?parserFlags :: ParserFlags) => Bool -> Parser (Located Type
 parseRecordType open = located do
   (chi, sigma, epsilon) <- betweenBraces do
     (,,) <$> lexeme field `MP.sepBy` lexeme (parseSymbol Comma)
-         <*> (lexeme (parseSymbol Pipe) *> lexeme parseType)
+         <*> (lexeme (parseSymbol Pipe) *> lexeme parseStackType)
          <*> (lexeme (parseSymbol Arrow) *> lexeme parseContinuation)
 
   pure (Record (Map.fromList chi) sigma epsilon open)
@@ -225,10 +224,6 @@ parseUnsignedType = located $ fmap Unsigned . MP.choice $ unsigned <$> [ 64 ]
 -- | Parses a pointer to a type.
 parsePointerType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
 parsePointerType = lexeme . located $ lexeme (parseSymbol Star) *> (Ptr <$> parseType)
-
--- | Parses a pointer to a stack type.
-parseStackPointerType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseStackPointerType = lexeme . located $ lexeme (parseSymbol Sptr) *> (SPtr <$> parseStackType)
 
 -- | Parses a stack type.
 parseStackType :: (?parserFlags :: ParserFlags) => Parser (Located Type)

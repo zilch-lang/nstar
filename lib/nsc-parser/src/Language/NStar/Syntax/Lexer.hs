@@ -142,7 +142,6 @@ identifierOrKeyword = located do
       -- Keywords
       "forall"  -> Forall
       "∀"       -> Forall
-      "sptr"    -> Sptr
       "unsafe"  -> UnSafe
       "section" -> Section
       -- Identifier
