@@ -95,6 +95,8 @@ data Type where
        -> Type
   -- | Record type
   Record :: Map (Located Register) (Located Type)          -- ^ A mapping from 'Register's to their expected 'Type's
+         -> Located Type                                   -- ^ The stack required on this context
+         -> Located Type                                   -- ^ The return continuation
          -> Bool                                           -- ^ Is the record opened or closed?
          -> Type
   -- | Pointer to a normal type
@@ -279,8 +281,11 @@ data Token where
   Minus :: Token
   -- | Addition "@+@"
   Plus :: Token
+  -- | Separator "@|@"
+  Pipe :: Token
+  -- | Separator "@->@" or "@→@"
   -- Keywords
-  -- | \"@forall@\" type variable binder in type
+  -- | \"@forall@\" (or "@∀@") type variable binder in type
   Forall :: Token
   -- | \"@sptr@\" stack pointer quantifier
   Sptr :: Token
