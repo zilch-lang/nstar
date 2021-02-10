@@ -67,12 +67,10 @@ deriving instance Show ReservedSpace
 -- | A statement is either
 data Statement where
   -- | A typed label
-  Label :: Located Text           -- ^ The label's name. It may not be empty
-        -> Located Type           -- ^ The "label's type", describing the minimal type expected when jumping to this label
-        -> [Located Instruction]  -- ^ Instructions contained in its block
+  Label :: Located Text                   -- ^ The label's name. It may not be empty
+        -> Located Type                   -- ^ The "label's type", describing the minimal type expected when jumping to this label
+        -> ([Located Instruction], Bool)  -- ^ Instructions contained in its block as well as the unsafetiness of the block
         -> Statement
-  -- | An unsafe block
-  Unsafe :: [Located Statement] -> Statement
 
 deriving instance Show Statement
 
@@ -96,7 +94,7 @@ data Type where
   -- | Record type
   Record :: Map (Located Register) (Located Type)          -- ^ A mapping from 'Register's to their expected 'Type's
          -> Located Type                                   -- ^ The stack required on this context
-         -> Located Type                                   -- ^ The return continuation
+         -> Located Cont                                   -- ^ The return continuation
          -> Bool                                           -- ^ Is the record opened or closed?
          -> Type
   -- | Pointer to a normal type
@@ -119,6 +117,15 @@ data Type where
 
 deriving instance Show Type
 deriving instance Eq Type
+
+data Cont where
+  RegC :: Located Register -> Cont
+  IndexC :: Located Integer -> Cont
+  VarC :: Located Text -> Cont
+
+deriving instance Show Cont
+deriving instance Eq Cont
+
 
 data Kind where
   -- | Kind of 8-bytes big types
