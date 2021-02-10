@@ -301,8 +301,6 @@ data Token where
   -- Keywords
   -- | \"@forall@\" (or "@∀@") type variable binder in type
   Forall :: Token
-  -- | \"@sptr@\" stack pointer quantifier
-  Sptr :: Token
   -- | \"@unsafe@\" block
   UnSafe :: Token
   -- | \"@section@\" block
