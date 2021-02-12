@@ -53,7 +53,6 @@ instance PrettyText Type where
   prettyText (Unsigned n) = text "u" <> text (show n)
   prettyText (Cons t1 t2) = prettyText t1 <> colon <> colon <> prettyText t2
   prettyText (Ptr t) = text "*" <> prettyText t
-  prettyText (SPtr t) = text "sptr" <+> prettyText t
   prettyText (Record maps st cont open) =
     lbrace <+> mconcat (punctuate comma (Map.foldlWithKey f [] maps)) <+> text "|" <+> prettyText st <+> text "->" <+> prettyText cont <+> rbrace
     where f list reg ty = (prettyText reg <+> colon <+> prettyText ty) : list

@@ -100,13 +100,6 @@ data Type where
   -- | Pointer to a normal type
   Ptr :: Located Type
       -> Type
-  -- | Pointer to a stack type
-  --
-  -- We separate stack pointers from normal pointers
-  -- because they are used as a different construct
-  -- in the source code (@*ty@ vs @sptr sty@)
-  SPtr :: Located Type
-       -> Type
   -- | Forall type variable binder
   ForAll :: [(Located Type, Located Kind)]                  -- ^ Variables along with their 'Kind's
          -> Located Type
