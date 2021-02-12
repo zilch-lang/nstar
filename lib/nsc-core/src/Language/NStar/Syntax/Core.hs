@@ -94,7 +94,7 @@ data Type where
   -- | Record type
   Record :: Map (Located Register) (Located Type)          -- ^ A mapping from 'Register's to their expected 'Type's
          -> Located Type                                   -- ^ The stack required on this context
-         -> Located Cont                                   -- ^ The return continuation
+         -> Located Type                                   -- ^ The return continuation
          -> Bool                                           -- ^ Is the record opened or closed?
          -> Type
   -- | Pointer to a normal type
@@ -114,18 +114,13 @@ data Type where
   -- | Register type
   Register :: Natural                                       -- ^ Register size
            -> Type
+  -- | Stack continuation
+  StackCont :: Integer -> Type
+  -- | Register continuation
+  RegisterCont :: Register -> Type
 
 deriving instance Show Type
 deriving instance Eq Type
-
-data Cont where
-  RegC :: Located Register -> Cont
-  IndexC :: Located Integer -> Cont
-  VarC :: Located Text -> Cont
-
-deriving instance Show Cont
-deriving instance Eq Cont
-
 
 data Kind where
   -- | Kind of 8-bytes big types

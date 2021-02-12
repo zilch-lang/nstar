@@ -243,11 +243,11 @@ parseKind = located $ MP.choice
   , Ta <$ parseSymbol (Id "Ta")
   , Tc <$ parseSymbol (Id "Tc") ]
 
-parseContinuation :: (?parserFlags :: ParserFlags) => Parser (Located Cont)
+parseContinuation :: (?parserFlags :: ParserFlags) => Parser (Located Type)
 parseContinuation = located $ MP.choice
-  [ RegC <$> parseRegister
-  , IndexC <$> parseInteger
-  , VarC <$> parseIdentifier ]
+  [ RegisterCont . unLoc <$> parseRegister
+  , StackCont . unLoc <$> parseInteger
+  , Var <$> parseIdentifier ]
 
 ------------------------------------------------------------------------------------------------------------
 

@@ -59,11 +59,8 @@ instance PrettyText Type where
     where f list reg ty = (prettyText reg <+> colon <+> prettyText ty) : list
   prettyText (ForAll binds ty) = text "forall" <+> hsep (output <$> binds) <> dot <+> prettyText ty
     where output (var, kind) = parens $ prettyText var <+> colon <+> prettyText kind
-
-instance PrettyText Cont where
-  prettyText (RegC r)   = prettyText r
-  prettyText (IndexC i) = prettyText i
-  prettyText (VarC v)   = prettyText v
+  prettyText (RegisterCont r) = prettyText r
+  prettyText (StackCont i) = prettyText i
 
 instance PrettyText Register where
   prettyText = (text "%" <>) . text . f
