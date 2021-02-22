@@ -49,6 +49,7 @@ data TypedCodeSection where
 data TypedStatement where
   -- | A label stripped off its context.
   TLabel :: Located Text         -- ^ the name of the label
+         -> [TypedStatement]     -- ^ Label's scope
          -> TypedStatement
   -- | An instruction with type information attached to it.
   TInstr :: Located Instruction  -- ^ the typed instruction
