@@ -43,6 +43,7 @@ data KindcheckError
   | NotADataType (Located Kind) Position
   | NotSized (Located Kind) Position
   | UnboundTypeVariable (Located Text)
+  | CannotUnifyKinds (Located Kind) (Located Kind)
 
 --------------------------------------------------------------------------------------------
 
@@ -53,32 +54,43 @@ kindcheck :: (?tcFlags :: TypecheckerFlags) => Located Type -> Either (Report St
 kindcheck = second (const ()) . runKindchecker . kindcheckType mempty
 
 fromKindcheckError :: KindcheckError -> Report String
-fromKindcheckError (NotAStackType (k :@ p1) p2)   = kindIsNotAStackKind k p1 p2
-fromKindcheckError (NotADataType (k :@ p1) p2)    = kindIsNotADataKind k p1 p2
-fromKindcheckError (NotSized (k :@ p1) p2)        = kindIsUnsized k p1 p2
-fromKindcheckError (UnboundTypeVariable (v :@ p)) = unboundTypeVariable v p
+fromKindcheckError (NotAStackType (k :@ p1) p2)             = kindIsNotAStackKind k p1 p2
+fromKindcheckError (NotADataType (k :@ p1) p2)              = kindIsNotADataKind k p1 p2
+fromKindcheckError (NotSized (k :@ p1) p2)                  = kindIsUnsized k p1 p2
+fromKindcheckError (UnboundTypeVariable (v :@ p))           = unboundTypeVariable v p
+fromKindcheckError (CannotUnifyKinds (k1 :@ p1) (k2 :@ p2)) = cannotUnifyKinds k1 k2 p1 p2
 
 kindcheckType :: (?tcFlags :: TypecheckerFlags) => Map (Located Text) (Located Kind) -> Located Type -> Kindchecker (Located Kind)
-kindcheckType _ (Signed _ :@ p)                          = pure (T8 :@ p)
-kindcheckType _ (Unsigned _ :@ p)                        = pure (T8 :@ p)
+kindcheckType _ (SignedT _ :@ p)                                      = pure (T8 :@ p)
+kindcheckType _ (UnsignedT _ :@ p)                                    = pure (T8 :@ p)
     -- TODO: For now we ignore the size of both types, because there are no sized kinds other than @T8@.
-kindcheckType ctx (ForAll newCtx ty :@ _)                = kindcheckType (Map.fromList (first varName <$> newCtx) <> ctx) ty
-  where varName (Var v :@ _) = v
+kindcheckType ctx (ForAllT newCtx ty :@ _)                            = kindcheckType (Map.fromList (first varName <$> newCtx) <> ctx) ty
+  where varName (VarT v :@ _) = v
         varName (t :@ _)     = error $ "Cannot fetch name of non type-variable type '" <> show t <> "'."
-kindcheckType ctx (Var v :@ _)                           = maybe (throwError (UnboundTypeVariable v)) pure (Map.lookup v ctx)
-kindcheckType _ (FVar v :@ _)                            = throwError (UnboundTypeVariable v)
-kindcheckType ctx (Ptr t :@ p)                           = (T8 :@ p) <$ kindcheckType ctx t
-kindcheckType ctx (SPtr t@(_ :@ p1) :@ p)                = (T8 :@ p) <$ (requireStackType p1 =<< kindcheckType ctx t)
-kindcheckType ctx (Cons t1@(_ :@ p1) t2@(_ :@ p2) :@ p)  = do
+kindcheckType ctx (VarT v :@ _)                                       = maybe (throwError (UnboundTypeVariable v)) pure (Map.lookup v ctx)
+kindcheckType _ (FVarT v :@ _)                                        = throwError (UnboundTypeVariable v)
+kindcheckType ctx (PtrT t :@ p)                                       = (T8 :@ p) <$ kindcheckType ctx t
+--kindcheckType ctx (SPtr t@(_ :@ p1) :@ p)                = (T8 :@ p) <$ (requireStackType p1 =<< kindcheckType ctx t)
+kindcheckType ctx (ConsT t1@(_ :@ p1) t2@(_ :@ p2) :@ p)              = do
   liftA2 (*>) (requireDataType p1) (requireSized p1) =<< kindcheckType ctx t1
   requireStackType p2 =<< kindcheckType ctx t2
   pure (Ts :@ p)
-kindcheckType ctx (Record mappings _ :@ p)               =
-  (Ta :@ p) <$ Map.traverseWithKey handleTypeFromRegister mappings
+kindcheckType ctx (RecordT mappings st@(_ :@ p2) _ _ :@ p) = do
+  Map.traverseWithKey handleTypeFromRegister mappings
+  requireStackType p2 =<< kindcheckType ctx st
+
+  -- NOTE: the continuation is not kind-checked here because we only require it to be valid at the end of the scope
+  -- which means that a context type @{| s -> %r0 }@ is a valid one, as long as the last instruction in the block
+  -- (may it be a return, a call or a jump) can safely continue.
+  --
+  -- - For a return, we require the continuation to point to something bound
+  -- - For a jump, the continuation does not change, so everything is okay as long as the next block is okay
+  -- - For a call, we basically push the current context somewhere, and replace the continuation with our own
+
+  pure (Ta :@ p)
        -- FIXME: Kind checking does not take into account the size of the types, so if they are sized, they all are 8-bytes big at the moment.
- where handleTypeFromRegister (SP :@ _) (SPtr ty :@ _)   = requireStackType p =<< kindcheckType ctx ty
-       handleTypeFromRegister _ ty@(_ :@ p)              = liftA2 (*>) (requireDataType p) (requireSized p) =<< kindcheckType ctx ty
-kindcheckType _ (Register _ :@ p)                        = pure (T8 :@ p)
+ where handleTypeFromRegister _ ty@(_ :@ p)              = liftA2 (*>) (requireDataType p) (requireSized p) =<< kindcheckType ctx ty
+kindcheckType _ (RegisterT _ :@ p)                                    = pure (T8 :@ p)
      -- NOTE: just a kind placeholder. rN types never appear after parsing.
 
 --------------------------------------------------------------------------------------------
@@ -89,11 +101,13 @@ unifyKinds (k1 :@ p1) (k2 :@ p2) = case (k1, k2) of
   (T8, T8) -> pure mempty
   (Ta, T8) -> pure mempty
   (Ta, Ta) -> pure mempty
+  (Tc, Tc) -> pure mempty
 ----------------------------------------------------------------------------------------
-  (Ts, _) -> throwError (NotAStackType (k2 :@ p2) p2)
+  (Ts, _)  -> throwError (NotAStackType (k2 :@ p2) p2)
   (T8, Ta) -> throwError (NotSized (k2 :@ p2) p2)
-  (T8, _) -> throwError (NotADataType (k2 :@ p2) p2)
-  (Ta, _) -> throwError (NotADataType (k2 :@ p2) p2)
+  (T8, _)  -> throwError (NotADataType (k2 :@ p2) p2)
+  (Ta, _)  -> throwError (NotADataType (k2 :@ p2) p2)
+  (_, _)   -> throwError (CannotUnifyKinds (k1 :@ p1) (k2 :@ p2))
 
 
 
