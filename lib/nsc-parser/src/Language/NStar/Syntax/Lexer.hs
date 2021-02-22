@@ -106,9 +106,9 @@ anySymbol = located . MP.choice $ uncurry sat <$> symbols
      , (Comma, ",")
      , (DoubleColon, "::"), (Colon, ":")
      , (Dot, ".")
+     , (Arrow, "->"), (Arrow, "→")
      , (Minus, "-"), (Plus, "+")
      , (Equal, "=")
-     , (Arrow, "->"), (Arrow, "→")
      , (Pipe, "|")
      , (Semi, ";")
      ]
