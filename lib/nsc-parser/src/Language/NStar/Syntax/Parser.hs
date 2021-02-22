@@ -175,10 +175,10 @@ parseInstruction = lexeme $ MP.choice
 -- | Parses a forall type variable binder.
 parseForallType :: (?parserFlags :: ParserFlags) => Parser (Located Type) -> Parser (Located Type)
 parseForallType pty = located $
-  ForAllT <$> (lexeme (parseSymbol Forall) *> MP.some (lexeme binders) <* lexeme (parseSymbol Dot))
+  ForAllT <$> (lexeme (parseSymbol Forall) *> (betweenParens $ lexeme binder `MP.sepBy` lexeme (parseSymbol Comma)) <* lexeme (parseSymbol Dot))
           <*> pty
  where
-   binders = betweenParens $
+   binder =
      (,) <$> (lexeme parseVariableType)
          <*> (lexeme (parseSymbol Colon) *> lexeme parseKind)
 
