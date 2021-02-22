@@ -30,9 +30,7 @@ import Language.NStar.CodeGen.Machine.X64.Ret (compileRet)
 import Language.NStar.CodeGen.Machine.X64.Jmp (compileJmp)
 import Language.NStar.CodeGen.Machine.X64.Call (compileCall)
 import Language.NStar.CodeGen.Machine.X64.Nop (compileNop)
-import Language.NStar.CodeGen.Machine.X64.Push (compilePush)
-import Language.NStar.CodeGen.Machine.X64.Pop (compilePop)
-import Language.NStar.CodeGen.Machine.X64.Mov (compileMov)
+import Language.NStar.CodeGen.Machine.X64.Mv (compileMv)
 import Language.NStar.CodeGen.Machine.X64.Add (compileAdd)
 import Language.NStar.CodeGen.Machine.X64.Sub (compileSub)
 import Language.NStar.CodeGen.Machine.X64.Expression (int32, int64, compileConstantX64)
@@ -48,17 +46,15 @@ compileInterX64 (TProgram (TData _ :@ _) (TROData _ :@ _) (TUData _ :@ _) (TCode
   mconcat <$> mapM (compileStmtInterX64 . unLoc) stmts
 
 compileStmtInterX64 :: TypedStatement -> Compiler [InterOpcode]
-compileStmtInterX64 (TLabel name) = pure [Label (unLoc name)]
-compileStmtInterX64 (TInstr i ts) = compileInstrInterX64 (unLoc i) (unLoc <$> ts)
+compileStmtInterX64 (TLabel name is) = (Label (unLoc name) :) . mconcat <$> mapM compileStmtInterX64 is
+compileStmtInterX64 (TInstr i _ _ _) = compileInstrInterX64 (unLoc i) []
 
 compileInstrInterX64 :: Instruction -> [Type] -> Compiler [InterOpcode]
 compileInstrInterX64 (RET) args              = compileRet args
-compileInstrInterX64 (JMP dst _) args        = compileJmp (unLoc dst) args
-compileInstrInterX64 (CALL dst _) args       = compileCall (unLoc dst) args
+compileInstrInterX64 (JMP dst) args          = compileJmp (unLoc dst) args
+compileInstrInterX64 (CALL dst) args         = compileCall (unLoc dst) args
 compileInstrInterX64 (NOP) args              = compileNop args
-compileInstrInterX64 (PUSH src) args         = compilePush (unLoc src) args
-compileInstrInterX64 (POP dst) args          = compilePop (unLoc dst) args
-compileInstrInterX64 (MOV src dst) args      = compileMov (unLoc src) (unLoc dst) args
+compileInstrInterX64 (MV src dst) args       = compileMv (unLoc src) (unLoc dst) args
 compileInstrInterX64 (ADD src dst) args      = compileAdd (unLoc src) (unLoc dst) args
 compileInstrInterX64 (SUB src dst) args      = compileSub (unLoc src) (unLoc dst) args
 compileInstrInterX64 i args                  = internalError $ "not yet supported: compileInterInstrX64 " <> show i <> " " <> show args

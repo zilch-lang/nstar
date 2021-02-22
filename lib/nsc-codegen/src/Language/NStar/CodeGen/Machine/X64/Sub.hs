@@ -84,5 +84,5 @@ import Internal.Error (internalError)
 -}
 
 compileSub :: Expr -> Expr -> [Type] -> Compiler [InterOpcode]
-compileSub src@(Imm _) (Reg dst) [_, _] = mappend [rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <$> compileExprX64 64 src
-compileSub src dst ts                   = internalError $ "Unsupported instruction 'sub " <> show src <> "," <> show dst <> " " <> show ts <> "'."
+compileSub src@(ImmE _) (RegE dst) [_, _] = mappend [rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <$> compileExprX64 64 src
+compileSub src dst ts                     = internalError $ "Unsupported instruction 'sub " <> show src <> "," <> show dst <> " " <> show ts <> "'."

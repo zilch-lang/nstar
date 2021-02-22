@@ -51,5 +51,5 @@ import Internal.Error (internalError)
 -}
 
 compileCall :: Expr -> [Type] -> Compiler [InterOpcode]
-compileCall (Name n) [] = pure [Byte 0xE8, Jump (unLoc n)]
-compileCall e ts        = internalError $ "Unsupported instruction 'call " <> show e <> " " <> show ts <> "'."
+compileCall (NameE n _) [] = pure [Byte 0xE8, Jump (unLoc n)]
+compileCall e ts           = internalError $ "Unsupported instruction 'call " <> show e <> " " <> show ts <> "'."

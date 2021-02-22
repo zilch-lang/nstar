@@ -15,8 +15,8 @@ patchMovRM2RM (TProgram d rd ud (TCode c :@ p)) = TProgram d rd ud (TCode newC :
   where
     newC = c >>= transform
 
-    transform (TInstr (MOV src@(Indexed _ _ :@ _) dst@(Indexed _ _ :@ _) :@ p1) [t1, t2] :@ p2) =
-      let r5 = Reg (R5 :@ p1) :@ p1
-      in [ TInstr (MOV src r5 :@ p1) [t1, Register 64 :@ p1] :@ p2
-         , TInstr (MOV r5 dst :@ p1) [Register 64 :@ p1, t2] :@ p2 ]
+    transform (TInstr (MV src@(IndexedE _ _ :@ _) dst@(IndexedE _ _ :@ _) :@ p1) chi sigma epsilon :@ p2) =
+      let r5 = RegE (R5 :@ p1) :@ p1
+      in [ TInstr (MV src r5 :@ p1) chi sigma epsilon :@ p2
+         , TInstr (MV r5 dst :@ p1) chi sigma epsilon :@ p2 ]
     transform i = pure i

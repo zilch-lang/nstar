@@ -53,5 +53,5 @@ import Internal.Error (internalError)
 -}
 
 compileJmp :: Expr -> [Type] -> Compiler [InterOpcode]
-compileJmp (Name n) [] = pure [Byte 0xE9, Jump (unLoc n)]
-compileJmp e ts        = internalError $ "Unsupported instruction 'jmp " <> show e <> " " <> show ts <> "'."
+compileJmp (NameE n _) [] = pure [Byte 0xE9, Jump (unLoc n)]
+compileJmp e ts           = internalError $ "Unsupported instruction 'jmp " <> show e <> " " <> show ts <> "'."

@@ -11,7 +11,5 @@ registerNumber R0 = 0x0  -- rax
 registerNumber R1 = 0x1  -- rcx
 registerNumber R2 = 0x2  -- rdx
 registerNumber R3 = 0x3  -- rbx
-registerNumber SP = 0x4  -- rsp
-registerNumber BP = 0x5  -- rbp
 registerNumber R4 = 0x6  -- rsi
 registerNumber R5 = 0x7  -- rdi

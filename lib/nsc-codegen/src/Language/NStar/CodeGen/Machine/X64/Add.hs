@@ -84,6 +84,6 @@ import Internal.Error (internalError)
 -}
 
 compileAdd :: Expr -> Expr -> [Type] -> Compiler [InterOpcode]
-compileAdd (Reg src) (Reg dst) [_, _]   = pure [rexW, Byte 0x01, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
-compileAdd src@(Imm _) (Reg dst) [_, _] = mappend [rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x0] <$> compileExprX64 64 src
-compileAdd src dst ts                   = internalError $ "Unsupported instruction 'add " <> show src <> "," <> show dst <> " " <> show ts <> "'."
+compileAdd (RegE src) (RegE dst) [_, _]   = pure [rexW, Byte 0x01, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
+compileAdd src@(ImmE _) (RegE dst) [_, _] = mappend [rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x0] <$> compileExprX64 64 src
+compileAdd src dst ts                     = internalError $ "Unsupported instruction 'add " <> show src <> "," <> show dst <> " " <> show ts <> "'."
