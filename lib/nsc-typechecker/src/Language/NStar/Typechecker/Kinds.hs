@@ -64,7 +64,7 @@ kindcheckType :: (?tcFlags :: TypecheckerFlags) => Map (Located Text) (Located K
 kindcheckType _ (SignedT _ :@ p)                                      = pure (T8 :@ p)
 kindcheckType _ (UnsignedT _ :@ p)                                    = pure (T8 :@ p)
     -- TODO: For now we ignore the size of both types, because there are no sized kinds other than @T8@.
-kindcheckType ctx (ForAllT newCtx ty :@ _)                            = kindcheckType (Map.fromList (first varName <$> newCtx) <> ctx) ty
+kindcheckType ctx (ForAllT newCtx ty :@ p)                            = (T8 :@ p) <$ kindcheckType (Map.fromList (first varName <$> newCtx) <> ctx) ty
   where varName (VarT v :@ _) = v
         varName (t :@ _)     = error $ "Cannot fetch name of non type-variable type '" <> show t <> "'."
 kindcheckType ctx (VarT v :@ _)                                       = maybe (throwError (UnboundTypeVariable v)) pure (Map.lookup v ctx)
