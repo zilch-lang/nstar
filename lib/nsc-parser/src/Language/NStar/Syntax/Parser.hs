@@ -60,13 +60,13 @@ parseProgram = lexeme (pure ()) *> (Program <$> MP.many section) <* parseEOF
   where section = lexeme . located $ MP.choice [ MP.try parseCodeSection, parseDataSection ]
 
 parseCodeSection :: (?parserFlags :: ParserFlags) => Parser Section
-parseCodeSection = Code <$> do
+parseCodeSection = CodeS <$> do
   lexeme (parseSymbol Section)
   lexeme (parseSymbol (Id "code"))
   lexeme $ betweenBraces (MP.many parseTypedLabel)
 
 parseDataSection :: (?parserFlags :: ParserFlags) => Parser Section
-parseDataSection = Data <$> do
+parseDataSection = DataS <$> do
   lexeme (parseSymbol Section)
   lexeme (parseSymbol (Id "data"))
   lexeme $ betweenBraces (MP.many (located binding))
@@ -101,8 +101,6 @@ parseRegister = MP.label "a register" $ located $ parseSymbol Percent *> reg
           , R3 <$ parseSymbol R3'
           , R4 <$ parseSymbol R4'
           , R5 <$ parseSymbol R5'
-          , SP <$ parseSymbol SP'
-          , BP <$ parseSymbol BP'
           , MP.lookAhead MP.anySingle >>= MP.customFailure . NoSuchRegister . unLoc ]
 
 parseInteger :: (?parserFlags :: ParserFlags) => Parser (Located Integer)
@@ -168,9 +166,7 @@ parseTerminalInstruction = lexeme $ MP.choice
 -- | Parses an instruction call from the N*'s instruction set.
 parseInstruction :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseInstruction = lexeme $ MP.choice
-  [ parseMov
-  , parsePush
-  , parsePop
+  [ parseMv
   , parseNop
   ]
 
@@ -179,8 +175,8 @@ parseInstruction = lexeme $ MP.choice
 -- | Parses a forall type variable binder.
 parseForallType :: (?parserFlags :: ParserFlags) => Parser (Located Type) -> Parser (Located Type)
 parseForallType pty = located $
-  ForAll <$> (lexeme (parseSymbol Forall) *> MP.some (lexeme binders) <* lexeme (parseSymbol Dot))
-         <*> pty
+  ForAllT <$> (lexeme (parseSymbol Forall) *> MP.some (lexeme binders) <* lexeme (parseSymbol Dot))
+          <*> pty
  where
    binders = betweenParens $
      (,) <$> (lexeme parseVariableType)
@@ -205,35 +201,35 @@ parseRecordType open = located do
          <*> (lexeme (parseSymbol Pipe) *> lexeme parseStackType)
          <*> (lexeme (parseSymbol Arrow) *> lexeme parseContinuation)
 
-  pure (Record (Map.fromList chi) sigma epsilon open)
+  pure (RecordT (Map.fromList chi) sigma epsilon open)
   where
     field = (,) <$> (lexeme parseRegister <* lexeme (parseSymbol Colon)) <*> parseType
 
 -- | Parses any sort of signed integer type.
 parseSignedType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseSignedType = located $ fmap Signed . MP.choice $ signed <$> [ 64 ]
+parseSignedType = located $ fmap SignedT . MP.choice $ signed <$> [ 64 ]
  where
    signed n = fromIntegral n <$ parseSymbol (Id ("s" <> Text.pack (show n)))
 
 -- | Parses any sort of unsigned integer type.
 parseUnsignedType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseUnsignedType = located $ fmap Unsigned . MP.choice $ unsigned <$> [ 64 ]
+parseUnsignedType = located $ fmap UnsignedT . MP.choice $ unsigned <$> [ 64 ]
  where
    unsigned n = fromIntegral n <$ parseSymbol (Id ("u" <> Text.pack (show n)))
 
 -- | Parses a pointer to a type.
 parsePointerType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parsePointerType = lexeme . located $ lexeme (parseSymbol Star) *> (Ptr <$> parseType)
+parsePointerType = lexeme . located $ lexeme (parseSymbol Star) *> (PtrT <$> parseType)
 
 -- | Parses a stack type.
 parseStackType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
 parseStackType = foldr1 cons <$> (parseType `MP.sepBy1` (lexeme (pure ()) *> lexeme (parseSymbol DoubleColon)))
   where
-    cons stack@(_ :@ p) ty = Cons stack ty :@ p
+    cons stack@(_ :@ p) ty = ConsT stack ty :@ p
 
 -- | Parses a type variable.
 parseVariableType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseVariableType = located $ Var <$> parseIdentifier
+parseVariableType = located $ VarT <$> parseIdentifier
 
 -- | Parses a type kind.
 parseKind :: (?parserFlags :: ParserFlags) => Parser (Located Kind)
@@ -245,21 +241,18 @@ parseKind = located $ MP.choice
 
 parseContinuation :: (?parserFlags :: ParserFlags) => Parser (Located Type)
 parseContinuation = located $ MP.choice
-  [ RegisterCont . unLoc <$> parseRegister
-  , StackCont . unLoc <$> parseInteger
-  , Var <$> parseIdentifier ]
+  [ RegisterContT . unLoc <$> parseRegister
+  , StackContT . unLoc <$> parseInteger
+  , VarT <$> parseIdentifier ]
 
 ------------------------------------------------------------------------------------------------------------
 
--- | Parses any kind of expression.
 parseExpr :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
-parseExpr = parseAddressExpr MP.<|> parseValueExpr
-
--- | Parses only expressions that cannot be indexed.
-parseValueExpr :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
-parseValueExpr = lexeme . located $ MP.choice
-  [ Imm <$> parseImmediate
-  , Reg <$> parseRegister ]
+parseExpr = MP.choice
+  [ located $ ImmE <$> parseImmediate
+  , parseLabel
+  , parseIndexedExpr
+  ]
 
 -- | Parses an immediate literal value.
 parseImmediate :: (?parserFlags :: ParserFlags) => Parser (Located Immediate)
@@ -267,23 +260,24 @@ parseImmediate = located $ MP.choice
   [ I . unLoc <$> parseInteger
   , C . unLoc <$> parseCharacter ]
 
--- | Parses expressions that can be set and indexed.
-parseAddressExpr :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
-parseAddressExpr = lexeme $ MP.choice
-  [ parseLabel
-  , MP.try parseIndexedExpr
-  , located $ Reg <$> parseRegister ]
-
 -- | Parses a literal label name.
 parseLabel :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
-parseLabel = located $ Name <$> parseIdentifier
+parseLabel = located $ NameE <$> parseIdentifier
+                             <*> MP.option [] (betweenAngles (parseSpecialization `MP.sepBy` lexeme (parseSymbol Comma)))
+
+parseSpecialization :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseSpecialization = MP.choice
+  [ MP.try (lexeme parseStackType)
+  , MP.try (betweenParens (lexeme parseStackType))
+  , parseType
+  ]
 
 -- | Parses an indexed addressable expression.
 parseIndexedExpr :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
 parseIndexedExpr = located $ MP.label "an indexed expression" $ do
   source <- getPos <$> located (pure ())
-  Indexed <$> (MP.option (Imm (I 0 :@ source) :@ source) (parseValueExpr))
-          <*> betweenParens (parseAddressExpr)
+  IndexedE <$> (MP.option (ImmE (I 0 :@ source) :@ source) parseExpr)
+           <*> betweenParens parseExpr
 
 parseSignedInteger :: (?parserFlags :: ParserFlags) => Parser Integer
 parseSignedInteger = MP.label "an integer" $ (*) <$> sign <*> (unLoc <$> parseInteger)
@@ -296,22 +290,22 @@ parseConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
 parseConstant = parseIntegerConstant MP.<|> parseCharacterConstant MP.<|> parseArrayConstant
 
 parseIntegerConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
-parseIntegerConstant = located $ MP.label "an integer constant" $ CInteger <$> located parseSignedInteger
+parseIntegerConstant = located $ MP.label "an integer constant" $ IntegerC <$> located parseSignedInteger
 
 parseCharacterConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
-parseCharacterConstant = located $ MP.label "a character constant" $ CCharacter <$> parseCharacter
+parseCharacterConstant = located $ MP.label "a character constant" $ CharacterC <$> parseCharacter
 
 parseArrayConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
-parseArrayConstant = located $ MP.label "an array constant" $ CArray <$> betweenBrackets (MP.many (lexeme parseConstant))
+parseArrayConstant = located $ MP.label "an array constant" $ ArrayC <$> betweenBrackets (MP.many (lexeme parseConstant))
 
 ----------------------------------------------------------------------------------------------------------------
 
 -- | Parses a @mov@ instruction.
-parseMov :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
-parseMov = located $
-  lexeme (parseSymbol Mov) *>
-    (MOV <$> parseExpr
-         <*> (lexeme (parseSymbol Comma) *> parseAddressExpr))
+parseMv :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseMv = located $
+  lexeme (parseSymbol Mv) *>
+    (MV <$> MP.choice [ located $ RegE <$> parseRegister, located $ ImmE <$> parseImmediate ]
+        <*> (lexeme (parseSymbol Comma) *> located (RegE <$> parseRegister)))
 
 -- | Parses a @ret@ instruction.
 parseRet :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
@@ -320,32 +314,11 @@ parseRet = located $ RET <$ lexeme (parseSymbol Ret)
 -- | Parses a @jmp@ instruction.
 parseJmp :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseJmp = located $
-  lexeme (parseSymbol Jmp) *>
-    (JMP <$> parseLabel
-         <*> MP.option [] (betweenAngles (parseSpecialization `MP.sepBy` lexeme (parseSymbol Comma))))
-
-parseSpecialization :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseSpecialization = MP.choice
-  [ MP.try (lexeme parseStackType)
-  , MP.try (betweenParens (lexeme parseStackType))
-  , parseType
-  ]
+  lexeme (parseSymbol Jmp) *> (JMP <$> parseLabel)
 
 parseCall :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseCall = located $
-  lexeme (parseSymbol Call) *>
-    (CALL <$> parseLabel
-          <*> MP.option [] (betweenAngles (parseSpecialization `MP.sepBy` lexeme (parseSymbol Comma))))
-
-parsePush :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
-parsePush = located $
-  lexeme (parseSymbol Push) *>
-        (PUSH <$> parseExpr)
-
-parsePop :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
-parsePop = located $
-  lexeme (parseSymbol Pop) *>
-        (POP <$> parseAddressExpr)
+  lexeme (parseSymbol Call) *> (CALL <$> parseLabel)
 
 parseNop :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseNop = located $ NOP <$ lexeme (parseSymbol Nop)

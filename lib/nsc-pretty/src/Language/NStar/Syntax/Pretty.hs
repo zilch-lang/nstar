@@ -18,10 +18,10 @@ instance PrettyText Program where
   prettyText (Program stts) = vsep (fmap prettyText stts)
 
 instance PrettyText Section where
-  prettyText (Code sect)   = text "section code {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
-  prettyText (Data sect)   = text "section data {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
-  prettyText (ROData sect) = text "section rodata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
-  prettyText (UData sect)  = text "section udata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (CodeS sect)   = text "section code {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (DataS sect)   = text "section data {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (RODataS sect) = text "section rodata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (UDataS sect)  = text "section udata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
 
 instance PrettyText Binding where
   prettyText (Bind name ty cst) = prettyText name <> colon <+> prettyText ty <+> equals <+> prettyText cst
@@ -46,20 +46,20 @@ instance PrettyText t => PrettyText (Located t) where
   prettyText = prettyText . unLoc
 
 instance PrettyText Type where
-  prettyText (Var v) = text (Text.unpack (unLoc v))
-  prettyText (FVar v) = text (Text.unpack (unLoc v))
-  prettyText (Register n) = text "r" <> text (show n)
-  prettyText (Signed n) = text "s" <> text (show n)
-  prettyText (Unsigned n) = text "u" <> text (show n)
-  prettyText (Cons t1 t2) = prettyText t1 <> colon <> colon <> prettyText t2
-  prettyText (Ptr t) = text "*" <> prettyText t
-  prettyText (Record maps st cont open) =
+  prettyText (VarT v) = text (Text.unpack (unLoc v))
+  prettyText (FVarT v) = text (Text.unpack (unLoc v))
+  prettyText (RegisterT n) = text "r" <> text (show n)
+  prettyText (SignedT n) = text "s" <> text (show n)
+  prettyText (UnsignedT n) = text "u" <> text (show n)
+  prettyText (ConsT t1 t2) = prettyText t1 <> colon <> colon <> prettyText t2
+  prettyText (PtrT t) = text "*" <> prettyText t
+  prettyText (RecordT maps st cont open) =
     lbrace <+> mconcat (punctuate comma (Map.foldlWithKey f [] maps)) <+> text "|" <+> prettyText st <+> text "->" <+> prettyText cont <+> rbrace
     where f list reg ty = (prettyText reg <+> colon <+> prettyText ty) : list
-  prettyText (ForAll binds ty) = text "forall" <+> hsep (output <$> binds) <> dot <+> prettyText ty
+  prettyText (ForAllT binds ty) = text "forall" <+> hsep (output <$> binds) <> dot <+> prettyText ty
     where output (var, kind) = parens $ prettyText var <+> colon <+> prettyText kind
-  prettyText (RegisterCont r) = prettyText r
-  prettyText (StackCont i) = prettyText i
+  prettyText (RegisterContT r) = prettyText r
+  prettyText (StackContT i) = prettyText i
 
 instance PrettyText Register where
   prettyText = (text "%" <>) . text . f
@@ -70,31 +70,26 @@ instance PrettyText Register where
       f R3 = "r3"
       f R4 = "r4"
       f R5 = "r5"
-      f BP = "bp"
-      f SP = "sp"
 
 instance PrettyText Instruction where
-  prettyText (MOV s d)      = text "mov" <+> prettyText s <> comma <+> prettyText d
+  prettyText (MV s d)       = text "mv" <+> prettyText s <> comma <+> prettyText d
   prettyText (RET)          = text "ret"
-  prettyText (JMP lbl tys)  = text "jmp" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
-  prettyText (CALL lbl tys) = text "call" <+> prettyText lbl <> encloseSep langle rangle comma (fmap prettyText tys)
+  prettyText (JMP lbl)      = text "jmp" <+> prettyText lbl
+  prettyText (CALL lbl)     = text "call" <+> prettyText lbl
   prettyText (ADD inc dst)  = text "add" <+> prettyText inc <> comma <+> prettyText dst
-  prettyText (PUSH val)     = text "push" <+> prettyText val
-  prettyText (POP dst)      = text "pop" <+> prettyText dst
   prettyText (SUB inc dst)  = text "sub" <+> prettyText inc <> comma <+> prettyText dst
   prettyText (NOP)          = text "nop"
 
 instance PrettyText Constant where
-  prettyText (CInteger (i :@ _))   = integer i
-  prettyText (CCharacter (c :@ _)) = char c
-  prettyText (CArray csts)         = lbracket <> hsep (fmap prettyText csts) <+> rbracket
+  prettyText (IntegerC (i :@ _))   = integer i
+  prettyText (CharacterC (c :@ _)) = char c
+  prettyText (ArrayC csts)         = lbracket <> hsep (fmap prettyText csts) <+> rbracket
 
 instance PrettyText Expr where
-  prettyText (Imm i) = prettyText i
-  prettyText (Name n) = text (Text.unpack (unLoc n))
-  prettyText (Indexed idx e) = prettyText idx <> parens (prettyText e)
-  prettyText (Reg r) = prettyText r
-  prettyText (Spec e ty) = prettyText e <> angles (prettyText ty)
+  prettyText (ImmE i) = prettyText i
+  prettyText (NameE n tys) = text (Text.unpack (unLoc n)) <> encloseSep langle rangle comma (fmap prettyText tys)
+  prettyText (IndexedE idx e) = prettyText idx <> parens (prettyText e)
+  prettyText (RegE r) = prettyText r
 
 instance PrettyText Immediate where
   prettyText (I i) = integer i

@@ -123,12 +123,10 @@ identifierOrKeyword = located do
     transform :: Text -> Token
     transform w@(Text.toLower -> rw) = case rw of
       -- Instructions
-      "mov"     -> Mov
+      "mv"     -> Mv
       "ret"     -> Ret
       "jmp"     -> Jmp
       "call"    -> Call
-      "push"    -> Push
-      "pop"     -> Pop
       "nop"     -> Nop
       -- Registers
       "r0"      -> R0'
@@ -137,8 +135,6 @@ identifierOrKeyword = located do
       "r3"      -> R3'
       "r4"      -> R4'
       "r5"      -> R5'
-      "sp"      -> SP'
-      "bp"      -> BP'
       -- Keywords
       "forall"  -> Forall
       "∀"       -> Forall

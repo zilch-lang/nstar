@@ -21,6 +21,7 @@ module Language.NStar.Typechecker.Core
 import Language.NStar.Syntax.Core (Type(..), Kind(..), Register(..), Instruction(..), Binding(..))
 import Data.Located (Located)
 import Data.Text (Text)
+import Data.Map (Map)
 
 data TypedProgram =
   TProgram
@@ -51,9 +52,9 @@ data TypedStatement where
          -> TypedStatement
   -- | An instruction with type information attached to it.
   TInstr :: Located Instruction  -- ^ the typed instruction
-         -> [Located Type]       -- ^ type information of the arguments
-                                 --
-                                 -- Note: we take a list of types because all instructions do not necessarily share the same number of arguments
+         -> Map (Located Register) (Located Type)
+         -> Located Type
+         -> Located Type
          -> TypedStatement
 
 deriving instance Show TypedStatement

@@ -13,6 +13,7 @@ import Language.NStar.Typechecker.Core
 import Data.Located (unLoc, Located((:@)))
 import qualified Data.Text as Text
 import Language.NStar.Syntax.Pretty()
+import qualified Data.Map as Map
 
 instance PrettyText TypedProgram where
   prettyText (TProgram (dataSect :@ _) (rodataSect :@ _) (udataSect :@ _) (codeSect :@ _)) =
@@ -28,7 +29,9 @@ instance PrettyText TypedCodeSection where
   prettyText (TCode is) = text "section code {" <> line <> vsep (fmap prettyText is) <> line <> text "}"
 
 instance PrettyText TypedStatement where
-  prettyText (TLabel l)    = text (Text.unpack (unLoc l)) <> colon
-  prettyText (TInstr i ts) = prettyText i <+> hsep (fmap pprint ts)
-                       --         ^^^ waiting to implement `PrettyText` for `Instruction`
-    where pprint ty = text "@" <> prettyText ty
+  prettyText (TLabel l)               = text (Text.unpack (unLoc l)) <> colon
+  prettyText (TInstr i chi sigma eps) =
+    pprint chi <> semi <+> prettyText sigma <> semi <+> prettyText eps <+> text "⊢" <+> prettyText i
+    where
+      pprint = encloseSep empty empty comma . fmap toBind . Map.toList
+      toBind (r, t) = prettyText r <+> colon <+> prettyText t
