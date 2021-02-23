@@ -8,11 +8,12 @@
 module Language.NStar.Syntax.Pretty where
 
 import Text.Diagnose (PrettyText(..))
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
+import Text.PrettyPrint.ANSI.Leijen
 import Language.NStar.Syntax.Core
 import qualified Data.Text as Text
 import Data.Located (unLoc, Located((:@)))
 import qualified Data.Map as Map
+import Prelude hiding ((<$>))
 
 instance PrettyText Program where
   prettyText (Program stts) = vsep (fmap prettyText stts)
@@ -30,8 +31,8 @@ instance PrettyText ReservedSpace where
   prettyText (ReservedBind name ty) = prettyText name <> colon <+> prettyText ty
 
 instance PrettyText Statement where
-  prettyText (Label name ty block) = prettyText name <> colon <+> prettyText ty <+> equals <+> prettyBlock block
-    where prettyBlock (is, unsafe) = (if unsafe then text "unsafe " else empty) <> mconcat (punctuate semi (fmap prettyText is))
+  prettyText (Label name ty block) = prettyText name <+> align (colon <+> prettyText ty <$> equals <+> prettyBlock block)
+    where prettyBlock (is, unsafe) = (if unsafe then text "unsafe " else empty) <> mconcat (punctuate (line <> semi <> space) (fmap prettyText is))
 
 instance PrettyText Kind where
   prettyText T8 = text "T8"
@@ -51,13 +52,13 @@ instance PrettyText Type where
   prettyText (RegisterT n) = text "r" <> text (show n)
   prettyText (SignedT n) = text "s" <> text (show n)
   prettyText (UnsignedT n) = text "u" <> text (show n)
-  prettyText (ConsT t1 t2) = prettyText t1 <> colon <> colon <> prettyText t2
+  prettyText (ConsT t1 t2) = prettyText t1 <> text "∷" <> prettyText t2
   prettyText (PtrT t) = text "*" <> prettyText t
   prettyText (RecordT maps st cont open) =
-    lbrace <+> mconcat (punctuate comma (Map.foldlWithKey f [] maps)) <+> text "|" <+> prettyText st <+> text "->" <+> prettyText cont <+> rbrace
+    lbrace <+> mconcat (punctuate comma (Map.foldlWithKey f [] maps)) <+> text "|" <+> prettyText st <+> text "→" <+> prettyText cont <+> rbrace
     where f list reg ty = (prettyText reg <+> colon <+> prettyText ty) : list
-  prettyText (ForAllT binds ty) = text "forall" <+> hsep (output <$> binds) <> dot <+> prettyText ty
-    where output (var, kind) = parens $ prettyText var <+> colon <+> prettyText kind
+  prettyText (ForAllT binds ty) = text "∀" <> parens (mconcat (punctuate comma $ fmap output binds)) <> dot <> prettyText ty
+    where output (var, kind) = prettyText var <+> colon <+> prettyText kind
   prettyText (RegisterContT r) = prettyText r
   prettyText (StackContT i) = prettyText i
 
