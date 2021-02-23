@@ -6,65 +6,51 @@ import Control.Monad.State (StateT, modify)
 import Control.Monad.Writer (WriterT)
 import Control.Monad.Except (Except)
 import Data.Map (Map)
-import qualified Data.Map as Map
 import Language.NStar.Typechecker.Env (Env)
 import qualified Language.NStar.Typechecker.Env as Env
 import Data.Located (Located)
 import Data.Text (Text)
 import Language.NStar.Typechecker.Core
-import Data.Bifunctor (first, second)
+import Data.Bifunctor (first)
 import Language.NStar.Typechecker.Errors (TypecheckError, TypecheckWarning)
+
+type TC a = StateT TCContext (WriterT [TypecheckWarning] (Except TypecheckError)) a
+
+data TCContext
+  = TCCtx
+      (Env Type)    -- ^ Bindings in code sections
+      (Env Type)    -- ^ Bindings in data sections
+
+instance Semigroup TCContext where
+  TCCtx e1 m1 <> TCCtx e2 m2 = TCCtx (e1 <> e2) (m1 <> m2)
+
+instance Monoid TCContext where
+  mempty = TCCtx mempty mempty
 
 type Typechecker a = StateT (Integer, Context) (WriterT [TypecheckWarning] (Except TypecheckError)) a
 
 -- | The data type of contexts in typechecking.
 data Context
   = Ctx
-  { typeEnvironment    :: Env Type                               -- ^ An 'Env'ironment containing labels associated to their expected contexts
-  , currentTypeContext :: Map (Located Register) (Located Type)  -- ^ The current typechecking context
-  , currentKindContext :: Map (Located Text) (Located Kind)      -- ^ The current kindchecking context
-  , currentLabel       :: Maybe (Located Text)                   -- ^ The last crossed label
-  , dataSections       :: Map (Located Text) (Located Type)      -- ^ The available labels in the @data@ sections
+  { xiC     :: Env Type                               -- ^ An 'Env'ironment containing labels associated to their expected contexts
+  , xiD     :: Env Type                               -- ^ The available labels in the @data@ sections
+  , gamma   :: Env Kind                               -- ^ The current kindchecking context
+  , chi     :: Map (Located Register) (Located Type)  -- ^ The current register context
+  , sigma   :: Located Type                           -- ^ The current stack
+  , epsilon :: Located Type                           -- ^ The current continuation
   }
 
-instance Semigroup Context where
-  Ctx te1 ctc1 ckc1 cl1 ds1 <> Ctx te2 ctc2 ckc2 cl2 ds2 =
-    Ctx (te1 <> te2) (ctc1 <> ctc2) (ckc1 <> ckc2) currentLabel (ds1 <> ds2)
-    where currentLabel = case (cl1, cl2) of
-            (Nothing, Nothing) -> Nothing
-            (Just l, _)        -> Just l
-            (_, Just l)        -> Just l
-
-instance Monoid Context where
-  mempty = Ctx mempty mempty mempty Nothing mempty
-
 -- | Adds a type to the environment.
-addType :: Located Text -> Located Type -> Typechecker ()
-addType k v = modify $ second modifyTypeContext
-  where modifyTypeContext ctx@Ctx{..} = ctx { typeEnvironment = Env.insert k v typeEnvironment }
+addType :: Located Text -> Located Type -> TC ()
+addType k v = modify modifyTypeContext
+  where modifyTypeContext (TCCtx e1 m1) = TCCtx (Env.insert k v e1) m1
 
-addDataLabel :: Located Text -> Located Type -> Typechecker ()
-addDataLabel k v = modify $ second modifyDataSections
-  where modifyDataSections ctx@Ctx{..} = ctx { dataSections = Map.insert k v dataSections }
+addDataLabel :: Located Text -> Located Type -> TC ()
+addDataLabel k v = modify modifyDataSections
+  where modifyDataSections (TCCtx e1 m1) = TCCtx e1 (Env.insert k v m1)
 
 -- | Increments the counter in the 'State' by one, effectively simulating a @counter++@ operation.
 incrementCounter :: Typechecker ()
 incrementCounter = modify $ first (+ 1)
-
-setCurrentTypeContext :: Map (Located Register) (Located Type) -> Typechecker ()
-setCurrentTypeContext newCtx = modify $ second putContext
-  where putContext ctx = ctx { currentTypeContext = newCtx }
-
-setCurrentKindContext :: Map (Located Text) (Located Kind) -> Typechecker ()
-setCurrentKindContext newCtx = modify $ second putContext
-  where putContext ctx = ctx { currentKindContext = newCtx }
-
-setTypeEnvironment :: Env Type -> Typechecker ()
-setTypeEnvironment newEnv = modify $ second setTypeEnv
-  where setTypeEnv ctx = ctx { typeEnvironment = newEnv }
-
-setLabel :: Located Text -> Typechecker ()
-setLabel n = modify $ second setLbl
-  where setLbl ctx = ctx { currentLabel = Just n }
 
 --------------------------------------------------------
