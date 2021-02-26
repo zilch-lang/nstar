@@ -102,25 +102,23 @@ registerAllDataLabels = mapM_ addBinding
 --   and add kind bindings of the @forall@ if there is one.
 --
 --   When it's an instruction, just typecheck the instruction accordingly.
-typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> Bool -> Typechecker [Located TypedStatement]
-typecheckStatement (Label name ty :@ p) isUnsafe = do
-  let (binders, record) = removeForallQuantifierIfAny ty
-  setCurrentTypeContext (toRegisterMap record)
-  setCurrentKindContext (Map.fromList $ first toVarName <$> binders)
-  setLabel name
+typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> TC [Located TypedStatement]
+typecheckStatement (Label name ty (is, isUnsafe) :@ p) = do
+  TCCtx xiC xiD <- get
+  let (binders, RecordT chi sigma epsilon _ :@ _) = removeForallQuantifierIfAny ty
+  let gamma = Env.fromList (first toVarName <$> binders)
 
-  pure $ [TLabel name :@ p]
+  typed <- lift $ flip evalStateT (0, Ctx xiC xiD gamma chi sigma epsilon) $
+             forM is \ (i :@ p1) -> do
+               typecheckInstruction i p1 isUnsafe
+
+  pure [TLabel name typed :@ p]
  where
-   removeForallQuantifierIfAny (unLoc -> ForAll b ty) = (b, ty)
+   removeForallQuantifierIfAny (unLoc -> ForAllT b ty) = (b, ty)
    removeForallQuantifierIfAny ty                     = (mempty, ty)
 
-   toRegisterMap (unLoc -> Record m _) = m
-   toRegisterMap (unLoc -> t)          = error $ "Cannot retrieve register mappings from non-record type '" <> show t <> "'"
-
-   toVarName (Var v :@ _) = v
+   toVarName (VarT v :@ _) = v
    toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
-typecheckStatement (Instr i :@ p) isUnsafe      = pure . (:@ p) <$> typecheckInstruction i p isUnsafe
-typecheckStatement (Unsafe is :@ p) _           = mconcat <$> forM is (flip typecheckStatement True)
 
 typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Position -> Bool -> Typechecker TypedStatement
 typecheckInstruction i p unsafe = do
