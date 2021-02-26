@@ -1,5 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TypeFamilies #-}
+
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
   Module: Language.NStar.Typechecker.Errors
@@ -11,9 +14,9 @@
 
 module Language.NStar.Typechecker.Errors where
 
-import Text.Diagnose (Report, Marker(..), hint, reportError, reportWarning, prettyText)
-import Language.NStar.Typechecker.Core (Type(Record), Register(SP), Kind)
-import Data.Located (Position(..), Located(..))
+import Text.Diagnose (Report, Marker(..), hint, reportError, reportWarning, PrettyText(..))
+import Language.NStar.Typechecker.Core (Type(RecordT, VarT), Kind)
+import Data.Located (getPos, Position(..), Located(..))
 import Language.NStar.Typechecker.Pretty()
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -22,6 +25,8 @@ import qualified Data.Text as Text
 import Data.List (intercalate)
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Language.NStar.Syntax.Core (Register)
+import Text.PrettyPrint.ANSI.Leijen ((<+>), encloseSep, lbrace, rbrace, comma, colon)
 
 data TypecheckError
   = Uncoercible (Located Type) (Located Type)
@@ -45,6 +50,7 @@ data TypecheckError
   | CannotPopCodeAddress Type Position
   | CannotMovToDestination Type Type Position Position
   | CannotPopIntoDestination Type Type Type Position Position
+  | TryingToOverwriteRegisterContinuation (Located Register) Position
 
 data TypecheckWarning
 
@@ -76,6 +82,7 @@ fromTypecheckError (NonStackPointerRegister ty p p')            = spIsNotAStackR
 fromTypecheckError (CannotPopCodeAddress t p)                   = cannotPopCodespaceAddress t p
 fromTypecheckError (CannotMovToDestination s d p1 p2)           = cannotMovToDestination s d p1 p2
 fromTypecheckError (CannotPopIntoDestination t1 t2 t3 p1 p2)    = cannotPopIntoDestination t1 t2 t3 p1 p2
+fromTypecheckError (TryingToOverwriteRegisterContinuation r p)  = cannotOverwriteRegisterContinuation r p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -92,7 +99,7 @@ retWithoutReturnAddress p ctx =
                    | otherwise         -> "No stack found at this point") ]
     []
  where
-   rsp = Map.lookup (SP :@ dummyPos) ctx
+   rsp = Just $ VarT ("test" :@ dummyPos) :@ dummyPos
    dummyPos = Position (1, 1) (1, 1) "dummy"
 
 -- | Happens when we try to create a substitution like @a ~ [a]@, where a given free type variable would be infinitely replaced,
@@ -107,16 +114,25 @@ infiniteType (ty, p1) (var, p2) =
 -- | Happens when the union of the keys of the first map and of the second map is not equal to the keys of the first map.
 recordDomainsDoNotSubset :: (m ~ Map (Located Register) (Located Type)) => (m, Position) -> (m, Position) -> Report String
 recordDomainsDoNotSubset (m1, p1) (m2, p2) =
-  reportError ("All keys in '" <> show (prettyText $ Record m1 False) <> "' are not present in '" <> show (prettyText $ Record m2 False) <> "'")
+  reportError ("All keys in '" <> show (prettyText m1) <> "' are not present in '" <> show (prettyText m2) <> "'")
     [ (p1, This "") ]
     []
+
+-- needed for the above error
+instance PrettyText (Map (Located Register) (Located Type)) where
+  prettyText = encloseSep lbrace rbrace comma . fmap prettyBind . Map.toList
+    where prettyBind (r, t) = prettyText r <+> colon <+> prettyText t
 
 -- | Happens when two records fields cannot be coerced to each other.
 recordValuesDoNotUnify :: (m ~ Map (Located Register) (Located Type)) => (m, Position) -> (m, Position) -> Report String
 recordValuesDoNotUnify (m1, p1) (m2, p2) =
-  reportError ("Record types cannot be coerced because at least one of their common fields cannot be coerced to each other.")
-    [ (p1, Where ("'" <> show (prettyText (Record m1 False)) <> "' cannot be coerced to '" <> show (prettyText (Record m2 False)) <> "'")) ]
-    [ hint "Visit <https://github.com/nihil-lang/nsc/blob/develop/docs/type-coercion.md> to learn about type coercion in N*." ]
+  let s1 = VarT ("_s1" :@ p1) :@ p1
+      s2 = VarT ("_s2" :@ p2) :@ p2
+      e1 = VarT ("_e1" :@ p1) :@ p1
+      e2 = VarT ("_e2" :@ p2) :@ p2
+  in reportError ("Record types cannot be coerced because at least one of their common fields cannot be coerced to each other.")
+       [ (p1, Where ("'" <> show (prettyText (RecordT m1 s1 e1 False)) <> "' cannot be coerced to '" <> show (prettyText (RecordT m2 s2 e2 False)) <> "'")) ]
+       [ hint "Visit <https://github.com/nihil-lang/nsc/blob/develop/docs/type-coercion.md> to learn about type coercion in N*." ]
 
 -- | Happens when a @ret@ instruction is not in a function. This also means that the instruction has no enclosing scope.
 returnAtTopLevel :: Position -> Report String
@@ -250,4 +266,18 @@ cannotPopIntoDestination expected sHead sTail p1 p2 =
     [ (p2, This $ "Trying to pop a value of type " <> show (prettyText sHead))
     , (p2, Where $ "The stack is infered to '" <> show (prettyText sHead) <> "::" <> show (prettyText sTail) <> "'" )
     , (p1, Where $ "The destination operand was found to accept values of type " <> show (prettyText expected)) ]
+    []
+
+cannotUnifyKinds :: Kind -> Kind -> Position -> Position -> Report String
+cannotUnifyKinds k1 k2 p1 p2 =
+  reportError ("Cannot unify kinds " <> show (prettyText k1) <> " and " <> show (prettyText k2))
+    [ (p1, Where $ show (prettyText k1) <> " is infered from here")
+    , (p2, Where $ show (prettyText k2) <> " is infered from here") ]
+    []
+
+cannotOverwriteRegisterContinuation :: Located Register -> Position -> Report String
+cannotOverwriteRegisterContinuation (r :@ p1) p2 =
+  reportError "Cannot overwrite the register containing the current continuation."
+    [ (p1, Where $ "This register holds the current continuation, therefore cannot be the destination")
+    , (p2, This $ "While trying to type-check this instruction") ]
     []
