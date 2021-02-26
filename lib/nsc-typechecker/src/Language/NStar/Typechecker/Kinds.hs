@@ -77,21 +77,16 @@ kindcheckType ctx (ConsT t1@(_ :@ p1) t2@(_ :@ p2) :@ p)              = do
   liftA2 (*>) (requireDataType p1) (requireSized p1) =<< kindcheckType ctx t1
   requireStackType p2 =<< kindcheckType ctx t2
   pure (Ts :@ p)
-kindcheckType ctx (RecordT mappings st@(_ :@ p2) _ _ :@ p) = do
+kindcheckType ctx (RecordT mappings st@(_ :@ p2) e@(_ :@ p3) _ :@ p)  = do
   Map.traverseWithKey handleTypeFromRegister mappings
   requireStackType p2 =<< kindcheckType ctx st
-
-  -- NOTE: the continuation is not kind-checked here because we only require it to be valid at the end of the scope
-  -- which means that a context type @{| s -> %r0 }@ is a valid one, as long as the last instruction in the block
-  -- (may it be a return, a call or a jump) can safely continue.
-  --
-  -- - For a return, we require the continuation to point to something bound
-  -- - For a jump, the continuation does not change, so everything is okay as long as the next block is okay
-  -- - For a call, we basically push the current context somewhere, and replace the continuation with our own
+  requireCont p3 =<< kindcheckType ctx e
 
   pure (Ta :@ p)
        -- FIXME: Kind checking does not take into account the size of the types, so if they are sized, they all are 8-bytes big at the moment.
  where handleTypeFromRegister _ ty@(_ :@ p)              = liftA2 (*>) (requireDataType p) (requireSized p) =<< kindcheckType ctx ty
+kindcheckType _ (RegisterContT _ :@ p)                                = pure (Tc :@ p)
+kindcheckType _ (StackContT _ :@ p)                                   = pure (Tc :@ p)
 kindcheckType _ (RegisterT _ :@ p)                                    = pure (T8 :@ p)
      -- NOTE: just a kind placeholder. rN types never appear after parsing.
 
@@ -143,3 +138,6 @@ requireDataType p k = do
 --   Essentially a wrapper around 'isSized', but in the 'Kindchecker' monad.
 requireSized :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
 requireSized p k = () <$ unifyKinds (T8 :@ p) k
+
+requireCont :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
+requireCont p k = () <$ unifyKinds (Tc :@ p) k
