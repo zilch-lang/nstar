@@ -30,7 +30,7 @@ import Text.PrettyPrint.ANSI.Leijen ((<+>), encloseSep, lbrace, rbrace, comma, c
 
 data TypecheckError
   = Uncoercible (Located Type) (Located Type)
-  | NoReturnAddress Position (Map (Located Register) (Located Type))
+  | NoReturnAddress Position Register (Map (Located Register) (Located Type))
   | InfiniteType (Located Type) (Located Text)
   | DomainsDoNotSubtype (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
   | RecordUnify TypecheckError (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
@@ -64,7 +64,7 @@ fromTypecheckWarning _ = reportWarning "" [] []
 fromTypecheckError :: TypecheckError -> Report String
 fromTypecheckError (Uncoercible (t1 :@ p1) (t2 :@ p2))          = uncoercibleTypes (t1, p1) (t2, p2)
 fromTypecheckError (InfiniteType (t :@ p1) (v :@ p2))           = infiniteType (t, p1) (v, p2)
-fromTypecheckError (NoReturnAddress p ctx)                      = retWithoutReturnAddress p ctx
+fromTypecheckError (NoReturnAddress p r ctx)                    = retWithoutReturnAddress p r ctx
 fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2))  = recordDomainsDoNotSubset (m1, p1) (m2, p2)
 fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))      = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
                                                                                     --      ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -98,15 +98,11 @@ uncoercibleTypes (t1, p1) (t2, p2) =
     [ hint "Visit <https://github.com/nihil-lang/nsc/blob/develop/docs/type-coercion.md> to learn about type coercion in N*." ]
 
 -- | Happens when the stack infered on a @ret@ call does not have a pointer to some code on the top.
-retWithoutReturnAddress :: Position -> Map (Located Register) (Located Type) -> Report String
-retWithoutReturnAddress p ctx =
-  reportError ("The `ret` instruction expects a return address to be on top of the stack, but did not find any.")
-    [ (p, Where if | Just stack <- rsp -> "The stack infered at this point is: `" <> show (prettyText stack) <> "`"
-                   | otherwise         -> "No stack found at this point") ]
+retWithoutReturnAddress :: Position -> Register -> Map (Located Register) (Located Type) -> Report String
+retWithoutReturnAddress p r ctx =
+  reportError ("The `ret` instruction expects a return address to be stored in the continuation register, but did not find one.")
+    [ (p, Where $ "Found some data of type '" <> show (prettyText $ ctx Map.! (r :@ p)) <> "'") ]
     []
- where
-   rsp = Just $ VarT ("test" :@ dummyPos) :@ dummyPos
-   dummyPos = Position (1, 1) (1, 1) "dummy"
 
 -- | Happens when we try to create a substitution like @a ~ [a]@, where a given free type variable would be infinitely replaced,
 --   thus leading to an infinite type.

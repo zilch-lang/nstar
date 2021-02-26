@@ -49,7 +49,7 @@ tc_ret p = do
       ty <- typecheckExpr (RegE (r :@ p)) p False
       -- > Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ́′ | σ → ε }
       -- > χ ∼ χ′
-      unify ty (ForAllT [] (RecordT x s e False :@ p) :@ p)
+      unify ty (ForAllT [] (RecordT x s e False :@ p) :@ p) -- `catchError` const (throwError (NoReturnAddress p r x))
 
       -- > Ξ; Γ; χ; σ; r ⊢ᴵ ret ⊣ χ; σ; r
       pure ()
