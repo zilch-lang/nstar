@@ -35,6 +35,8 @@ import Control.Applicative (liftA2)
 import Language.NStar.Typechecker.Errors
 import Console.NStar.Flags (TypecheckerFlags(..))
 import Language.NStar.Typechecker.Subst
+import Language.NStar.Typechecker.Env (Env)
+import qualified Language.NStar.Typechecker.Env as Env
 
 type Kindchecker a = Except KindcheckError a
 
@@ -60,14 +62,14 @@ fromKindcheckError (NotSized (k :@ p1) p2)                  = kindIsUnsized k p1
 fromKindcheckError (UnboundTypeVariable (v :@ p))           = unboundTypeVariable v p
 fromKindcheckError (CannotUnifyKinds (k1 :@ p1) (k2 :@ p2)) = cannotUnifyKinds k1 k2 p1 p2
 
-kindcheckType :: (?tcFlags :: TypecheckerFlags) => Map (Located Text) (Located Kind) -> Located Type -> Kindchecker (Located Kind)
+kindcheckType :: (?tcFlags :: TypecheckerFlags) => Env Kind -> Located Type -> Kindchecker (Located Kind)
 kindcheckType _ (SignedT _ :@ p)                                      = pure (T8 :@ p)
 kindcheckType _ (UnsignedT _ :@ p)                                    = pure (T8 :@ p)
     -- TODO: For now we ignore the size of both types, because there are no sized kinds other than @T8@.
-kindcheckType ctx (ForAllT newCtx ty :@ p)                            = (T8 :@ p) <$ kindcheckType (Map.fromList (first varName <$> newCtx) <> ctx) ty
+kindcheckType ctx (ForAllT newCtx ty :@ p)                            = (T8 :@ p) <$ kindcheckType (Env.fromList (first varName <$> newCtx) <> ctx) ty
   where varName (VarT v :@ _) = v
         varName (t :@ _)     = error $ "Cannot fetch name of non type-variable type '" <> show t <> "'."
-kindcheckType ctx (VarT v :@ _)                                       = maybe (throwError (UnboundTypeVariable v)) pure (Map.lookup v ctx)
+kindcheckType ctx (VarT v :@ _)                                       = maybe (throwError (UnboundTypeVariable v)) pure (Env.lookup v ctx)
 kindcheckType _ (FVarT v :@ _)                                        = throwError (UnboundTypeVariable v)
 kindcheckType ctx (PtrT t :@ p)                                       = (T8 :@ p) <$ kindcheckType ctx t
 --kindcheckType ctx (SPtr t@(_ :@ p1) :@ p)                = (T8 :@ p) <$ (requireStackType p1 =<< kindcheckType ctx t)
