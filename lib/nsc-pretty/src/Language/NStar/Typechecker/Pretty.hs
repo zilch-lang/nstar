@@ -23,13 +23,13 @@ instance PrettyText TypedProgram where
     prettyText codeSect
 
 instance PrettyText TypedDataSection where
-  prettyText (TData d) = text "section data {" <> line <> vsep (fmap prettyText d) <> line <> text "}"
+  prettyText (TData d) = text "section data {" <> line <> indent 4 (vsep (fmap prettyText d)) <> line <> text "}"
 
 instance PrettyText TypedCodeSection where
-  prettyText (TCode is) = text "section code {" <> line <> vsep (fmap prettyText is) <> line <> text "}"
+  prettyText (TCode is) = text "section code {" <> line <> indent 4 (vsep (fmap prettyText is)) <> line <> text "}"
 
 instance PrettyText TypedStatement where
-  prettyText (TLabel l is) = text (Text.unpack (unLoc l)) <> colon <> line <> mconcat (punctuate semi (fmap prettyText is))
+  prettyText (TLabel l is) = text (Text.unpack (unLoc l)) <> colon <> line <> indent 4 (vsep (fmap prettyText is))
   prettyText (TInstr i chi sigma eps) =
     pprint chi <> semi <+> prettyText sigma <> semi <+> prettyText eps <+> text "⊢" <+> prettyText i
 

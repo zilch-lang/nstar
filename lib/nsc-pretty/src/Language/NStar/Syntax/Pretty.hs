@@ -19,10 +19,10 @@ instance PrettyText Program where
   prettyText (Program stts) = vsep (fmap prettyText stts)
 
 instance PrettyText Section where
-  prettyText (CodeS sect)   = text "section code {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
-  prettyText (DataS sect)   = text "section data {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
-  prettyText (RODataS sect) = text "section rodata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
-  prettyText (UDataS sect)  = text "section udata {" <> line <> vsep (fmap prettyText sect) <> line <> "}"
+  prettyText (CodeS sect)   = text "section code {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
+  prettyText (DataS sect)   = text "section data {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
+  prettyText (RODataS sect) = text "section rodata {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
+  prettyText (UDataS sect)  = text "section udata {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
 
 instance PrettyText Binding where
   prettyText (Bind name ty cst) = prettyText name <> colon <+> prettyText ty <+> equals <+> prettyText cst
