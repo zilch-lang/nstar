@@ -127,6 +127,7 @@ typecheckInstruction i p unsafe = do
   case i of
     NOP        -> tc_nop p
     MV src dst -> tc_mv src dst p
+    RET        -> tc_ret p
     _   -> error $ "Unrecognized instruction '" <> show i <> "'."
 
   pure (TInstr (i :@ p) chi sigma epsilon)

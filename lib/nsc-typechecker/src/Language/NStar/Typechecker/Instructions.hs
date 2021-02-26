@@ -18,7 +18,7 @@ import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Maybe (fromJust)
-import Data.Foldable (fold, foldlM)
+import Data.Foldable (foldrM, fold, foldlM)
 import Console.NStar.Flags (TypecheckerFlags(..))
 import Internal.Error (internalError)
 import qualified Language.NStar.Typechecker.Env as Env (lookup)
@@ -30,7 +30,33 @@ import Data.Functor ((<&>))
 import Debug.Trace (traceShow)
 import Control.Applicative ((<|>))
 
+tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker ()
 tc_ret p = do
+  {-
+     r is a register    Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ́′ | σ → ε }     χ ∼ χ′
+  ──────────────────────────────────────────────────────────────────────────── return to register
+                       Ξ; Γ; χ; σ; r ⊢ᴵ ret ⊣ χ; σ; r
+  -}
+
+  e :@ p1 <- gets (epsilon . snd)
+  case e of
+    -- > r is a register
+    RegisterContT r -> do
+      x <- gets (chi . snd)
+      s <- gets (sigma . snd)
+      e <- freshVar "ε" p
+
+      ty <- typecheckExpr (RegE (r :@ p)) p False
+      -- > Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ́′ | σ → ε }
+      -- > χ ∼ χ′
+      unify ty (ForAllT [] (RecordT x s e False :@ p) :@ p)
+
+      -- > Ξ; Γ; χ; σ; r ⊢ᴵ ret ⊣ χ; σ; r
+      pure ()
+    -- > n ∈ ℕ
+    StackContT n -> throwError (CannotReturnToStackContinuation e p)
+    VarT _ -> throwError (AbstractContinuationOnReturn p (e :@ p1))
+    _ -> error $ "invalid return continuation " <> show e
 
 tc_mv :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Position -> Typechecker ()
 tc_mv (src :@ p1) (dst :@ p2) p3 = do
@@ -74,8 +100,8 @@ tc_mv (src :@ p1) (dst :@ p2) p3 = do
         -- > r is a register
         RegE r -> do
           e <- gets (epsilon . snd)
-          guard ((RegisterContT <$> r) /= e)
-            <|> throwError (TryingToOverwriteRegisterContinuation r p3)
+          when ((RegisterContT <$> r) == e) do
+            throwError (TryingToOverwriteRegisterContinuation r p3)
           -- > Ξ; χ; σ; ε ⊢ᴵ mv e, r ⊣ χ, r : t; σ; ε
           extendChi r t
         _ -> error $ "Unknown mv destination: " <> show dst
@@ -101,6 +127,17 @@ tc_nop _ = do
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
+
+getNthFromStack :: Integer -> Located Type -> Typechecker (Located Type)
+getNthFromStack n s = do
+  let (_, tN) = foldl (\ (p, r) t -> (p + 1, r <|> if p == n then Just t else Nothing)) (0, Nothing) (unCons s)
+  case tN of
+    Nothing -> throwError (StackIsNotBigEnough n (unLoc s) (getPos s))
+    Just t  -> pure t
+  where
+    unCons (ConsT t1 t2 :@ _) = t1 : unCons t2
+    unCons t                  = [t]
+
 
 typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Bool -> Typechecker (Located Type)
 typecheckExpr (ImmE (I _ :@ _)) p _  = pure (UnsignedT 64 :@ p)
@@ -195,6 +232,7 @@ unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
   -- A stack constructor can be unified to another stack constructor if
   -- both stack head and stack tail of each stack can be unified.
   (ConsT t1 t3, ConsT t2 t4) -> unifyMany [t1, t3] [t2, t4]
+  (ForAllT [] r1, ForAllT [] r2) -> unify r1 r2
   -- Any other combination is not possible
   _ -> throwError (Uncoercible (t1 :@ p1) (t2 :@ p2))
 
