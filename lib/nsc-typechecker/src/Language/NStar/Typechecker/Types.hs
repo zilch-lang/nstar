@@ -29,10 +29,11 @@ import Language.NStar.Typechecker.Instructions
 import Language.NStar.Typechecker.TC
 import Console.NStar.Flags (TypecheckerFlags(..))
 import Data.Foldable (foldl')
+import qualified Language.NStar.Typechecker.Env as Env
 
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
 typecheck :: (?tcFlags :: TypecheckerFlags) => Program -> Either (Diagnostic s String m) (TypedProgram, Diagnostic s String m)
-typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, mempty)))
+typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT (evalStateT (typecheckProgram p) mempty))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
         toDiagnostic' = foldl' (<++>) diagnostic . fmap fromTypecheckWarning
 
@@ -41,12 +42,12 @@ typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT 
 -- | Entry point of the typechecker.
 --
 --   Typechecks a program, and return an elaborated form of it.
-typecheckProgram :: (?tcFlags :: TypecheckerFlags) => Program -> Typechecker TypedProgram
-typecheckProgram (Program [Data dataSect :@ p1, ROData rodataSect :@ p2, UData udataSect :@ p3, Code code :@ p4]) = do
+typecheckProgram :: (?tcFlags :: TypecheckerFlags) => Program -> TC TypedProgram
+typecheckProgram (Program [DataS dataSect :@ p1, RODataS rodataSect :@ p2, UDataS udataSect :@ p3, CodeS code :@ p4]) = do
   registerAllLabels code
   registerAllDataLabels dataSect
 
-  instrs <- concat <$> mapM (flip typecheckStatement False) code
+  instrs <- concat <$> mapM (typecheckStatement) code
 
   -- Check that the type of `main` is actually usable, and that states
   -- can be guaranteed at compile time.
@@ -75,24 +76,25 @@ typecheckProgram (Program _) = error "Unexpected invalid Program"
 --
 --   This unfortunately has to perform a complete lookup into the program before-hand,
 --   worsening the overall complexity of the typechecking.
-registerAllLabels :: (?tcFlags :: TypecheckerFlags) => [Located Statement] -> Typechecker ()
-registerAllLabels = mapM_ addLabelType . filter isLabel
-  where isLabel (unLoc -> Label _ _) = True
-        isLabel _                    = False
-
-        addLabelType (unLoc -> Label name ty) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
-        addLabelType (unLoc -> t)             = error ("Adding type of non-label '" <> show t <> "' is impossible.")
+registerAllLabels :: (?tcFlags :: TypecheckerFlags) => [Located Statement] -> TC ()
+registerAllLabels = mapM_ addLabelType
+  where addLabelType (unLoc -> Label name ty _) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
+        addLabelType (unLoc -> t)               = error ("Adding type of non-label '" <> show t <> "' is impossible.")
 
 -- | Brings all the data labels with their current types into the context.
 --
 --   This allows to access labels that are not in the @code@ section when typechecking instructions.
-registerAllDataLabels :: (?tcFlags :: TypecheckerFlags) => [Located Binding] -> Typechecker ()
+registerAllDataLabels :: (?tcFlags :: TypecheckerFlags) => [Located Binding] -> TC ()
 registerAllDataLabels = mapM_ addBinding
   where
     addBinding (unLoc -> Bind name ty (val :@ p)) = do
+      TCCtx xiC xiD <- get
+      let __unusedSigma = VarT ("@__s" :@ p) :@ p
+          __unusedEpsilon = VarT ("@__e" :@ p) :@ p
+
       liftEither (first FromReport $ kindcheck ty)
-      unify ty =<< typecheckConstant val p
-      addDataLabel name (Ptr ty :@ p)
+      lift $ evalStateT (unify ty =<< typecheckConstant val p) (0, Ctx xiC xiD mempty mempty __unusedSigma __unusedEpsilon)
+      addDataLabel name (PtrT ty :@ p)
 
 -- | Typechecks a statement.
 --
