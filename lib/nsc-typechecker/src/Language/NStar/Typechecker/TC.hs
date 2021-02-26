@@ -11,8 +11,9 @@ import qualified Language.NStar.Typechecker.Env as Env
 import Data.Located (Located)
 import Data.Text (Text)
 import Language.NStar.Typechecker.Core
-import Data.Bifunctor (first)
+import Data.Bifunctor (first, second)
 import Language.NStar.Typechecker.Errors (TypecheckError, TypecheckWarning)
+import qualified Data.Map as Map
 
 type TC a = StateT TCContext (WriterT [TypecheckWarning] (Except TypecheckError)) a
 
@@ -54,3 +55,11 @@ incrementCounter :: Typechecker ()
 incrementCounter = modify $ first (+ 1)
 
 --------------------------------------------------------
+
+setEpsilon :: Located Type -> Typechecker ()
+setEpsilon ty = modify $ second setE
+ where setE (Ctx xC xD g c s _) = Ctx xC xD g c s ty
+
+extendChi :: Located Register -> Located Type -> Typechecker ()
+extendChi r t = modify $ second extend
+  where extend (Ctx xC xD g c s e) = Ctx xC xD g (Map.insert r t c) s e
