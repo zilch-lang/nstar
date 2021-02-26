@@ -30,9 +30,56 @@ import Data.Functor ((<&>))
 import Debug.Trace (traceShow)
 import Control.Applicative ((<|>))
 
-tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker [Located Type]
 tc_ret p = do
-  error "Unimplemented type-checking for 'ret'"
+
+tc_mv :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Position -> Typechecker ()
+tc_mv (src :@ p1) (dst :@ p2) p3 = do
+  {-
+     r, d are registers     Ξ; Γ; χ; σ; ε ⊢ᵀ r : ∀().ζ
+  ──────────────────────────────────────────────────────── move continuation
+      Ξ; Γ; χ; σ; r ⊢ᴵ mv r, d ⊣ χ, d : ∀().ζ; σ; d
+
+     r is a register     Γ ⊢ᴷ t : T8     Ξ; Γ; σ; ε ⊢ᵀ e : t
+  ───────────────────────────────────────────────────────────── move value
+           Ξ; Γ; χ; σ; ε ⊢ᴵ mv e, r ⊣ χ, r : t; σ; ε
+  -}
+
+  e <- gets (epsilon . snd)
+  x <- gets (chi . snd)
+  case (e, src) of
+    (RegisterContT r1 :@ _, RegE r2'@(r2 :@ _)) | r1 == r2 -> do
+      -- > Ξ; Γ; χ; σ; ε ⊢ᵀ r : ∀().ζ
+      z <- freshVar "ζ" p1
+      subZ <- unify (ForAllT [] z :@ p1) (x Map.! r2')
+      let ty = apply subZ z
+
+      case dst of
+        -- > r, d are registers
+        RegE d -> do
+          -- > Ξ; Γ; χ; σ; r ⊢ᴵ mv r, d ⊣ χ, d : ∀().ζ; σ; d
+          setEpsilon (RegisterContT <$> d)
+          extendChi d ty
+        _ -> error $ "Unknown mv destination: " <> show dst
+
+      pure ()
+    _ -> do
+      g <- gets (gamma . snd)
+
+      -- > Ξ; Γ; σ; ε ⊢ᵀ e : t
+      t <- typecheckExpr src p1 False
+      -- > Γ ⊢ᴷ t : T8
+      liftEither (first FromReport . runKindchecker $ unifyKinds (T8 :@ p1) =<< kindcheckType g t)
+
+      case dst of
+        -- > r is a register
+        RegE r -> do
+          e <- gets (epsilon . snd)
+          guard ((RegisterContT <$> r) /= e)
+            <|> throwError (TryingToOverwriteRegisterContinuation r p3)
+          -- > Ξ; χ; σ; ε ⊢ᴵ mv e, r ⊣ χ, r : t; σ; ε
+          extendChi r t
+        _ -> error $ "Unknown mv destination: " <> show dst
+
       pure ()
 
 tc_jmp :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Position -> Typechecker ()
