@@ -8,7 +8,7 @@ compileCall
 
 import Language.NStar.Syntax.Core (Expr(..), Type)
 import Language.NStar.CodeGen.Compiler (Compiler)
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
 import Data.Located (unLoc)
 import Internal.Error (internalError)
 
@@ -50,6 +50,5 @@ import Internal.Error (internalError)
 
 -}
 
-compileCall :: Expr -> [Type] -> Compiler [InterOpcode]
-compileCall (NameE n _) [] = pure [Byte 0xE8, Jump (unLoc n)]
-compileCall e ts           = internalError $ "Unsupported instruction 'call " <> show e <> " " <> show ts <> "'."
+compileCall :: Expr -> TypeContext -> Compiler [InterOpcode]
+compileCall e _           = internalError $ "Unsupported instruction 'call " <> show e <> "'."

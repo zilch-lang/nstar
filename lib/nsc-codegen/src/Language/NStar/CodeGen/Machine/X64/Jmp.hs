@@ -6,9 +6,9 @@ module Language.NStar.CodeGen.Machine.X64.Jmp
 compileJmp
 ) where
 
-import Language.NStar.Syntax.Core (Expr(..), Type)
+import Language.NStar.Syntax.Core (Expr(..))
 import Language.NStar.CodeGen.Compiler (Compiler)
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
 import Data.Located (unLoc)
 import Internal.Error (internalError)
 
@@ -52,6 +52,6 @@ import Internal.Error (internalError)
 
 -}
 
-compileJmp :: Expr -> [Type] -> Compiler [InterOpcode]
-compileJmp (NameE n _) [] = pure [Byte 0xE9, Jump (unLoc n)]
-compileJmp e ts           = internalError $ "Unsupported instruction 'jmp " <> show e <> " " <> show ts <> "'."
+compileJmp :: Expr -> TypeContext -> Compiler [InterOpcode]
+compileJmp (NameE n _) _ = pure [Byte 0xE9, Jump (unLoc n)]
+compileJmp e _           = internalError $ "Unsupported instruction 'jmp " <> show e <> "'."

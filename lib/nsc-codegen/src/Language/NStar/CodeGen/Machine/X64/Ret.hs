@@ -6,10 +6,13 @@ module Language.NStar.CodeGen.Machine.X64.Ret
 compileRet
   ) where
 
-import Language.NStar.Syntax.Core (Type)
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
 import Language.NStar.CodeGen.Compiler (Compiler)
 import Internal.Error (internalError)
+import Language.NStar.Syntax.Core (Type(RegisterContT))
+import Data.Located (Located((:@)))
+import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
+import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
 
 {- $encoding
 
@@ -38,7 +41,6 @@ import Internal.Error (internalError)
 -}
 
 
-compileRet :: [Type] -> Compiler [InterOpcode]
-compileRet []   = pure [Byte 0xC3]
-                --      ^^^^^^^^^ Not sure when to generate a far return, so we'll just generate near returns for now, and see later.
-compileRet args = internalError $ "Unsupported instruction 'ret " <> show args <> "'."
+compileRet :: TypeContext -> Compiler [InterOpcode]
+compileRet (_, _, RegisterContT r :@ _) = pure [Byte 0xFF, modRM 0b11 0x4 (registerNumber r)]
+compileRet _                            = internalError $ "Unsupported instruction 'ret'."

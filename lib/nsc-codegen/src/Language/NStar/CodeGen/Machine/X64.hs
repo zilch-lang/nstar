@@ -5,7 +5,7 @@ module Language.NStar.CodeGen.Machine.X64 (compileX64) where
 import Language.NStar.CodeGen.Compiler
 import Language.NStar.Syntax.Core hiding (Label)
 import Language.NStar.Typechecker.Core
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
 import Language.NStar.CodeGen.Machine.Internal.X64.SIB
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM
 import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
@@ -47,9 +47,9 @@ compileInterX64 (TProgram (TData _ :@ _) (TROData _ :@ _) (TUData _ :@ _) (TCode
 
 compileStmtInterX64 :: TypedStatement -> Compiler [InterOpcode]
 compileStmtInterX64 (TLabel name is) = (Label (unLoc name) :) . mconcat <$> mapM compileStmtInterX64 is
-compileStmtInterX64 (TInstr i _ _ _) = compileInstrInterX64 (unLoc i) []
+compileStmtInterX64 (TInstr i c s e) = compileInstrInterX64 (unLoc i) (c, s, e)
 
-compileInstrInterX64 :: Instruction -> [Type] -> Compiler [InterOpcode]
+compileInstrInterX64 :: Instruction -> TypeContext -> Compiler [InterOpcode]
 compileInstrInterX64 (RET) args              = compileRet args
 compileInstrInterX64 (JMP dst) args          = compileJmp (unLoc dst) args
 compileInstrInterX64 (CALL dst) args         = compileCall (unLoc dst) args
