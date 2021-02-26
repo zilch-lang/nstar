@@ -122,13 +122,10 @@ typecheckStatement (Label name ty (is, isUnsafe) :@ p) = do
 
 typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Position -> Bool -> Typechecker TypedStatement
 typecheckInstruction i p unsafe = do
-  uncurry TInstr . (i :@ p ,) <$>
-    case i of
-      RET          -> tc_ret p
-      MOV src dst  -> tc_mov src dst unsafe p
-      JMP lbl tys  -> tc_jmp lbl tys p
-      CALL lbl tys -> tc_call lbl tys p
-      PUSH src     -> tc_push src unsafe p
-      POP dst      -> tc_pop dst unsafe p
-      NOP          -> tc_nop p
-      _            -> error $ "Unrecognized instruction '" <> show i <> "'."
+  Ctx _ _ _ chi sigma epsilon <- gets snd
+
+  case i of
+    NOP        -> tc_nop p
+    _   -> error $ "Unrecognized instruction '" <> show i <> "'."
+
+  pure (TInstr (i :@ p) chi sigma epsilon)
