@@ -269,6 +269,8 @@ parseSpecialization :: (?parserFlags :: ParserFlags) => Parser (Located Type)
 parseSpecialization = MP.choice
   [ MP.try (lexeme parseStackType)
   , MP.try (betweenParens (lexeme parseStackType))
+  , MP.try (lexeme parseContinuation)
+  , MP.try (betweenParens (lexeme parseContinuation))
   , parseType
   ]
 
