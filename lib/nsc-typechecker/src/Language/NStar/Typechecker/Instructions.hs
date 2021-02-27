@@ -159,9 +159,38 @@ typecheckExpr (IndexedE (off :@ p1) (e :@ p2)) p unsafe    = do
     --SPtr s -> error $ "Unimplemented `typecheckExpr` for pointer offset on '" <> show ty2 <> "'."
     -- TODO: handle stack access
     _      -> throwError (NonPointerTypeOnOffset ty2 p3)
-typecheckExpr (NameE n@(name :@ _) _) p _ = do
-  ctx <- gets (xiD . snd)
-  maybe (throwError (UnknownDataLabel name p)) pure (Env.lookup n ctx)
+typecheckExpr (NameE n@(name :@ _) ts) p _ = do
+  xiD <- gets (xiD . snd)
+  xiC <- gets (xiC . snd)
+  ty <- maybe (throwError (UnknownDataLabel name p)) pure (Env.lookup n xiD <|> Env.lookup n xiC)
+
+  case ty of
+    ForAllT binds t :@ p2 -> do
+      let n = length ts
+          p' = length binds
+
+      case p' `compare` n of
+        LT -> throwError (TooMuchSpecialization n p' p)
+        GT -> throwError (CannotInferSpecialization n p' p)
+        EQ -> pure ()
+
+      g <- gets (gamma . snd)
+      specKinds <- forM ts \ t -> do
+        liftEither $ first FromReport (runKindchecker (kindcheckType g t))
+      let kindsToUnify = zip (snd <$> binds) specKinds
+      forM_ kindsToUnify \ (k1, k2) -> do
+        liftEither $ first FromReport (runKindchecker (unifyKinds k1 k2))
+
+      let sub = Subst (Map.fromList (zip (fromVar . fst <$> binds) ts))
+
+      pure $ apply sub t
+    _ -> do
+      when (not $ null ts) do
+        throwError (TooMuchSpecialization (length ts) 0 p)
+      pure ty
+  where
+    fromVar (VarT n :@ _) = n
+    fromVar t             = internalError $ "Cannot get name of non type-variable " <> show t
 typecheckExpr e p _                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
 
 typecheckConstant :: (?tcFlags :: TypecheckerFlags) => Constant -> Position -> Typechecker (Located Type)
