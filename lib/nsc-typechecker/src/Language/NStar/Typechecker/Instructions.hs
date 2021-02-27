@@ -244,7 +244,7 @@ typecheckExpr (NameE n@(name :@ _) ts) p _ = do
 
       let sub = Subst (Map.fromList (zip (fromVar . fst <$> binds) ts))
 
-      pure $ apply sub t
+      pure $ apply sub (ForAllT [] t :@ p)
     _ -> do
       when (not $ null ts) do
         throwError (TooMuchSpecialization (length ts) 0 p)
