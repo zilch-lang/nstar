@@ -51,4 +51,5 @@ import Internal.Error (internalError)
 -}
 
 compileCall :: Expr -> TypeContext -> Compiler [InterOpcode]
+compileCall (NameE l _) _ = pure [Byte 0xE9, Symbol32 (unLoc l) 0]
 compileCall e _           = internalError $ "Unsupported instruction 'call " <> show e <> "'."
