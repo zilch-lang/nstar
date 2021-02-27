@@ -244,7 +244,7 @@ typecheckExpr (NameE n@(name :@ _) ts) p _ = do
 
       let sub = Subst (Map.fromList (zip (fromVar . fst <$> binds) ts))
 
-      pure $ apply sub (ForAllT [] t :@ p)
+      pure $ apply sub (relax $ ForAllT [] t :@ p)
     _ -> do
       when (not $ null ts) do
         throwError (TooMuchSpecialization (length ts) 0 p)
@@ -354,5 +354,7 @@ relax (t :@ p) = relaxType t :@ p
     relaxType (VarT n)           = FVarT n
     relaxType (RecordT ms s c o) = RecordT (relax <$> ms) (relax s) c o
     relaxType (PtrT t)           = PtrT (relax t)
-    relaxType (ForAllT _ t)      = unLoc $ relax t
-    relaxType t                 = t
+    relaxType (ForAllT b t)      = ForAllT b (relax t)
+      -- NOTE: This will probably need to be tweaked
+      --       Because we don't rename the variables bound, any flexible and rigid variable can be confused.
+    relaxType t                  = t
