@@ -109,7 +109,23 @@ tc_mv (src :@ p1) (dst :@ p2) p3 = do
       pure ()
 
 tc_jmp :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Position -> Typechecker ()
-tc_jmp _ _ = error "Unimplemented type-checking for 'jmp'"
+tc_jmp (e :@ p1) p2 = do
+  {-
+     Ξ; Γ; χ; σ; ε ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → ε }     χ ∼ χ′
+  ─────────────────────────────────────────────────────────────── jump to component
+            Ξ; Γ; χ; σ; ε ⊢ᴵ jmp l<v⃗> ⊣ χ; σ; ε
+  -}
+
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → ε }
+  -- > χ ∼ χ′
+  ty <- typecheckExpr e p1 False
+
+  x <- gets (chi . snd)
+  s <- gets (sigma . snd)
+  e <- gets (epsilon . snd)
+  unify (ForAllT [] (RecordT x s e False :@ p1) :@ p1) ty
+
+  pure ()
 
 tc_call :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Position -> Typechecker ()
 tc_call _ _ = error "Unimplemented type-checking for 'call'"
