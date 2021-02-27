@@ -223,7 +223,7 @@ parsePointerType = lexeme . located $ lexeme (parseSymbol Star) *> (PtrT <$> par
 
 -- | Parses a stack type.
 parseStackType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseStackType = foldr1 cons <$> (parseType `MP.sepBy1` (lexeme (pure ()) *> lexeme (parseSymbol DoubleColon)))
+parseStackType = foldr1 cons <$> (parseType `MP.sepBy1` MP.try (lexeme (pure ()) *> lexeme (parseSymbol DoubleColon)))
   where
     cons stack@(_ :@ p) ty = ConsT stack ty :@ p
 
