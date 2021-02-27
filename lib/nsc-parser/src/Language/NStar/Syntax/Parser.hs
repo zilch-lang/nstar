@@ -306,7 +306,7 @@ parseArrayConstant = located $ MP.label "an array constant" $ ArrayC <$> between
 parseMv :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseMv = located $
   lexeme (parseSymbol Mv) *>
-    (MV <$> MP.choice [ located $ RegE <$> parseRegister, located $ ImmE <$> parseImmediate ]
+    (MV <$> MP.choice [ located $ RegE <$> parseRegister, located $ ImmE <$> parseImmediate, parseLabel ]
         <*> (lexeme (parseSymbol Comma) *> located (RegE <$> parseRegister)))
 
 -- | Parses a @ret@ instruction.
