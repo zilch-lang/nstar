@@ -1,7 +1,8 @@
 section code {
-f: { %r0: s64 }
-   jmp g
+    f: forall(s: Ts, e: Tc).{ %r0: s64 | s -> e }
+     = jmp g
 
-g: { %r0: *s64 }
-   mov 0, %r3
+    g: forall(s: Ts, e: Tc).{ %r0: *s64 | s -> e }
+     = mv 0, %r3
+     ; ret
 }

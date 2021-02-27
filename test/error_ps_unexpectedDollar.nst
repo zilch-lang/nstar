@@ -1,3 +1,4 @@
 section code {
-mov $0, %r0
+    f: forall().{| s -> e}
+     = mv $0, %r0
 }

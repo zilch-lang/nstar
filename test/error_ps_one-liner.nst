@@ -1,3 +1,0 @@
-section code {
-mov 0, %r0 mov 1, %r1
-}

@@ -1,9 +1,9 @@
 section code {
-f: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r0: u64 }::s }
-   mov 0, %r0
-   ret
+    f: forall(s: Ts, e: Tc).{ %r5: forall().{ %r0: u64 | s -> e } | s -> %r5 }
+     = mv 0, %r0
+     ; ret
 
-g: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r0: u64 }::s }
-   jmp f<s>
+    g: forall(s: Ts, e: Tc).{ %r5: forall().{ %r0: u64 | s -> e } | s -> %r5 }
+     = jmp f<s, e>
 
 }

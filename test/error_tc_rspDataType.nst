@@ -1,3 +1,4 @@
 section code {
-main: forall (a: Ta). { %sp: sptr a }
+    main: forall (a: Ta). {| a -> %r0 }
+        = ret
 }

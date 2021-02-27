@@ -1,3 +1,4 @@
 section code {
-f: { %sp: sptr s64::*u64::*{} }
+    f: forall().{| s64::*u64::s64 -> %r5 }
+     = ret
 }
