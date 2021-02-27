@@ -54,6 +54,7 @@ data TypecheckError
   | TryingToOverwriteRegisterContinuation (Located Register) Position
   | StackIsNotBigEnough Integer Type Position
   | CannotReturnToStackContinuation Type Position
+  | CannotCallWithAbstractContinuation Type Position
 
 data TypecheckWarning
 
@@ -89,6 +90,7 @@ fromTypecheckError (AbstractContinuationOnReturn p1 ty)         = cannotReturnTo
 fromTypecheckError (TryingToOverwriteRegisterContinuation r p)  = cannotOverwriteRegisterContinuation r p
 fromTypecheckError (StackIsNotBigEnough n t p)                  = stackIsNotBigEnough n t p
 fromTypecheckError (CannotReturnToStackContinuation t p)        = cannotReturnToStackContinuation t p
+fromTypecheckError (CannotCallWithAbstractContinuation t p)     = cannotCallOnAbstractContinuation t p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -302,4 +304,10 @@ cannotReturnToStackContinuation :: Type -> Position -> Report String
 cannotReturnToStackContinuation t p =
   reportError "Cannot return to a continuation stored on the stack."
     [ (p, This $ "The current continuation is " <> show (prettyText t) <> ", which is not a register") ]
+    []
+
+cannotCallOnAbstractContinuation :: Type -> Position -> Report String
+cannotCallOnAbstractContinuation t p =
+  reportError "Cannot call a function when the current continuation is abstract."
+    [ (p, Where $ "The return continuation was infered to '" <> show (prettyText t)) ]
     []

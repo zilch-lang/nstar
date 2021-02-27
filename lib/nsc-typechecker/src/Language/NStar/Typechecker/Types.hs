@@ -128,6 +128,8 @@ typecheckInstruction i p unsafe = do
     NOP        -> tc_nop p
     MV src dst -> tc_mv src dst p
     RET        -> tc_ret p
+    JMP l      -> tc_jmp l p
+    CALL l     -> tc_call l p
     _   -> error $ "Unrecognized instruction '" <> show i <> "'."
 
   pure (TInstr (i :@ p) chi sigma epsilon)
