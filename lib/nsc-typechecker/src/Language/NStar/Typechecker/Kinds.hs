@@ -7,7 +7,7 @@
   Stability: experimental
 -}
 
-module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds, kindcheckType) where
+module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds, kindcheckType, requireSized) where
 
 {-
 
@@ -17,8 +17,7 @@ module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds, 
     One thing that belongs here is the kind checking.
     So:
     - `a::s` needs `a: T8|Ta` and `s: Ts` and returns `Ts`
-    - `{%rax: s}` needs `a: T8`
-    - `sptr s` needs `s: Ts` and returns `T8`
+    - `{%r0: a}` needs `a <: T8`
     - `*a` needs `a: T8|Ta` and returns `T8` (on x64)
 
 -}

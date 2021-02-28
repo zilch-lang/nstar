@@ -130,6 +130,7 @@ typecheckInstruction i p unsafe = do
     RET        -> tc_ret p
     JMP l      -> tc_jmp l p
     CALL l     -> tc_call l p
+    SALLOC t   -> tc_salloc t p
     _   -> error $ "Unrecognized instruction '" <> show i <> "'."
 
   pure (TInstr (i :@ p) chi sigma epsilon)

@@ -63,3 +63,7 @@ setEpsilon ty = modify $ second setE
 extendChi :: Located Register -> Located Type -> Typechecker ()
 extendChi r t = modify $ second extend
   where extend (Ctx xC xD g c s e) = Ctx xC xD g (Map.insert r t c) s e
+
+setStack :: Located Type -> Typechecker ()
+setStack ty = modify $ second setS
+  where setS (Ctx xC xD g c _ e) = Ctx xC xD g c ty e

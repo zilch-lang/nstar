@@ -24,7 +24,7 @@ import Internal.Error (internalError)
 import qualified Language.NStar.Typechecker.Env as Env (lookup)
 import Control.Monad (forM)
 import Data.Bifunctor (first)
-import Language.NStar.Typechecker.Kinds (unifyKinds, kindcheckType, runKindchecker)
+import Language.NStar.Typechecker.Kinds (unifyKinds, kindcheckType, runKindchecker, requireSized)
 import Control.Monad (forM_, when, guard)
 import Data.Functor ((<&>))
 import Debug.Trace (traceShow)
@@ -183,6 +183,40 @@ tc_nop _ = do
     Ξ; Γ; χ; σ; ε ⊢ᴵ nop ⊣ χ; σ; ε
 
   -}
+  pure ()
+
+tc_salloc :: (?tcFlags :: TypecheckerFlags) => Located Type -> Position -> Typechecker ()
+tc_salloc (t :@ p1) p2 = do
+  {-
+      n, m ∈ ℕ       Γ ⊢ᴷ t : Tm        σ′ = t ∷ σ
+  ────────────────────────────────────────────────────── salloc with stack continuation
+        Ξ; Γ; χ; σ; n ⊢ᴵ salloc t ⊣ χ; σ′; n + 1
+
+      m ∈ ℕ      Γ ⊢ᴷ t : Tm        σ′ = t ∷ σ
+  ─────────────────────────────────────────────────
+       Ξ; Γ; χ; σ; ε ⊢ᴵ salloc t ⊣ χ; σ′; ε
+  -}
+
+  g <- gets (gamma . snd)
+  s <- gets (sigma . snd)
+  e :@ p3 <- gets (epsilon . snd)
+
+  -- > σ′ = t ∷ σ
+  let s' = ConsT (t :@ p1) s :@ p1
+
+  -- > m ∈ ℕ
+  -- > Γ ⊢ᴷ t : Tm
+  liftEither $ first FromReport $ runKindchecker (requireSized p1 =<< kindcheckType g (t :@ p1))
+
+  case e of
+    -- > n ∈ ℕ
+    -- > Ξ; Γ; χ; σ; n ⊢ᴵ salloc t ⊣ χ; σ′; n + 1
+    StackContT n -> setEpsilon (StackContT (n + 1) :@ p3)
+    -- > Ξ; Γ; χ; σ; ε ⊢ᴵ salloc t ⊣ χ; σ′; ε
+    _ -> pure ()
+
+  setStack s'
+
   pure ()
 
 ---------------------------------------------------------------------------------------------------------------------------------------
