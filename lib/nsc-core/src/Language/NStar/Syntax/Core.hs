@@ -155,12 +155,15 @@ data Instruction where
   SUB :: Located Expr
       -> Located Expr
       -> Instruction
-  -- |
+  -- | Does strictly nothing. May be used as a padding instruction.
   NOP :: Instruction
-  -- |
+  -- | Moves a literal or from a register into a register.
   MV :: Located Expr
      -> Located Expr
      -> Instruction
+  -- | Allocates some space on top of the stack.
+  SALLOC :: Located Type
+         -> Instruction
 
   -- TODO: add more instructions
 
@@ -237,6 +240,8 @@ data Token where
   Call :: Token
   -- | The @nop@ instruction
   Nop :: Token
+  -- | The @salloc@ instruction
+  Salloc :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@
