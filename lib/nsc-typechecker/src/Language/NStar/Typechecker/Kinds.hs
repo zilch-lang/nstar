@@ -7,7 +7,7 @@
   Stability: experimental
 -}
 
-module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds, kindcheckType, requireSized) where
+module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds, kindcheckType, requireSized, sizeof) where
 
 {-
 
@@ -108,7 +108,9 @@ unifyKinds (k1 :@ p1) (k2 :@ p2) = case (k1, k2) of
 
 
 
-
+sizeof :: Located Kind -> Kindchecker Integer
+sizeof (T8 :@ _) = pure 8
+sizeof (k :@ p)  = throwError (NotSized (k :@ p) p)
 
 -----------------------------------------------------------------------------------------------
 

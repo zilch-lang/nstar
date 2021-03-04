@@ -10,6 +10,7 @@ import Language.NStar.Typechecker.Free
 import Language.NStar.Typechecker.Subst
 import Language.NStar.Typechecker.Core
 import Language.NStar.Syntax.Core (Expr(..), Immediate(..), Constant(..))
+import qualified Language.NStar.Typechecker.Core as TC (TypedInstruction(..))
 import Data.Located (Located(..), unLoc, getPos, Position)
 import qualified Data.Map as Map
 import Control.Monad.State (gets)
@@ -24,13 +25,13 @@ import Internal.Error (internalError)
 import qualified Language.NStar.Typechecker.Env as Env (lookup)
 import Control.Monad (forM)
 import Data.Bifunctor (first)
-import Language.NStar.Typechecker.Kinds (unifyKinds, kindcheckType, runKindchecker, requireSized)
+import Language.NStar.Typechecker.Kinds (sizeof, unifyKinds, kindcheckType, runKindchecker, requireSized)
 import Control.Monad (forM_, when, guard)
 import Data.Functor ((<&>))
 import Debug.Trace (traceShow)
 import Control.Applicative ((<|>))
 
-tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker ()
+tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker TC.TypedInstruction
 tc_ret p = do
   {-
      r is a register    Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ́′ | σ → ε }     χ ∼ χ′
@@ -52,13 +53,13 @@ tc_ret p = do
       unify ty (ForAllT [] (RecordT x s e False :@ p) :@ p) -- `catchError` const (throwError (NoReturnAddress p r x))
 
       -- > Ξ; Γ; χ; σ; r ⊢ᴵ ret ⊣ χ; σ; r
-      pure ()
+      pure (TC.RET (r :@ p))
     -- > n ∈ ℕ
     StackContT n -> throwError (CannotReturnToStackContinuation e p)
     VarT _ -> throwError (AbstractContinuationOnReturn p (e :@ p1))
     _ -> internalError $ "invalid return continuation " <> show e
 
-tc_mv :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Position -> Typechecker ()
+tc_mv :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Position -> Typechecker TC.TypedInstruction
 tc_mv (src :@ p1) (dst :@ p2) p3 = do
   {-
      r, d are registers     Ξ; Γ; χ; σ; ε ⊢ᵀ r : ∀().ζ
@@ -108,7 +109,9 @@ tc_mv (src :@ p1) (dst :@ p2) p3 = do
 
       pure ()
 
-tc_jmp :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Position -> Typechecker ()
+  pure (TC.MV (src :@ p1) (dst :@ p2))
+
+tc_jmp :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Position -> Typechecker TC.TypedInstruction
 tc_jmp (e :@ p1) p2 = do
   {-
      Ξ; Γ; χ; σ; ε ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → ε }     χ ∼ χ′
@@ -122,12 +125,14 @@ tc_jmp (e :@ p1) p2 = do
 
   x <- gets (chi . snd)
   s <- gets (sigma . snd)
-  e <- gets (epsilon . snd)
-  unify (ForAllT [] (RecordT x s e False :@ p1) :@ p1) ty
+  e' <- gets (epsilon . snd)
+  unify (ForAllT [] (RecordT x s e' False :@ p1) :@ p1) ty
 
-  pure ()
+  case e of
+    NameE n _ -> pure (TC.JMP n)
+    _ -> internalError $ "Trying to jump to non-label expression " <> show e
 
-tc_call :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Position -> Typechecker ()
+tc_call :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Position -> Typechecker TC.TypedInstruction
 tc_call (ex :@ p1) p2 = do
   {-
      r is a register      Ξ; Γ; χ; σ; r ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → r }
@@ -173,9 +178,11 @@ tc_call (ex :@ p1) p2 = do
     VarT _ -> throwError (CannotCallWithAbstractContinuation e' p2)
     _ -> internalError $ "Unknown return continuation " <> show e
 
-  pure ()
+  case ex of
+    NameE n _ -> pure (TC.CALL n)
+    _ -> internalError $ "Trying to call non-label expression " <> show ex
 
-tc_nop :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker ()
+tc_nop :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker TC.TypedInstruction
 tc_nop _ = do
   {-
 
@@ -183,9 +190,9 @@ tc_nop _ = do
     Ξ; Γ; χ; σ; ε ⊢ᴵ nop ⊣ χ; σ; ε
 
   -}
-  pure ()
+  pure TC.NOP
 
-tc_salloc :: (?tcFlags :: TypecheckerFlags) => Located Type -> Position -> Typechecker ()
+tc_salloc :: (?tcFlags :: TypecheckerFlags) => Located Type -> Position -> Typechecker TC.TypedInstruction
 tc_salloc (t :@ p1) p2 = do
   {-
       n, m ∈ ℕ       Γ ⊢ᴷ t : Tm        σ′ = t ∷ σ
@@ -206,7 +213,10 @@ tc_salloc (t :@ p1) p2 = do
 
   -- > m ∈ ℕ
   -- > Γ ⊢ᴷ t : Tm
-  liftEither $ first FromReport $ runKindchecker (requireSized p1 =<< kindcheckType g (t :@ p1))
+  m <- liftEither $ first FromReport $ runKindchecker do
+    k <- kindcheckType g (t :@ p1)
+    requireSized p1 k
+    sizeof k
 
   case e of
     -- > n ∈ ℕ
@@ -217,7 +227,7 @@ tc_salloc (t :@ p1) p2 = do
 
   setStack s'
 
-  pure ()
+  pure (TC.SALLOC (m :@ p1))
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

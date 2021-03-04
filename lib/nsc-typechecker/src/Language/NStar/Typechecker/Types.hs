@@ -16,7 +16,9 @@ module Language.NStar.Typechecker.Types
 
 import Control.Monad.State
 import Language.NStar.Typechecker.Core
-import Language.NStar.Syntax.Core hiding (Token(..))
+import Language.NStar.Syntax.Core hiding (Token(..), Instruction(..))
+import qualified Language.NStar.Syntax.Core as SC (Instruction(..))
+import qualified Language.NStar.Typechecker.Core as TC (TypedInstruction(..))
 import Data.Located
 import Data.Bifunctor (first, second, bimap)
 import Control.Monad.Except
@@ -120,17 +122,15 @@ typecheckStatement (Label name ty (is, isUnsafe) :@ p) = do
    toVarName (VarT v :@ _) = v
    toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
 
-typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Position -> Bool -> Typechecker TypedStatement
+typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => SC.Instruction -> Position -> Bool -> Typechecker TypedStatement
 typecheckInstruction i p unsafe = do
-  Ctx _ _ _ chi sigma epsilon <- gets snd
-
-  case i of
-    NOP        -> tc_nop p
-    MV src dst -> tc_mv src dst p
-    RET        -> tc_ret p
-    JMP l      -> tc_jmp l p
-    CALL l     -> tc_call l p
-    SALLOC t   -> tc_salloc t p
+  ti <- case i of
+    SC.NOP        -> tc_nop p
+    SC.MV src dst -> tc_mv src dst p
+    SC.RET        -> tc_ret p
+    SC.JMP l      -> tc_jmp l p
+    SC.CALL l     -> tc_call l p
+    SC.SALLOC t   -> tc_salloc t p
     _   -> error $ "Unrecognized instruction '" <> show i <> "'."
 
-  pure (TInstr (i :@ p) chi sigma epsilon)
+  pure (TInstr (ti :@ p))
