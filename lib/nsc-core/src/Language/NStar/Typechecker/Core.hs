@@ -14,11 +14,12 @@ module Language.NStar.Typechecker.Core
   TypedProgram(..)
 , TypedDataSection(..), TypedRODataSection(..), TypedUDataSection(..), TypedCodeSection(..)
 , TypedStatement(..)
+, TypedInstruction(..)
 ,  -- * Re-exports
   module Language.NStar.Syntax.Core
 ) where
 
-import Language.NStar.Syntax.Core (Type(..), Kind(..), Register(..), Instruction(..), Binding(..))
+import Language.NStar.Syntax.Core (Expr(..), Type(..), Kind(..), Register(..), Binding(..))
 import Data.Located (Located)
 import Data.Text (Text)
 import Data.Map (Map)
@@ -52,10 +53,23 @@ data TypedStatement where
          -> [TypedStatement]     -- ^ Label's scope
          -> TypedStatement
   -- | An instruction with type information attached to it.
-  TInstr :: Located Instruction  -- ^ the typed instruction
-         -> Map (Located Register) (Located Type)
-         -> Located Type
-         -> Located Type
+  TInstr :: Located TypedInstruction  -- ^ the typed instruction
          -> TypedStatement
 
 deriving instance Show TypedStatement
+
+data TypedInstruction where
+  RET :: Located Register
+      -> TypedInstruction
+  JMP :: Located Text
+      -> TypedInstruction
+  CALL :: Located Text
+       -> TypedInstruction
+  NOP :: TypedInstruction
+  MV :: Located Expr
+     -> Located Expr
+     -> TypedInstruction
+  SALLOC :: Located Integer
+         -> TypedInstruction
+
+deriving instance Show TypedInstruction
