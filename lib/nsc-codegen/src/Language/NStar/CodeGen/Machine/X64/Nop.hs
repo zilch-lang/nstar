@@ -33,5 +33,5 @@ import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterO
 
 -}
 
-compileNop :: TypeContext -> Compiler [InterOpcode]
-compileNop _ = pure [Byte 0x90]
+compileNop :: Compiler [InterOpcode]
+compileNop = pure [Byte 0x90]
