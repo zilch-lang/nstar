@@ -30,8 +30,12 @@ instance PrettyText TypedCodeSection where
 
 instance PrettyText TypedStatement where
   prettyText (TLabel l is) = text (Text.unpack (unLoc l)) <> colon <> line <> indent 4 (vsep (fmap prettyText is))
-  prettyText (TInstr i chi sigma eps) =
-    pprint chi <> semi <+> prettyText sigma <> semi <+> prettyText eps <+> text "⊢" <+> prettyText i
+  prettyText (TInstr i)    = text "⊢" <+> prettyText i
 
-    where pprint = encloseSep empty empty comma . fmap toBind . Map.toList
-          toBind (r, t) = prettyText r <+> colon <+> prettyText t
+instance PrettyText TypedInstruction where
+  prettyText (RET r)    = text "ret " <+> prettyText r
+  prettyText (MV s d)   = text "mv" <+> prettyText s <> comma <+> prettyText d
+  prettyText (JMP l)    = text "jmp" <+> prettyText l
+  prettyText (CALL l)   = text "call" <+> prettyText l
+  prettyText (NOP)      = text "nop"
+  prettyText (SALLOC n) = text "salloc" <+> prettyText n
