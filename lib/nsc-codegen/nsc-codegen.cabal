@@ -23,12 +23,10 @@ library
       Language.NStar.CodeGen.Machine.Internal.X64.SIB
       Language.NStar.CodeGen.Machine.X64
       Language.NStar.CodeGen.Machine.X64.Add
-      Language.NStar.CodeGen.Machine.X64.Call
       Language.NStar.CodeGen.Machine.X64.Expression
       Language.NStar.CodeGen.Machine.X64.Jmp
       Language.NStar.CodeGen.Machine.X64.Mv
       Language.NStar.CodeGen.Machine.X64.Nop
-      Language.NStar.CodeGen.Machine.X64.Ret
       Language.NStar.CodeGen.Machine.X64.Salloc
       Language.NStar.CodeGen.Machine.X64.Sub
       Language.NStar.CodeGen.PreProcessor

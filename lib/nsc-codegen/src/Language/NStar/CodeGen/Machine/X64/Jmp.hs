@@ -12,6 +12,8 @@ import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterO
 import Data.Located (unLoc)
 import Internal.Error (internalError)
 import Data.Text (Text)
+import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
+import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
 
 {- $encoding
 
@@ -53,6 +55,7 @@ import Data.Text (Text)
 
 -}
 
-compileJmp :: Text -> Compiler [InterOpcode]
-compileJmp n = pure [Byte 0xE9, Jump n]
+compileJmp :: Expr -> Compiler [InterOpcode]
+compileJmp (NameE n _) = pure [Byte 0xE9, Jump (unLoc n)]
+compileJmp (RegE r)    = pure [Byte 0xFF, modRM 0b11 0x4 (registerNumber $ unLoc r)]
 compileJmp e = internalError $ "Unsupported instruction 'jmp " <> show e <> "'."

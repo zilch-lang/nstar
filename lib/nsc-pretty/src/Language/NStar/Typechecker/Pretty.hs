@@ -33,9 +33,7 @@ instance PrettyText TypedStatement where
   prettyText (TInstr i)    = text "⊢" <+> prettyText i
 
 instance PrettyText TypedInstruction where
-  prettyText (RET r)    = text "ret " <+> prettyText r
   prettyText (MV s d)   = text "mv" <+> prettyText s <> comma <+> prettyText d
   prettyText (JMP l)    = text "jmp" <+> prettyText l
-  prettyText (CALL l)   = text "call" <+> prettyText l
   prettyText (NOP)      = text "nop"
   prettyText (SALLOC n) = text "salloc" <+> prettyText n

@@ -26,9 +26,7 @@ import Data.Bits ((.&.), (.|.), shiftL)
 import Debug.Trace (traceShow)
 import Data.Bifunctor (second)
 import Data.Elf (RelocationType(..))
-import Language.NStar.CodeGen.Machine.X64.Ret (compileRet)
 import Language.NStar.CodeGen.Machine.X64.Jmp (compileJmp)
-import Language.NStar.CodeGen.Machine.X64.Call (compileCall)
 import Language.NStar.CodeGen.Machine.X64.Nop (compileNop)
 import Language.NStar.CodeGen.Machine.X64.Mv (compileMv)
 import Language.NStar.CodeGen.Machine.X64.Add (compileAdd)
@@ -51,9 +49,7 @@ compileStmtInterX64 (TLabel name is) = (Label (unLoc name) :) . mconcat <$> mapM
 compileStmtInterX64 (TInstr i) = compileInstrInterX64 (unLoc i)
 
 compileInstrInterX64 :: TypedInstruction -> Compiler [InterOpcode]
-compileInstrInterX64 (RET r)            = compileRet (unLoc r)
 compileInstrInterX64 (JMP dst)          = compileJmp (unLoc dst)
-compileInstrInterX64 (CALL dst)         = compileCall (unLoc dst)
 compileInstrInterX64 (NOP)              = compileNop
 compileInstrInterX64 (MV src dst)       = compileMv (unLoc src) (unLoc dst)
 compileInstrInterX64 (SALLOC n)         = compileSalloc (unLoc n)

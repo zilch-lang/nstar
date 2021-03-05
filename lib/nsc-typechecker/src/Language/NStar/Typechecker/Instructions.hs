@@ -53,7 +53,7 @@ tc_ret p = do
       unify ty (ForAllT [] (RecordT x s e False :@ p) :@ p) -- `catchError` const (throwError (NoReturnAddress p r x))
 
       -- > Ξ; Γ; χ; σ; r ⊢ᴵ ret ⊣ χ; σ; r
-      pure (TC.RET (r :@ p))
+      pure (TC.JMP (RegE (r :@ p) :@ p))
     -- > n ∈ ℕ
     StackContT n -> throwError (CannotReturnToStackContinuation e p)
     VarT _ -> throwError (AbstractContinuationOnReturn p (e :@ p1))
@@ -128,9 +128,7 @@ tc_jmp (e :@ p1) p2 = do
   e' <- gets (epsilon . snd)
   unify (ForAllT [] (RecordT x s e' False :@ p1) :@ p1) ty
 
-  case e of
-    NameE n _ -> pure (TC.JMP n)
-    _ -> internalError $ "Trying to jump to non-label expression " <> show e
+  pure (TC.JMP (e :@ p1))
 
 tc_call :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Position -> Typechecker TC.TypedInstruction
 tc_call (ex :@ p1) p2 = do
@@ -178,9 +176,7 @@ tc_call (ex :@ p1) p2 = do
     VarT _ -> throwError (CannotCallWithAbstractContinuation e' p2)
     _ -> internalError $ "Unknown return continuation " <> show e
 
-  case ex of
-    NameE n _ -> pure (TC.CALL n)
-    _ -> internalError $ "Trying to call non-label expression " <> show ex
+  pure (TC.JMP (ex :@ p1))
 
 tc_nop :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker TC.TypedInstruction
 tc_nop _ = do

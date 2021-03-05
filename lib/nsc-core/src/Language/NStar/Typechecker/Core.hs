@@ -58,13 +58,10 @@ data TypedStatement where
 
 deriving instance Show TypedStatement
 
+-- | The core of the N* abstract machine.
 data TypedInstruction where
-  RET :: Located Register
+  JMP :: Located Expr
       -> TypedInstruction
-  JMP :: Located Text
-      -> TypedInstruction
-  CALL :: Located Text
-       -> TypedInstruction
   NOP :: TypedInstruction
   MV :: Located Expr
      -> Located Expr
