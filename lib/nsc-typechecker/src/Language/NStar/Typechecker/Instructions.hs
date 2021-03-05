@@ -225,6 +225,47 @@ tc_salloc (t :@ p1) p2 = do
 
   pure (TC.SALLOC (m :@ p1))
 
+tc_sfree :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker TC.TypedInstruction
+tc_sfree p = do
+  {-
+     n ≥ 1      n ≤ p      σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s      σ′ = t1 ∷ … ∷ tₚ ∷ s
+  ────────────────────────────────────────────────────────────────────────────── sfree with stack continuation
+                    Ξ; Γ; χ; σ; n ⊢ᴵ sfree ⊣ χ; σ′; n-1
+
+     σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s      σ′ = t1 ∷ … ∷ tₚ ∷ s
+  ────────────────────────────────────────────────────────
+            Ξ; Γ; χ; σ; ε ⊢ᴵ sfree ⊣ χ; σ′; ε
+  -}
+
+  s <- gets (sigma . snd)
+  e@(e' :@ p1) <- gets (epsilon . snd)
+  g <- gets (gamma . snd)
+
+  t <- freshVar "τ" p
+  s' <- freshVar "σ" p
+
+  let ty = ConsT t s' :@ p
+  sub <- unify ty s
+  let ConsT t s' :@ _ = apply sub ty
+
+  m <- liftEither $ first FromReport $ runKindchecker do
+    k <- kindcheckType g t
+    requireSized p k
+    sizeof k
+
+  case e' of
+    StackContT n -> do
+      when (n == 0) do
+        throwError (CannotDiscardContinuationFromStackTop p)
+
+      setEpsilon (StackContT (n - 1) :@ p)
+
+      pure ()
+    _ -> do
+      setStack s'
+
+  pure (TC.SFREE (m :@ p))
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

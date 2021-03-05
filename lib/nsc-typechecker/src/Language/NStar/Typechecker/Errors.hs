@@ -55,6 +55,7 @@ data TypecheckError
   | StackIsNotBigEnough Integer Type Position
   | CannotReturnToStackContinuation Type Position
   | CannotCallWithAbstractContinuation Type Position
+  | CannotDiscardContinuationFromStackTop Position
 
 data TypecheckWarning
 
@@ -91,6 +92,7 @@ fromTypecheckError (TryingToOverwriteRegisterContinuation r p)  = cannotOverwrit
 fromTypecheckError (StackIsNotBigEnough n t p)                  = stackIsNotBigEnough n t p
 fromTypecheckError (CannotReturnToStackContinuation t p)        = cannotReturnToStackContinuation t p
 fromTypecheckError (CannotCallWithAbstractContinuation t p)     = cannotCallOnAbstractContinuation t p
+fromTypecheckError (CannotDiscardContinuationFromStackTop p)    = cannotDiscardContinuationFromStack p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -310,4 +312,10 @@ cannotCallOnAbstractContinuation :: Type -> Position -> Report String
 cannotCallOnAbstractContinuation t p =
   reportError "Cannot call a function when the current continuation is abstract."
     [ (p, Where $ "The return continuation was infered to '" <> show (prettyText t)) ]
+    []
+
+cannotDiscardContinuationFromStack :: Position -> Report String
+cannotDiscardContinuationFromStack p =
+  reportError "Cannot discard the continuation stored on top of the stack."
+    [ (p, This $ "Trying to discard stack top but the current continuation is stored there") ]
     []
