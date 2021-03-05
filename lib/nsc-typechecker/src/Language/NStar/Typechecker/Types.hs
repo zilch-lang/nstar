@@ -124,6 +124,8 @@ typecheckStatement (Label name ty (is, isUnsafe) :@ p) = do
 
 typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => SC.Instruction -> Position -> Bool -> Typechecker TypedStatement
 typecheckInstruction i p unsafe = do
+  Ctx _ _ _ chi sigma epsilon <- gets snd
+
   ti <- case i of
     SC.NOP        -> tc_nop p
     SC.MV src dst -> tc_mv src dst p
@@ -133,4 +135,4 @@ typecheckInstruction i p unsafe = do
     SC.SALLOC t   -> tc_salloc t p
     _   -> error $ "Unrecognized instruction '" <> show i <> "'."
 
-  pure (TInstr (ti :@ p))
+  pure (TInstr (ti :@ p) chi sigma epsilon)

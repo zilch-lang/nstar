@@ -54,6 +54,9 @@ data TypedStatement where
          -> TypedStatement
   -- | An instruction with type information attached to it.
   TInstr :: Located TypedInstruction  -- ^ the typed instruction
+         -> Map (Located Register) (Located Type)
+         -> Located Type
+         -> Located Type
          -> TypedStatement
 
 deriving instance Show TypedStatement

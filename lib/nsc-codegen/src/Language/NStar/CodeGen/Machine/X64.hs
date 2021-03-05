@@ -46,7 +46,7 @@ compileInterX64 (TProgram (TData _ :@ _) (TROData _ :@ _) (TUData _ :@ _) (TCode
 
 compileStmtInterX64 :: TypedStatement -> Compiler [InterOpcode]
 compileStmtInterX64 (TLabel name is) = (Label (unLoc name) :) . mconcat <$> mapM compileStmtInterX64 is
-compileStmtInterX64 (TInstr i) = compileInstrInterX64 (unLoc i)
+compileStmtInterX64 (TInstr i _ _ _) = compileInstrInterX64 (unLoc i)
 
 compileInstrInterX64 :: TypedInstruction -> Compiler [InterOpcode]
 compileInstrInterX64 (JMP dst)          = compileJmp (unLoc dst)

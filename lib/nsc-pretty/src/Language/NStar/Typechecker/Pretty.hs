@@ -29,8 +29,10 @@ instance PrettyText TypedCodeSection where
   prettyText (TCode is) = text "section code {" <> line <> indent 4 (vsep (fmap prettyText is)) <> line <> text "}"
 
 instance PrettyText TypedStatement where
-  prettyText (TLabel l is) = text (Text.unpack (unLoc l)) <> colon <> line <> indent 4 (vsep (fmap prettyText is))
-  prettyText (TInstr i)    = text "⊢" <+> prettyText i
+  prettyText (TLabel l is)            = text (Text.unpack (unLoc l)) <> colon <> line <> indent 4 (vsep (fmap prettyText is))
+  prettyText (TInstr i chi sigma eps) = pprint chi <> semi <+> prettyText sigma <> semi <+> prettyText eps <+> text "⊢" <+> prettyText i
+    where pprint = encloseSep empty empty comma . fmap toBind . Map.toList
+          toBind (r, t) = prettyText r <+> colon <+> prettyText t
 
 instance PrettyText TypedInstruction where
   prettyText (MV s d)   = text "mv" <+> prettyText s <> comma <+> prettyText d
