@@ -129,6 +129,7 @@ identifierOrKeyword = located do
       "call"    -> Call
       "nop"     -> Nop
       "salloc"  -> Salloc
+      "sfree"   -> Sfree
       -- Registers
       "r0"      -> R0'
       "r1"      -> R1'

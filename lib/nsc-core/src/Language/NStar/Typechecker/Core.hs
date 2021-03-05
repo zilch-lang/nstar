@@ -71,5 +71,7 @@ data TypedInstruction where
      -> TypedInstruction
   SALLOC :: Located Integer
          -> TypedInstruction
+  SFREE :: Located Integer
+        -> TypedInstruction
 
 deriving instance Show TypedInstruction

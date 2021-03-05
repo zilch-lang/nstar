@@ -164,6 +164,8 @@ data Instruction where
   -- | Allocates some space on top of the stack.
   SALLOC :: Located Type
          -> Instruction
+  -- | Frees the top-most stack cell.
+  SFREE :: Instruction
 
   -- TODO: add more instructions
 
@@ -242,6 +244,8 @@ data Token where
   Nop :: Token
   -- | The @salloc@ instruction
   Salloc :: Token
+  -- | The @sfree@ instruction
+  Sfree :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@
