@@ -42,3 +42,4 @@ instance PrettyText TypedInstruction where
   prettyText (JMP l)    = text "jmp" <+> prettyText l
   prettyText (NOP)      = text "nop"
   prettyText (SALLOC n) = text "salloc" <+> prettyText n
+  prettyText (SFREE n)  = text "sfree" <+> prettyText n
