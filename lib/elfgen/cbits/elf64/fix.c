@@ -390,7 +390,7 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
             Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
 
             current_symbol->st_size = current_symbol_size;
-            current_symbol->st_value = current_offset_in_section;
+            current_symbol->st_value = current_symbol_offset;
 
             current_offset_in_section += current_symbol_size;
         }
@@ -402,7 +402,7 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
             Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
 
             current_symbol->st_size = current_symbol_size;
-            current_symbol->st_value = current_offset_in_section;
+            current_symbol->st_value = current_symbol_offset;
         }
     }
 
@@ -421,7 +421,7 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
             Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
 
             current_symbol->st_size = current_symbol_size;
-            current_symbol->st_value = current_offset_in_section;
+            current_symbol->st_value = current_symbol_offset;
 
             current_offset_in_section += current_symbol_size;
         }
@@ -433,7 +433,7 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
             Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
 
             current_symbol->st_size = current_symbol_size;
-            current_symbol->st_value = current_offset_in_section;
+            current_symbol->st_value = current_symbol_offset;
         }
     }
 
