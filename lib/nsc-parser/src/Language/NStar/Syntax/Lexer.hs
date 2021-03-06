@@ -131,6 +131,7 @@ identifierOrKeyword = located do
       "salloc"  -> Salloc
       "sfree"   -> Sfree
       "sld"     -> Sld
+      "sst"     -> Sst
       -- Registers
       "r0"      -> R0'
       "r1"      -> R1'
