@@ -14,6 +14,7 @@ import Data.Located (unLoc, Located((:@)))
 import qualified Data.Text as Text
 import Language.NStar.Syntax.Pretty()
 import qualified Data.Map as Map
+import Data.List (intersperse)
 
 instance PrettyText TypedProgram where
   prettyText (TProgram (dataSect :@ _) (rodataSect :@ _) (udataSect :@ _) (codeSect :@ _)) =
@@ -34,7 +35,7 @@ instance PrettyText TypedStatement where
     where pprint c =
             if null c
             then text "·"
-            else encloseSep empty empty comma . fmap toBind $ Map.toList c
+            else mconcat . intersperse comma . fmap toBind $ Map.toList c
           toBind (r, t) = prettyText r <+> colon <+> prettyText t
 
 instance PrettyText TypedInstruction where
