@@ -166,6 +166,10 @@ data Instruction where
          -> Instruction
   -- | Frees the top-most stack cell.
   SFREE :: Instruction
+  -- | Loads a value from the nth cell of the stack into a register
+  SLD :: Located Integer
+      -> Located Register
+      -> Instruction
 
   -- TODO: add more instructions
 
@@ -246,6 +250,8 @@ data Token where
   Salloc :: Token
   -- | The @sfree@ instruction
   Sfree :: Token
+  -- | The @sld@ instruction
+  Sld :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@

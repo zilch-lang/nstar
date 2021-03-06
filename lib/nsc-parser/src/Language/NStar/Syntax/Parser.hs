@@ -170,6 +170,7 @@ parseInstruction = lexeme $ MP.choice
   , parseNop
   , parseSalloc
   , parseSfree
+  , parseSld
   ]
 
 ------------------------------------------------------------------------------------------------------------
@@ -333,3 +334,8 @@ parseSalloc = located $
 
 parseSfree :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseSfree = located $ SFREE <$ lexeme (parseSymbol Sfree)
+
+parseSld :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseSld = located $
+  lexeme (parseSymbol Sld) *> (SLD <$> parseInteger
+                                   <*> (lexeme (parseSymbol Comma) *> parseRegister))
