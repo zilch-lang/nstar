@@ -76,5 +76,8 @@ data TypedInstruction where
   SLD :: Located Integer
       -> Located Register
       -> TypedInstruction
+  SST :: Located Expr
+      -> Located Integer
+      -> TypedInstruction
 
 deriving instance Show TypedInstruction

@@ -83,6 +83,7 @@ instance PrettyText Instruction where
   prettyText (SALLOC t)     = text "salloc" <+> prettyText t
   prettyText (SFREE)        = text "sfree"
   prettyText (SLD s d)      = text "sld" <+> prettyText s <> comma <+> prettyText d
+  prettyText (SST s d)      = text "sld" <+> prettyText s <> comma <+> prettyText d
 
 instance PrettyText Constant where
   prettyText (IntegerC (i :@ _))   = integer i

@@ -313,6 +313,54 @@ tc_sld (n :@ p1) (r :@ p2) p3 = do
 
   pure (TC.SLD (m :@ p3) (r :@ p2))
 
+tc_sst :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Integer -> Position -> Typechecker TC.TypedInstruction
+tc_sst (ex :@ p1) (n :@ p2) p3 = do
+  {-
+     r is a register      n ∈ ℕ      n ≤ p        Γ ⊢ᴷ tₙ : T8        σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
+                      σ′ = σ[∀().ζ ∖ tₙ]       Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().ζ
+  ────────────────────────────────────────────────────────────────────────────────────────────── move continuaton onto the stack
+                          Ξ; Γ; χ; σ; r ⊢ᴵ sst r, n ⊣ χ; σ′; n
+
+     n ∈ ℕ       n ≤ p       σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s       Ξ; Γ; χ; σ; ε ⊢ᵀ e : tₙ
+  ──────────────────────────────────────────────────────────────────────────────────── store value onto the stack
+                       Ξ; Γ; χ; σ; ε ⊢ᴵ sst e, n ⊣ χ; σ; ε
+  -}
+
+  g <- gets (gamma . snd)
+  s <- gets (sigma . snd)
+  e <- gets (epsilon . snd)
+
+  -- > n ∈ ℕ
+  -- > n ≤ p
+  -- > σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
+  (m, tN) <- getNthFromStack n s
+
+  case (e, ex) of
+    (RegisterContT r :@ _, RegE (r2 :@ _)) | r == r2 -> do
+      -- > Γ ⊢ᴷ tₙ : T8
+      liftEither $ first FromReport $ runKindchecker do
+        unifyKinds (T8 :@ getPos tN) =<< kindcheckType g tN
+
+      -- > Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().ζ
+      ty <- typecheckExpr ex p1 False
+      z <- freshVar "ζ" p1
+      unify (ForAllT [] z :@ p1) ty
+
+      -- > Ξ; Γ; χ; σ; r ⊢ᴵ sst r, n ⊣ χ; σ′; n
+      s' <- setNthInStack n s ty
+      setStack s'
+      setEpsilon (StackContT n :@ p3)
+
+      pure ()
+    _ -> do
+      -- > Ξ; Γ; χ; σ; ε ⊢ᵀ e : tₙ
+      ty <- typecheckExpr ex p1 False
+      unify ty tN
+      -- > Ξ; Γ; χ; σ; ε ⊢ᴵ sst e, n ⊣ χ; σ; ε
+      pure ()
+
+  pure (TC.SST (ex :@ p1) (n :@ p2))
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
@@ -337,6 +385,17 @@ getNthFromStack n s = do
 
       pure if p == n then (p + 1, s, Just t) else (p + 1, s, Nothing)
 
+setNthInStack :: (?tcFlags :: TypecheckerFlags) => Integer -> Located Type -> Located Type -> Typechecker (Located Type)
+setNthInStack n s t@(_ :@ p) = do
+  let st = replaceNth n t (unCons s)
+
+  pure (foldr1 cons st)
+  where
+    unCons (ConsT t1 t2 :@ _) = t1 : unCons t2
+    unCons t                  = [t]
+
+    replaceNth n e = snd . foldl (\ (i, l) e' -> (i + 1, (if i == n then e else e'):l)) (0, [])
+    cons t1 ts = ConsT t1 ts :@ p
 
 typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Bool -> Typechecker (Located Type)
 typecheckExpr (ImmE (I _ :@ _)) p _  = pure (UnsignedT 64 :@ p)
