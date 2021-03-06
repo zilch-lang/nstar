@@ -29,15 +29,15 @@ pkgs.mkShell {
   ];
 
   buildPhase = ''
-    (echo "Running \`nsc\`:"; ${nsc} ./test/singleRet.nst -o test.o) && \
+    (echo "Running \`nsc\`:"; ${nsc} ./test/bashTrue.nst -o object.o) && \
   ''
   + (if runReadelf
      then ''
-          (echo -e "\n\nRunning \`readelf\`:"; readelf -a ./test.o) && \
-          (echo -e "\n\nRunning \`objdump\`:"; objdump -d -j'.text' ./test.o) && \
+          (echo -e "\n\nRunning \`readelf\`:"; readelf -a ./object.o) && \
+          (echo -e "\n\nRunning \`objdump\`:"; objdump -d -j'.text' ./object.o) && \
      '' else "")
   + ''
-          (echo -e "\n\nTry linking \`test.o\`:"; ld ${pkgs.glibc}/lib/crt1.o ${pkgs.glibc}/lib/crti.o ${pkgs.gcc-unwrapped}/lib/gcc/*/*/crtbegin.o ./test.o ${pkgs.gcc-unwrapped}/lib/gcc/*/*/crtend.o ${pkgs.glibc}/lib/crtn.o -lc -o a.out) && \
+          (echo -e "\n\nTry linking \`object.o\`:"; gcc ./object.o -lc -o a.out) && \
           (echo -e "\n\nExecuting \`a.out\`:"; ./a.out)
 
      (echo -en "\n\nExit code: "; echo $?)
