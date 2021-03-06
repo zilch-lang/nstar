@@ -159,7 +159,7 @@ data Instruction where
   NOP :: Instruction
   -- | Moves a literal or from a register into a register.
   MV :: Located Expr
-     -> Located Expr
+     -> Located Register
      -> Instruction
   -- | Allocates some space on top of the stack.
   SALLOC :: Located Type

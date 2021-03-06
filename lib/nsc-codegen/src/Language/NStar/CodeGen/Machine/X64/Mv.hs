@@ -6,7 +6,7 @@ module Language.NStar.CodeGen.Machine.X64.Mv
 compileMv
 ) where
 
-import Language.NStar.Syntax.Core (Expr(..))
+import Language.NStar.Syntax.Core (Expr(..), Register)
 import Language.NStar.CodeGen.Compiler (Compiler)
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
 import Data.Located (unLoc)
@@ -117,10 +117,10 @@ import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNum
 
 -}
 
-compileMv :: Expr -> Expr -> Compiler [InterOpcode]
-compileMv (RegE src) (RegE dst)   =
-  pure [rexW, Byte 0x8B, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
-compileMv src@(ImmE _) (RegE dst) =
-  mappend [rexW, Byte $ 0xB8 + registerNumber (unLoc dst)] <$> compileExprX64 64 src
-compileMv src dst                 =
+compileMv :: Expr -> Register -> Compiler [InterOpcode]
+compileMv (RegE src) dst   =
+  pure [rexW, Byte 0x8B, modRM 0x3 (registerNumber dst) (registerNumber (unLoc src))]
+compileMv src@(ImmE _) dst =
+  mappend [rexW, Byte $ 0xB8 + registerNumber dst] <$> compileExprX64 64 src
+compileMv src dst          =
   internalError $ "Unsupported instruction 'mv " <> show src <> "," <> show dst <> "'."

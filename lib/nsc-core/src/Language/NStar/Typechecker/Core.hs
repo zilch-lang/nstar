@@ -67,7 +67,7 @@ data TypedInstruction where
       -> TypedInstruction
   NOP :: TypedInstruction
   MV :: Located Expr
-     -> Located Expr
+     -> Located Register
      -> TypedInstruction
   SALLOC :: Located Integer
          -> TypedInstruction

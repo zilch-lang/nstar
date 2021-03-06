@@ -309,7 +309,7 @@ parseMv :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseMv = located $
   lexeme (parseSymbol Mv) *>
     (MV <$> MP.choice [ located $ RegE <$> parseRegister, located $ ImmE <$> parseImmediate, parseLabel ]
-        <*> (lexeme (parseSymbol Comma) *> located (RegE <$> parseRegister)))
+        <*> (lexeme (parseSymbol Comma) *> parseRegister))
 
 -- | Parses a @ret@ instruction.
 parseRet :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)

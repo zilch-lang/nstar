@@ -59,7 +59,7 @@ tc_ret p = do
     VarT _ -> throwError (AbstractContinuationOnReturn p (e :@ p1))
     _ -> internalError $ "invalid return continuation " <> show e
 
-tc_mv :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Position -> Typechecker TC.TypedInstruction
+tc_mv :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Register -> Position -> Typechecker TC.TypedInstruction
 tc_mv (src :@ p1) (dst :@ p2) p3 = do
   {-
      r, d are registers     Ξ; Γ; χ; σ; ε ⊢ᵀ r : ∀().ζ
@@ -80,13 +80,10 @@ tc_mv (src :@ p1) (dst :@ p2) p3 = do
       subZ <- unify (ForAllT [] z :@ p1) (x Map.! r2')
       let ty = apply subZ z
 
-      case dst of
-        -- > r, d are registers
-        RegE d -> do
-          -- > Ξ; Γ; χ; σ; r ⊢ᴵ mv r, d ⊣ χ, d : ∀().ζ; σ; d
-          setEpsilon (RegisterContT <$> d)
-          extendChi d ty
-        _ -> internalError $ "Unknown mv destination: " <> show dst
+      -- > r, d are registers
+      -- > Ξ; Γ; χ; σ; r ⊢ᴵ mv r, d ⊣ χ, d : ∀().ζ; σ; d
+      setEpsilon (RegisterContT dst :@ p2)
+      extendChi (dst :@ p2) ty
 
       pure ()
     _ -> do
@@ -97,15 +94,12 @@ tc_mv (src :@ p1) (dst :@ p2) p3 = do
       -- > Γ ⊢ᴷ t : T8
       liftEither (first FromReport . runKindchecker $ unifyKinds (T8 :@ p1) =<< kindcheckType g t)
 
-      case dst of
-        -- > r is a register
-        RegE r -> do
-          e <- gets (epsilon . snd)
-          when ((RegisterContT <$> r) == e) do
-            throwError (TryingToOverwriteRegisterContinuation r p3)
-          -- > Ξ; χ; σ; ε ⊢ᴵ mv e, r ⊣ χ, r : t; σ; ε
-          extendChi r t
-        _ -> internalError $ "Unknown mv destination: " <> show dst
+      -- > r is a register
+      e <- gets (epsilon . snd)
+      when ((RegisterContT dst :@ p2) == e) do
+        throwError (TryingToOverwriteRegisterContinuation (dst :@ p2) p3)
+      -- > Ξ; χ; σ; ε ⊢ᴵ mv e, r ⊣ χ, r : t; σ; ε
+      extendChi (dst :@ p2) t
 
       pure ()
 
