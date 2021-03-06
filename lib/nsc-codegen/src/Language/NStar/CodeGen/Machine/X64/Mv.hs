@@ -15,6 +15,7 @@ import Language.NStar.CodeGen.Machine.Internal.X64.REX (rexW)
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
 import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64)
 import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
+import Language.NStar.CodeGen.Machine.Internal.X64.SIB (sib)
 
 {- $encoding
 
@@ -122,5 +123,7 @@ compileMv (RegE src) dst   =
   pure [rexW, Byte 0x8B, modRM 0x3 (registerNumber dst) (registerNumber (unLoc src))]
 compileMv src@(ImmE _) dst =
   mappend [rexW, Byte $ 0xB8 + registerNumber dst] <$> compileExprX64 64 src
+compileMv (NameE l _) dst  =
+  pure [rexW, Byte 0x8B, modRM 0b0 (registerNumber dst) 0x4, sib 0b0 0x4 0x5, Symbol32 (unLoc l) 0]
 compileMv src dst          =
   internalError $ "Unsupported instruction 'mv " <> show src <> "," <> show dst <> "'."
