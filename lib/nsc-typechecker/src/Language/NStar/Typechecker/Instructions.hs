@@ -359,7 +359,7 @@ tc_sst (ex :@ p1) (n :@ p2) p3 = do
       -- > Ξ; Γ; χ; σ; ε ⊢ᴵ sst e, n ⊣ χ; σ; ε
       pure ()
 
-  pure (TC.SST (ex :@ p1) (n :@ p2))
+  pure (TC.SST (ex :@ p1) (m :@ p2))
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
@@ -367,9 +367,13 @@ tc_sst (ex :@ p1) (n :@ p2) p3 = do
 
 getNthFromStack :: (?tcFlags :: TypecheckerFlags) => Integer -> Located Type -> Typechecker (Integer, Located Type)
 getNthFromStack n s = do
-  (_, size, tN) <- foldlM addSizeAndGetType (0, 0, Nothing) (unCons s)
+  let st = unCons s
+  when (n > fromIntegral (length st)) do
+    throwError (StackIsNotBigEnough n (unLoc s) (getPos s))
+
+  (_, size, tN) <- foldlM addSizeAndGetType (0, 0, Nothing) st
   case tN of
-    Nothing -> throwError (StackIsNotBigEnough n (unLoc s) (getPos s))
+    Nothing -> internalError $ "Unfolding the stack until nth index must always yield some type"
     Just t  -> pure (size, t)
   where
     unCons (ConsT t1 t2 :@ _) = t1 : unCons t2
@@ -387,14 +391,17 @@ getNthFromStack n s = do
 
 setNthInStack :: (?tcFlags :: TypecheckerFlags) => Integer -> Located Type -> Located Type -> Typechecker (Located Type)
 setNthInStack n s t@(_ :@ p) = do
-  let st = replaceNth n t (unCons s)
+  let (size, st) = replaceNth n t (unCons s)
+
+  when (n > size) do
+    throwError (StackIsNotBigEnough n (unLoc s) (getPos s))
 
   pure (foldr1 cons st)
   where
     unCons (ConsT t1 t2 :@ _) = t1 : unCons t2
     unCons t                  = [t]
 
-    replaceNth n e = snd . foldl (\ (i, l) e' -> (i + 1, (if i == n then e else e'):l)) (0, [])
+    replaceNth n e = foldl (\ (i, l) e' -> (i + 1, (if i == n then e else e'):l)) (0, [])
     cons t1 ts = ConsT t1 ts :@ p
 
 typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Bool -> Typechecker (Located Type)
