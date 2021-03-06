@@ -383,7 +383,7 @@ getNthFromStack n s = do
         requireSized (getPos t) k
         sizeof k
 
-      pure if p == n then (p + 1, s, Just t) else (p + 1, s, Nothing)
+      pure if p == n then (p + 1, s, Just t) else (p + 1, s + m, Nothing)
 
 setNthInStack :: (?tcFlags :: TypecheckerFlags) => Integer -> Located Type -> Located Type -> Typechecker (Located Type)
 setNthInStack n s t@(_ :@ p) = do
