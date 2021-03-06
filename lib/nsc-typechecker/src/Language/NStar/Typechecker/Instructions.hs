@@ -260,6 +260,7 @@ tc_sfree p = do
 
       -- > Ξ; Γ; χ; σ; n ⊢ᴵ sfree ⊣ χ; σ′; n-1
       setEpsilon (StackContT (n - 1) :@ p)
+      setStack s'
 
       pure ()
     _ -> do
