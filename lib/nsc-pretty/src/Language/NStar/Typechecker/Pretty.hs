@@ -43,3 +43,4 @@ instance PrettyText TypedInstruction where
   prettyText (NOP)      = text "nop"
   prettyText (SALLOC n) = text "salloc" <+> prettyText n
   prettyText (SFREE n)  = text "sfree" <+> prettyText n
+  prettyText (SLD n r)  = text "sld" <+> prettyText n <> comma <+> prettyText r

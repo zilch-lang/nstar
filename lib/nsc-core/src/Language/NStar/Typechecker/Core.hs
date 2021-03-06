@@ -73,5 +73,8 @@ data TypedInstruction where
          -> TypedInstruction
   SFREE :: Located Integer
         -> TypedInstruction
+  SLD :: Located Integer
+      -> Located Register
+      -> TypedInstruction
 
 deriving instance Show TypedInstruction
