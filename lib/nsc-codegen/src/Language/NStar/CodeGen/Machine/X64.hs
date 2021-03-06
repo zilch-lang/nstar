@@ -75,15 +75,15 @@ fixupAddressesX64 os = fixupAddressesX64Internal (findLabelsAddresses os) os 0
      let addr = maybe (internalError $ "Label " <> show n <> " not found during codegen.") (int32 . (subtract (i + 4))) (Map.lookup n labelsAddresses)
      tell (MInfo addr mempty mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 4)
    fixupAddressesX64Internal labelsAddresses (Symbol32 s o:os) i  = do
-     tell (MInfo (int32 0x0) mempty mempty [RelocText s originSection (o + sectionOffset) i R_x86_64_32s])
+     tell (MInfo (int32 0x0) mempty mempty [RelocText s originSection o i R_x86_64_32s])
      fixupAddressesX64Internal labelsAddresses os (i + 4)
      where
-       (originSection, sectionOffset) = fromJust $ ((".text",) <$> Map.lookup s labelsAddresses) <|> pure (".data", 0)
+        originSection = fromJust $ (".text" <$ Map.lookup s labelsAddresses) <|> pure ".data"
    fixupAddressesX64Internal labelsAddresses (Symbol64 s:os) i = do
-     tell (MInfo (int64 0x0) mempty mempty [RelocText s originSection sectionOffset i R_x86_64_64])
+     tell (MInfo (int64 0x0) mempty mempty [RelocText s originSection 0 i R_x86_64_64])
      fixupAddressesX64Internal labelsAddresses os (i + 8)
      where
-       (originSection, sectionOffset) = fromJust $ ((".text",) <$> Map.lookup s labelsAddresses) <|> pure (".data", 0)
+       originSection = fromJust $ (".text" <$ Map.lookup s labelsAddresses) <|> pure ".data"
 
 findLabelsAddresses :: [InterOpcode] -> Map Text Integer
 findLabelsAddresses = findLabelsAddressesInternal 0
