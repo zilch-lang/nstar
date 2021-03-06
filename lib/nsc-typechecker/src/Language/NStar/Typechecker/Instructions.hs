@@ -28,7 +28,7 @@ import Data.Bifunctor (first)
 import Language.NStar.Typechecker.Kinds (sizeof, unifyKinds, kindcheckType, runKindchecker, requireSized)
 import Control.Monad (forM_, when, guard)
 import Data.Functor ((<&>))
-import Debug.Trace (traceShow)
+import Debug.Trace (trace, traceShow)
 import Control.Applicative ((<|>))
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker TC.TypedInstruction
@@ -487,7 +487,7 @@ relax (t :@ p) = relaxType t :@ p
   where
     relaxType (ConsT t1 t2)      = ConsT (relax t1) (relax t2)
     relaxType (VarT n)           = FVarT n
-    relaxType (RecordT ms s c o) = RecordT (relax <$> ms) (relax s) c o
+    relaxType (RecordT ms s c o) = RecordT (relax <$> ms) (relax s) (relax c) o
     relaxType (PtrT t)           = PtrT (relax t)
     relaxType (ForAllT b t)      = ForAllT b (relax t)
       -- NOTE: This will probably need to be tweaked
