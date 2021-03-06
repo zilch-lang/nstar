@@ -124,6 +124,6 @@ compileMv (RegE src) dst   =
 compileMv src@(ImmE _) dst =
   mappend [rexW, Byte $ 0xB8 + registerNumber dst] <$> compileExprX64 64 src
 compileMv (NameE l _) dst  =
-  pure [rexW, Byte 0x8B, modRM 0b0 (registerNumber dst) 0x4, sib 0b0 0x4 0x5, Symbol32 (unLoc l) 0]
+  pure [rexW, Byte $ 0xB8 + (registerNumber dst), Symbol64 (unLoc l)]
 compileMv src dst          =
   internalError $ "Unsupported instruction 'mv " <> show src <> "," <> show dst <> "'."
