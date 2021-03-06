@@ -1,0 +1,5 @@
+section code {
+    test: forall(s: Ts, e: Tc).{ %r5: forall().{| s -> e } | s -> %r5 }
+        = sfree
+        ; ret
+}
