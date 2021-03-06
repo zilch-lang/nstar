@@ -345,4 +345,4 @@ parseSst :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseSst = located $
   lexeme (parseSymbol Sst) *>
     (SST <$> MP.choice [ located $ RegE <$> parseRegister, located $ ImmE <$> parseImmediate, parseLabel ]
-         <*> parseInteger)
+         <*> (lexeme (parseSymbol Comma) *> parseInteger))
