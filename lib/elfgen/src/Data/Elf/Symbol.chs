@@ -38,7 +38,7 @@ data ElfSymbol (n :: Size)
   deriving (Eq, Show, Generic)
 
 instance Ord (ElfSymbol n) where
-  ElfSymbol _ t1 _ _ <= ElfSymbol _ t2 _ _ = t1 <= t2
+  ElfSymbol _ _ b1 _ <= ElfSymbol _ _ b2 _ = b1 <= b2
 
 -- | Symbol type
 data SymbolType
@@ -52,7 +52,7 @@ data SymbolType
   deriving (Eq, Ord, Show, Generic)
 
 -- | Symbol binding type
-{#enum symbol_binding as SymbolBinding {SB_LOCAL as SB_Local, SB_GLOBAL as SB_Global, SB_WEAK as SB_Weak} deriving (Eq, Ord, Show, Generic)#}
+{#enum symbol_binding as SymbolBinding {SB_LOCAL as SB_Local, SB_WEAK as SB_Weak, SB_GLOBAL as SB_Global} deriving (Eq, Ord, Show, Generic)#}
 
 -- | Symbol visibility specification
 {#enum symbol_visibility as SymbolVisibility {SV_DEFAULT as SV_Default, SV_INTERNAL as SV_Internal, SV_HIDDEN as SV_Hidden, SV_PROTECTED as SV_Protected} deriving (Eq, Ord, Show, Generic)#}

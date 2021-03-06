@@ -261,9 +261,16 @@ void fix_symtab_offset_and_shinfo(elf_object const *obj, Elf64_Object *target)
 {
     int symtab_index = find_section_index_by_name(obj->sections, obj->sections_len, ".symtab");
     Elf64_Word number_of_symbols = obj->sections[symtab_index]->data.s_symtab.symbols_len;
+    elf_symbol **symbols = obj->sections[symtab_index]->data.s_symtab.symbols;
     Elf64_Shdr *symtab = target->section_headers[symtab_index];
+    Elf64_Word number_of_local_symbols = 0;
 
-    symtab->sh_info = number_of_symbols;
+    while ((*symbols++)->binding == SB_LOCAL)
+    {
+        number_of_local_symbols++;
+    }
+
+    symtab->sh_info = number_of_local_symbols;
     symtab->sh_offset = data_end;
 }
 
