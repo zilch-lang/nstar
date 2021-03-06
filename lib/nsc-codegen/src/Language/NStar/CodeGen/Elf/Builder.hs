@@ -26,7 +26,7 @@ class CompileToElf (n :: Size) where
 instance CompileToElf S64 where
   compileToElf arch prog =
     let MInfo opcodes syms (DataTable dataLabels dataSect) relocs = compile arch prog
-        relaTextSect = generateRelocationEntries dataLabels relocs
+        relaTextSect = generateRelocationEntries (dataLabels <> fmap indexFromFunction syms) relocs
     in ElfObject
         (ElfHeader (supportedArchToClass arch) (supportedArchToEncoding arch) OSABI_None 0x0 ET_Rel (supportedArchToArch arch) EV_Current ef_none)
         [ PLoad (section ".text") (pf_r .|. pf_x)
@@ -37,6 +37,9 @@ instance CompileToElf S64 where
         , SRela ".rela.text" relaTextSect
         , SSymTab ".symtab" (generateSymbolTableFrom @S64 syms <> generateDataSymbols @S64 dataLabels) ]
 
+
+indexFromFunction :: (Text, SymbolType') -> (Text, Integer)
+indexFromFunction (n, Function i) = (n, i)
 
 generateSymbolTableFrom :: forall (n :: Size). [(Text, SymbolType')] -> [ElfSymbol n]
 generateSymbolTableFrom = fmap \ (k, l) ->

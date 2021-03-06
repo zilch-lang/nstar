@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE BinaryLiterals #-}
 
 module Language.NStar.CodeGen.Machine.X64 (compileX64) where
@@ -35,6 +36,8 @@ import Language.NStar.CodeGen.Machine.X64.Expression (int32, int64, compileConst
 import Language.NStar.CodeGen.Machine.X64.Salloc (compileSalloc)
 import Language.NStar.CodeGen.Machine.X64.Sfree (compileSfree)
 import Language.NStar.CodeGen.Machine.X64.Sld (compileSld)
+import Control.Applicative
+import Data.Maybe (fromJust)
 
 compileX64 :: TypedProgram -> Compiler ()
 compileX64 prog@(TProgram (TData dataSect :@ _) _ _ _) = do
@@ -65,21 +68,22 @@ fixupAddressesX64 :: [InterOpcode] -> Compiler ()
 fixupAddressesX64 os = fixupAddressesX64Internal (findLabelsAddresses os) os 0
  where
    fixupAddressesX64Internal :: Map Text Integer -> [InterOpcode] -> Integer -> Compiler ()
-   fixupAddressesX64Internal labelsAddresses [] _             = tell (MInfo mempty (second Function <$> Map.assocs labelsAddresses) mempty mempty)
+   fixupAddressesX64Internal labelsAddresses [] n             = tell (MInfo mempty (second Function <$> Map.assocs labelsAddresses) mempty mempty)
    fixupAddressesX64Internal labelsAddresses (Byte b:os) i    = tell (MInfo [b] mempty mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 1)
    fixupAddressesX64Internal labelsAddresses (Label n:os) i   = fixupAddressesX64Internal labelsAddresses os i
    fixupAddressesX64Internal labelsAddresses (Jump n:os) i    = do
      let addr = maybe (internalError $ "Label " <> show n <> " not found during codegen.") (int32 . (subtract (i + 4))) (Map.lookup n labelsAddresses)
      tell (MInfo addr mempty mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 4)
-   -- TODO: implement this
    fixupAddressesX64Internal labelsAddresses (Symbol32 s o:os) i  = do
-     tell (MInfo (int32 0x0) mempty mempty [RelocText s ".data" o i R_x86_64_32s])
-                                               --       ^^^^^^^ FIXME: do not hardcode origin section
+     tell (MInfo (int32 0x0) mempty mempty [RelocText s originSection (o + sectionOffset) i R_x86_64_32s])
      fixupAddressesX64Internal labelsAddresses os (i + 4)
+     where
+       (originSection, sectionOffset) = fromJust $ ((".text",) <$> Map.lookup s labelsAddresses) <|> pure (".data", 0)
    fixupAddressesX64Internal labelsAddresses (Symbol64 s:os) i = do
-     tell (MInfo (int64 0x0) mempty mempty [RelocText s ".data" 0x0 i R_x86_64_64])
-                                              --        ^^^^^^^ FIXME: do not hardcode origin section
+     tell (MInfo (int64 0x0) mempty mempty [RelocText s originSection sectionOffset i R_x86_64_64])
      fixupAddressesX64Internal labelsAddresses os (i + 8)
+     where
+       (originSection, sectionOffset) = fromJust $ ((".text",) <$> Map.lookup s labelsAddresses) <|> pure (".data", 0)
 
 findLabelsAddresses :: [InterOpcode] -> Map Text Integer
 findLabelsAddresses = findLabelsAddressesInternal 0
