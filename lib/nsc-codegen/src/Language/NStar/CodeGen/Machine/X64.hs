@@ -34,6 +34,7 @@ import Language.NStar.CodeGen.Machine.X64.Sub (compileSub)
 import Language.NStar.CodeGen.Machine.X64.Expression (int32, int64, compileConstantX64)
 import Language.NStar.CodeGen.Machine.X64.Salloc (compileSalloc)
 import Language.NStar.CodeGen.Machine.X64.Sfree (compileSfree)
+import Language.NStar.CodeGen.Machine.X64.Sld (compileSld)
 
 compileX64 :: TypedProgram -> Compiler ()
 compileX64 prog@(TProgram (TData dataSect :@ _) _ _ _) = do
@@ -55,6 +56,7 @@ compileInstrInterX64 (NOP)              = compileNop
 compileInstrInterX64 (MV src dst)       = compileMv (unLoc src) (unLoc dst)
 compileInstrInterX64 (SALLOC n)         = compileSalloc (unLoc n)
 compileInstrInterX64 (SFREE n)          = compileSfree (unLoc n)
+compileInstrInterX64 (SLD n r)          = compileSld (unLoc n) (unLoc r)
 compileInstrInterX64 i                  = internalError $ "not yet supported: compileInterInstrX64 " <> show i
 
 ---------------------------------------------------------------------------------------------------------------------
