@@ -130,44 +130,46 @@ tc_call (ex :@ p1) p2 = do
      r is a register      Ξ; Γ; χ; σ; r ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → r }
          Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ′′ | σ′ → ε′ }      χ ∼ χ′
   ────────────────────────────────────────────────────────────────────────
-                 Ξ; Γ; χ; σ; r ⊢ᴵ call l<v⃗> ⊣ χ; σ; r
+                 Ξ; Γ; χ; σ; ε ⊢ᴵ call l<v⃗> ⊣ χ; σ; ε
 
        n ∈ ℕ     n ≤ p       Ξ; Γ; χ; σ; n ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → n }
       tₙ ∼ ∀().{ χ′′ | σ′ → ε′ }      χ ∼ χ′      σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
   ─────────────────────────────────────────────────────────────────────────────
-                    Ξ; Γ; σ; n ⊢ᴵ call l<v⃗> ⊣ χ; σ; n
+                    Ξ; Γ; σ; ε ⊢ᴵ call l<v⃗> ⊣ χ; σ; ε
   -}
 
-  e@(e' :@ p3) <- gets (epsilon . snd)
+  e <- gets (epsilon . snd)
   x <- gets (chi . snd)
   s <- gets (sigma . snd)
+
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → ε }
   -- > χ ∼ χ′
+  ep <- freshVar "ε" p1
   ty <- typecheckExpr ex p1 False
-  unify (ForAllT [] (RecordT x s e False :@ p1) :@ p1) ty
+  sub <- unify (ForAllT [] (RecordT x s ep False :@ p1) :@ p1) ty
 
-  case e' of
+  case apply sub ep of
     -- > r is a register
-    RegisterContT r -> do
+    RegisterContT r :@ _ -> do
       -- > Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ′′ | σ′ → ε′ }
       ty <- typecheckExpr (RegE (r :@ p2)) p2 False
       s' <- freshVar "σ" p1
       e' <- freshVar "ε" p1
-      unify (ForAllT [] (RecordT mempty s' e' False :@ p2) :@ p2) ty
+      unify (ForAllT [] (RecordT mempty s' e' True :@ p2) :@ p2) ty
 
       pure ()
     -- > n ∈ ℕ
-    StackContT n -> do
+    StackContT n :@ _ -> do
       -- > σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
       -- > n ≤ p
       -- > tₙ ∼ ∀().{ χ′′ | σ′ → ε′ }
       (_, ty) <- getNthFromStack n s
       s' <- freshVar "σ" p1
       e' <- freshVar "ε" p1
-      unify (ForAllT [] (RecordT mempty s' e' False :@ p2) :@ p2) ty
+      unify (ForAllT [] (RecordT mempty s' e' True :@ p2) :@ p2) ty
 
       pure ()
-    VarT _ -> throwError (CannotCallWithAbstractContinuation e' p2)
+    VarT _ :@ _ -> throwError (CannotCallWithAbstractContinuation (unLoc ep) p2)
     _ -> internalError $ "Unknown return continuation " <> show e
 
   pure (TC.JMP (ex :@ p1))
