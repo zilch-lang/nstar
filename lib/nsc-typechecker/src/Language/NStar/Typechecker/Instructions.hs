@@ -161,7 +161,7 @@ tc_call (ex :@ p1) p2 = do
       -- > σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
       -- > n ≤ p
       -- > tₙ ∼ ∀().{ χ′′ | σ′ → ε′ }
-      ty <- getNthFromStack n s
+      (_, ty) <- getNthFromStack n s
       s' <- freshVar "σ" p1
       e' <- freshVar "ε" p1
       unify (ForAllT [] (RecordT mempty s' e' False :@ p2) :@ p2) ty
@@ -235,11 +235,13 @@ tc_sfree p = do
   e@(e' :@ p1) <- gets (epsilon . snd)
   g <- gets (gamma . snd)
 
+  -- > σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
   t <- freshVar "τ" p
   s' <- freshVar "σ" p
 
   let ty = ConsT t s' :@ p
   sub <- unify ty s
+  -- > σ′ = t1 ∷ … ∷ tₚ ∷ s
   let ConsT t s' :@ _ = apply sub ty
 
   m <- liftEither $ first FromReport $ runKindchecker do
@@ -248,31 +250,89 @@ tc_sfree p = do
     sizeof k
 
   case e' of
+    -- > n ≥ 1
+    -- > n ≤ p
     StackContT n -> do
       when (n == 0) do
         throwError (CannotDiscardContinuationFromStackTop p)
 
+      -- > Ξ; Γ; χ; σ; n ⊢ᴵ sfree ⊣ χ; σ′; n-1
       setEpsilon (StackContT (n - 1) :@ p)
 
       pure ()
     _ -> do
+      -- > Ξ; Γ; χ; σ; ε ⊢ᴵ sfree ⊣ χ; σ′; ε
       setStack s'
 
   pure (TC.SFREE (m :@ p))
 
+tc_sld :: (?tcFlags :: TypecheckerFlags) => Located Integer -> Located Register -> Position -> Typechecker TC.TypedInstruction
+tc_sld (n :@ p1) (r :@ p2) p3 = do
+  {-
+     r is a register      n ∈ ℕ      n ≤ p       σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s      tₙ ∼ ∀().ζ
+  ────────────────────────────────────────────────────────────────────────────────────────── load continuation from stack in register
+                    Ξ; Γ; χ; σ; n ⊢ᴵ sld n, r ⊣ χ, r : tₙ; σ; r
+
+     r is a register      n ∈ ℕ      n ≤ p       σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s        Γ ⊢ᴷ tₙ : T8      r ≠ ε
+  ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+                             Ξ; Γ; χ; σ; ε ⊢ᴵ sld n, r ⊣ χ, r : tₙ; σ, ε
+  -}
+
+  e :@ p4 <- gets (epsilon . snd)
+  g <- gets (gamma . snd)
+  s <- gets (sigma . snd)
+
+  -- > n ∈ ℕ
+  -- > n ≤ p
+  -- > σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
+  (m, ty) <- getNthFromStack n s
+
+  case e of
+    StackContT n' | n == n' -> do
+      -- > tₙ ∼ ∀().ζ
+      z <- freshVar "ζ" p3
+      unify (ForAllT [] z :@ p3) ty
+
+      -- > Ξ; Γ; χ; σ; n ⊢ᴵ sld n, r ⊣ χ, r : tₙ; σ; r
+      setEpsilon (RegisterContT r :@ p2)
+      extendChi (r :@ p2) ty
+      pure ()
+    RegisterContT r' | r == r' -> throwError (TryingToOverwriteRegisterContinuation (r :@ p2) p3)
+    _ -> do
+      -- > Γ ⊢ᴷ tₙ : T8
+      -- > r ≠ ε
+      liftEither $ first FromReport $ runKindchecker do
+        requireSized p3 =<< kindcheckType g ty
+
+      -- > Ξ; Γ; χ; σ; ε ⊢ᴵ sld n, r ⊣ χ, r : tₙ; σ, ε
+      extendChi (r :@ p2) ty
+      pure ()
+
+  pure (TC.SLD (m :@ p3) (r :@ p2))
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 
-getNthFromStack :: Integer -> Located Type -> Typechecker (Located Type)
+getNthFromStack :: (?tcFlags :: TypecheckerFlags) => Integer -> Located Type -> Typechecker (Integer, Located Type)
 getNthFromStack n s = do
-  let (_, tN) = foldl (\ (p, r) t -> (p + 1, r <|> if p == n then Just t else Nothing)) (0, Nothing) (unCons s)
+  (_, size, tN) <- foldlM addSizeAndGetType (0, 0, Nothing) (unCons s)
   case tN of
     Nothing -> throwError (StackIsNotBigEnough n (unLoc s) (getPos s))
-    Just t  -> pure t
+    Just t  -> pure (size, t)
   where
     unCons (ConsT t1 t2 :@ _) = t1 : unCons t2
     unCons t                  = [t]
+
+    addSizeAndGetType (p, s, r@(Just _)) t = pure (p + 1, s, r)
+    addSizeAndGetType (p, s, r) t          = do
+      g <- gets (gamma . snd)
+      m <- liftEither $ first FromReport $ runKindchecker do
+        k <- kindcheckType g t
+        requireSized (getPos t) k
+        sizeof k
+
+      pure if p == n then (p + 1, s, Just t) else (p + 1, s, Nothing)
 
 
 typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Bool -> Typechecker (Located Type)
