@@ -6,7 +6,7 @@ module Data.Elf.Object where
 
 import Data.Elf.Types
 import Data.Elf.FileHeader (ElfHeader, C_ElfFileHeader, peekFileHeader, newFileHeader, freeFileHeader)
-import Data.Elf.SectionHeader (SectionHeader, C_ElfSectionHeader, peekSectionHeader, newSectionHeader, freeSectionHeader)
+import Data.Elf.SectionHeader (SectionHeader(SSymTab), C_ElfSectionHeader, peekSectionHeader, newSectionHeader, freeSectionHeader)
 import Data.Elf.ProgramHeader (ProgramHeader, C_ElfProgramHeader, peekProgramHeader, newProgramHeader, freeProgramHeader)
 import Data.Elf.Internal.BusSize (Size)
 import Foreign.Ptr (Ptr, castPtr)
@@ -15,6 +15,7 @@ import Foreign.Storable (Storable(..))
 import Foreign.Marshal.Array (peekArray, newArray)
 import Foreign.Marshal.Alloc (malloc, free)
 import GHC.Generics (Generic)
+import Data.List (sort)
 
 #include "object.h"
 
@@ -68,11 +69,16 @@ newObject ElfObject{..} = do
 
   fh <- newFileHeader fileHeader
   phs <- newArray =<< traverse newProgramHeader segments
-  shs <- newArray =<< traverse newSectionHeader sections
+  shs <- newArray =<< traverse newSectionHeader (sortIfNeeded <$> sections)
 
   poke ptr $ C_ElfObject fh phs shs segmentsLen sectionsLen
 
   pure ptr
+  where
+    -- | We need this function because symbols in the symbol table must be sort
+    --   according to their binding (LOCAL < GLOBAL < WEAK).
+    sortIfNeeded (SSymTab n syms) = SSymTab n (sort syms)
+    sortIfNeeded s                = s
 
 freeObject :: Ptr (C_ElfObject n) -> IO ()
 freeObject ptr = do

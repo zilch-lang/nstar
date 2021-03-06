@@ -52,7 +52,7 @@ data SymbolType
   deriving (Eq, Ord, Show, Generic)
 
 -- | Symbol binding type
-{#enum symbol_binding as SymbolBinding {SB_LOCAL as SB_Local, SB_WEAK as SB_Weak, SB_GLOBAL as SB_Global} deriving (Eq, Ord, Show, Generic)#}
+{#enum symbol_binding as SymbolBinding {SB_LOCAL as SB_Local, SB_GLOBAL as SB_Global, SB_WEAK as SB_Weak} deriving (Eq, Ord, Show, Generic)#}
 
 -- | Symbol visibility specification
 {#enum symbol_visibility as SymbolVisibility {SV_DEFAULT as SV_Default, SV_INTERNAL as SV_Internal, SV_HIDDEN as SV_Hidden, SV_PROTECTED as SV_Protected} deriving (Eq, Ord, Show, Generic)#}

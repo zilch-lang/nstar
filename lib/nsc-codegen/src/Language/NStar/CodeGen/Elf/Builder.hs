@@ -35,7 +35,7 @@ instance CompileToElf S64 where
         , SProgBits ".data" dataSect (shf_alloc .|. shf_write)
         , SNoBits ".bss" 0 (shf_alloc .|. shf_write)
         , SRela ".rela.text" relaTextSect
-        , SSymTab ".symtab" (sort $ generateSymbolTableFrom @S64 syms <> generateDataSymbols @S64 dataLabels) ]
+        , SSymTab ".symtab" (generateSymbolTableFrom @S64 syms <> generateDataSymbols @S64 dataLabels) ]
 
 
 generateSymbolTableFrom :: forall (n :: Size). [(Text, SymbolType')] -> [ElfSymbol n]
