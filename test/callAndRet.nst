@@ -1,7 +1,7 @@
 section code {
     main: forall(s: Ts, e: Tc).{| forall().{ %r0: s64 | s -> e }::s -> 0 }
         = mv g_ret<s, e>, %r5
-        ; call g<forall().{ %r0: s64 | s -> e }::s, e>
+        ; call g<forall().{ %r0: s64 | s -> e }::s, 0>
     g_ret: forall(s: Ts, e: Tc).{ %r0: s64 | forall().{ %r0: s64 | s -> e }::s -> 0 }
          = sld 0, %r5
          ; sfree
