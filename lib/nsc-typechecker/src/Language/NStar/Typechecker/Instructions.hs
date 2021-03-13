@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE MultiWayIf #-}
@@ -47,7 +48,7 @@ tc_ret p = do
       s <- gets (sigma . snd)
       e <- freshVar "ε" p
 
-      ty <- typecheckExpr (RegE (r :@ p)) p False
+      (ty, _) <- typecheckExpr (RegE (r :@ p)) p False
       -- > Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ́′ | σ → ε }
       -- > χ ∼ χ′
       unify ty (ForAllT [] (RecordT x s e False :@ p) :@ p) -- `catchError` const (throwError (NoReturnAddress p r x))
@@ -90,7 +91,7 @@ tc_mv (src :@ p1) (dst :@ p2) p3 = do
       g <- gets (gamma . snd)
 
       -- > Ξ; Γ; σ; ε ⊢ᵀ e : t
-      t <- typecheckExpr src p1 False
+      (t, _) <- typecheckExpr src p1 False
       -- > Γ ⊢ᴷ t : T8
       liftEither (first FromReport . runKindchecker $ unifyKinds (T8 :@ p1) =<< kindcheckType g t)
 
@@ -115,7 +116,7 @@ tc_jmp (e :@ p1) p2 = do
 
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → ε }
   -- > χ ∼ χ′
-  ty <- typecheckExpr e p1 False
+  (ty, _) <- typecheckExpr e p1 False
 
   x <- gets (chi . snd)
   s <- gets (sigma . snd)
@@ -145,14 +146,14 @@ tc_call (ex :@ p1) p2 = do
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → ε }
   -- > χ ∼ χ′
   ep <- freshVar "ε" p1
-  ty <- typecheckExpr ex p1 False
+  (ty, _) <- typecheckExpr ex p1 False
   sub <- unify (ForAllT [] (RecordT x s ep False :@ p1) :@ p1) ty
 
   case apply sub ep of
     -- > r is a register
     RegisterContT r :@ _ -> do
       -- > Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ′′ | σ′ → ε′ }
-      ty <- typecheckExpr (RegE (r :@ p2)) p2 False
+      (ty, _) <- typecheckExpr (RegE (r :@ p2)) p2 False
       s' <- freshVar "σ" p1
       e' <- freshVar "ε" p1
       unify (ForAllT [] (RecordT mempty s' e' True :@ p2) :@ p2) ty
@@ -342,7 +343,7 @@ tc_sst (ex :@ p1) (n :@ p2) p3 = do
         unifyKinds (T8 :@ getPos tN) =<< kindcheckType g tN
 
       -- > Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().ζ
-      ty <- typecheckExpr ex p1 False
+      (ty, _) <- typecheckExpr ex p1 False
       z <- freshVar "ζ" p1
       unify (ForAllT [] z :@ p1) ty
 
@@ -354,7 +355,7 @@ tc_sst (ex :@ p1) (n :@ p2) p3 = do
       pure ()
     _ -> do
       -- > Ξ; Γ; χ; σ; ε ⊢ᵀ e : tₙ
-      ty <- typecheckExpr ex p1 False
+      (ty, _) <- typecheckExpr ex p1 False
       unify ty tN
       -- > Ξ; Γ; χ; σ; ε ⊢ᴵ sst e, n ⊣ χ; σ; ε
       pure ()
@@ -404,27 +405,13 @@ setNthInStack n s t@(_ :@ p) = do
     replaceNth n e = foldl (\ (i, l) e' -> (i + 1, (if i == n then e else e'):l)) (0, [])
     cons t1 ts = ConsT t1 ts :@ p
 
-typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Bool -> Typechecker (Located Type)
-typecheckExpr (ImmE (I _ :@ _)) p _  = pure (UnsignedT 64 :@ p)
-typecheckExpr (ImmE (C _ :@ _)) p _  = pure (SignedT 8 :@ p)
-typecheckExpr (RegE r) p _           = do
+typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Bool -> Typechecker (Located Type, Located Expr)
+typecheckExpr e@(ImmE (I _ :@ _)) p _  = pure (UnsignedT 64 :@ p, e :@ p)
+typecheckExpr e@(ImmE (C _ :@ _)) p _  = pure (SignedT 8 :@ p, e :@ p)
+typecheckExpr e@(RegE r) p _           = do
   ctx <- gets (chi . snd)
-  maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) pure (Map.lookup r ctx)
-typecheckExpr (IndexedE (off :@ p1) (e :@ p2)) p unsafe    = do
-  ty <- typecheckExpr off p1 unsafe
-  unify ty (SignedT 64 :@ p)
-
-  ty2 :@ p3 <- typecheckExpr e p2 unsafe
-  case ty2 of
-    PtrT t  ->
-      case off of
-        ImmE _ -> pure t -- TODO: check if immediate offset is correct
-        _ | unsafe -> pure t
-          | otherwise -> throwError (UnsafeOperationOutOfUnsafeBlock p)
-    --SPtr s -> error $ "Unimplemented `typecheckExpr` for pointer offset on '" <> show ty2 <> "'."
-    -- TODO: handle stack access
-    _      -> throwError (NonPointerTypeOnOffset ty2 p3)
-typecheckExpr (NameE n@(name :@ _) ts) p _ = do
+  maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) (pure . (, e :@ p)) (Map.lookup r ctx)
+typecheckExpr e@(NameE n@(name :@ _) ts) p _ = do
   xiD <- gets (xiD . snd)
   xiC <- gets (xiC . snd)
   ty <- maybe (throwError (UnknownDataLabel name p)) pure (Env.lookup n xiD <|> Env.lookup n xiC)
@@ -448,11 +435,11 @@ typecheckExpr (NameE n@(name :@ _) ts) p _ = do
 
       let sub = Subst (Map.fromList (zip (fromVar . fst <$> binds) ts))
 
-      pure $ apply sub (relax $ ForAllT [] t :@ p)
+      pure (apply sub (relax $ ForAllT [] t :@ p), e :@ p)
     _ -> do
       when (not $ null ts) do
         throwError (TooMuchSpecialization (length ts) 0 p)
-      pure ty
+      pure (ty, e :@ p)
   where
     fromVar (VarT n :@ _) = n
     fromVar t             = internalError $ "Cannot get name of non type-variable " <> show t
