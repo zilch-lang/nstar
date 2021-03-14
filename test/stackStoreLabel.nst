@@ -1,0 +1,10 @@
+section code {
+  f: forall(s: Ts, e: Tc).{ %r5: forall().{| s -> e } | s -> %r5 }
+   = salloc forall().{ %r5: forall().{| s -> e } | s -> %r5 }
+   ; sst g<s, e>, 0
+   ; sfree
+   ; ret
+
+  g: forall(s: Ts, e: Tc).{ %r5: forall().{| s -> e } | s -> %r5 }
+   = ret
+}
