@@ -178,6 +178,10 @@ data Instruction where
   LD :: Located Expr
      -> Located Expr
      -> Instruction
+  -- | Puts a value at a specific memory address.
+  ST :: Located Expr
+     -> Located Expr
+     -> Instruction
 
   -- TODO: add more instructions
 
@@ -268,6 +272,8 @@ data Token where
   Sst :: Token
   -- | The @ld@ instruction
   Ld :: Token
+  -- | The @st@ instruction
+  St :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@

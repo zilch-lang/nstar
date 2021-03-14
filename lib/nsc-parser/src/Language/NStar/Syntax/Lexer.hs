@@ -133,6 +133,7 @@ identifierOrKeyword = located do
       "sld"     -> Sld
       "sst"     -> Sst
       "ld"      -> Ld
+      "st"      -> St
       -- Registers
       "r0"      -> R0'
       "r1"      -> R1'

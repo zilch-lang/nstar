@@ -173,6 +173,7 @@ parseInstruction = lexeme $ MP.choice
   , parseSld
   , parseSst
   , parseLd
+  , parseSt
   ]
 
 ------------------------------------------------------------------------------------------------------------
@@ -359,3 +360,9 @@ parseLd = located $
   lexeme (parseSymbol Ld) *>
     (LD <$> MP.choice [ MP.try parseBytePtrOffset, parseBasePtrOffset ]
         <*> (lexeme (parseSymbol Comma) *> (located $ RegE <$> parseRegister)))
+
+parseSt :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseSt = located $
+  lexeme (parseSymbol St) *>
+    (ST <$> MP.choice [ located (RegE <$> parseRegister), located (ImmE <$> parseImmediate) ]
+        <*> (lexeme (parseSymbol Comma) *> MP.choice [ MP.try parseBytePtrOffset, parseBasePtrOffset ]))
