@@ -475,10 +475,14 @@ typecheckExpr e@(NameE n@(name :@ _) ts) p _ = do
   ty <- maybe (throwError (UnknownDataLabel name p)) pure (Env.lookup n xiD <|> Env.lookup n xiC)
 
   case ty of
+    -- > l : ∀(v).ζ ∈ ΞC
     ForAllT binds t :@ p2 -> do
       let n = length ts
           p' = length binds
 
+      -- > Γ ⊢ᴷ s₁ : k₁, s₂ : k₂, … sₚ : kₚ
+      -- > s = { s₁ : k₁, s₂ : k₂, …, sₚ : kₚ }
+      -- > s ∼ v
       case p' `compare` n of
         LT -> throwError (TooMuchSpecialization n p' p)
         GT -> throwError (CannotInferSpecialization n p' p)
@@ -493,10 +497,14 @@ typecheckExpr e@(NameE n@(name :@ _) ts) p _ = do
 
       let sub = Subst (Map.fromList (zip (fromVar . fst <$> binds) ts))
 
+      -- > Ξ; Γ; χ; σ; ε ⊢ᵀ l<s> : ∀().ζ
       pure (apply sub (relax $ ForAllT [] t :@ p), e :@ p)
+    -- > l : τ ∈ ΞD
     _ -> do
       when (not $ null ts) do
         throwError (TooMuchSpecialization (length ts) 0 p)
+
+      -- > Ξ; Γ; χ; σ; ε ⊢ᵀ l : *τ
       pure (ty, e :@ p)
   where
     fromVar (VarT n :@ _) = n
@@ -513,13 +521,16 @@ typecheckExpr e@(ByteOffsetE off ptr) p unsafe = do
       when (not unsafe) do
         throwError (UnsafeOperationOutOfUnsafeBlock p)
 
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ o : s64
   (ty1, _) <- typecheckExpr (unLoc off) (getPos off) unsafe
-  unify ty1 (SignedT 64 :@ p) -- offset must be an integer
+  unify ty1 (SignedT 64 :@ p)
 
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p : *τ
   (ty2, _) <- typecheckExpr (unLoc ptr) (getPos ptr) unsafe
   t <- freshVar "τ" (getPos ptr)
-  unify ty2 (PtrT t :@ getPos ptr) -- pointer must be a pointer
+  unify ty2 (PtrT t :@ getPos ptr)
 
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ o(p) : *τ
   pure (ty2, e :@ p)
 typecheckExpr (BaseOffsetE ptr off) p unsafe = do
   {-
@@ -527,9 +538,11 @@ typecheckExpr (BaseOffsetE ptr off) p unsafe = do
   ─────────────────────────────────────────────────────────────── pointer base-offset
                 Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
   -}
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ o : s64
   (ty1, _) <- typecheckExpr (unLoc off) (getPos off) unsafe
   unify ty1 (SignedT 64 :@ p) -- offset must be an integer
 
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p : *τ
   (ty2, _) <- typecheckExpr (unLoc ptr) (getPos ptr) unsafe
   t <- freshVar "τ" (getPos ptr)
   sub <- unify ty2 (PtrT t :@ getPos ptr) -- pointer must be a pointer
@@ -545,6 +558,7 @@ typecheckExpr (BaseOffsetE ptr off) p unsafe = do
         sizeof =<< kindcheckType g (apply sub t)
       pure (ImmE (I (o * m) :@ p))
 
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
   pure (ty2, ByteOffsetE (off2 :@ getPos off) ptr :@ p)
 typecheckExpr e p _                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
 
@@ -570,13 +584,20 @@ typecheckConstant (ArrayC csts) p  =
                   Γ ⊢ᵀ [c₁, c₂, …, cₙ] : *τ
   -}
   if | (c1:cs) <- csts -> do
+         -- > Γ ⊢ᴷ τ : Tn
+         -- > Γ ⊢ᵀ c₁, c₂, …, cₙ : τ
          types <- forM csts \ (c :@ p) -> typecheckConstant c p
          let (t1:ts) = types
          when (not (null ts)) do
            () <$ foldlM2 (\ acc t1 t2 -> mappend acc <$> unify t1 t2) mempty (t1:ts)
+
+         -- > Γ ⊢ᵀ [c₁, c₂, …, cₙ] : *τ
          pure (PtrT t1 :@ p)
      | otherwise       -> do
+         -- > Γ ⊢ᴷ τ : Tn
          v <- freshVar "d" p
+
+         -- > Γ ⊢ᵀ [] : *τ
          pure (PtrT v :@ p)
   where
     foldlM2 :: (Monad m) => (b -> a -> a -> m b) -> b -> [a] -> m b
