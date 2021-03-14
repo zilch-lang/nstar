@@ -105,13 +105,13 @@ registerAllDataLabels = mapM_ addBinding
 --
 --   When it's an instruction, just typecheck the instruction accordingly.
 typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> TC [Located TypedStatement]
-typecheckStatement (Label name ty (is, isUnsafe) :@ p) = do
+typecheckStatement (Label name ty is :@ p) = do
   TCCtx xiC xiD <- get
   let (binders, RecordT chi sigma epsilon _ :@ _) = removeForallQuantifierIfAny ty
   let gamma = Env.fromList (first toVarName <$> binders)
 
   typed <- lift $ flip evalStateT (0, Ctx xiC xiD gamma chi sigma epsilon) $
-             forM is \ (i :@ p1) -> do
+             forM is \ (i :@ p1, isUnsafe) -> do
                typecheckInstruction i p1 isUnsafe
 
   pure [TLabel name typed :@ p]

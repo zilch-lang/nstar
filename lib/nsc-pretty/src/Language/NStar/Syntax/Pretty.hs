@@ -32,7 +32,9 @@ instance PrettyText ReservedSpace where
 
 instance PrettyText Statement where
   prettyText (Label name ty block) = prettyText name <+> align (colon <+> prettyText ty <$> equals <+> prettyBlock block)
-    where prettyBlock (is, unsafe) = (if unsafe then text "unsafe " else empty) <> mconcat (punctuate (line <> semi <> space) (fmap prettyText is))
+    where prettyBlock is = mconcat (punctuate (line <> semi <> space) (fmap pprint is))
+
+          pprint (i, unsafe) = (if unsafe then text "unsafe " else empty) <> prettyText i
 
 instance PrettyText Kind where
   prettyText T8 = text "T8"

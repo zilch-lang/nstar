@@ -69,7 +69,7 @@ data Statement where
   -- | A typed label
   Label :: Located Text                   -- ^ The label's name. It may not be empty
         -> Located Type                   -- ^ The "label's type", describing the minimal type expected when jumping to this label
-        -> ([Located Instruction], Bool)  -- ^ Instructions contained in its block as well as the unsafetiness of the block
+        -> [(Located Instruction, Bool)]  -- ^ Instructions contained in its block as well as the unsafetiness of each one
         -> Statement
 
 deriving instance Show Statement

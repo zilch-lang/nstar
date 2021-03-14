@@ -1,3 +1,4 @@
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
 
@@ -143,18 +144,12 @@ parseTypedLabel :: (?parserFlags :: ParserFlags) => Parser (Located Statement)
 parseTypedLabel = lexeme . located $
   Label <$> (lexeme parseIdentifier <* lexeme (parseSymbol Colon))
         <*> lexeme (parseForallType (parseRecordType True))
-        <*> (lexeme (parseSymbol Equal) *> parseMaybeUnsafeBlock)
-  where
-    parseMaybeUnsafeBlock = do
-      unsafe <- parseUnsafe
-      block <- parseBlock
-      pure (block, unsafe)
-    parseUnsafe = MP.option False (True <$ lexeme (parseSymbol UnSafe))
+        <*> (lexeme (parseSymbol Equal) *> parseBlock)
 
-parseBlock :: (?parserFlags :: ParserFlags) => Parser [Located Instruction]
+parseBlock :: (?parserFlags :: ParserFlags) => Parser [(Located Instruction, Bool)]
 parseBlock = MP.choice
   [ (:) <$> parseInstruction <*> (lexeme (parseSymbol Semi) *> lexeme parseBlock)
-  , pure <$> parseTerminalInstruction ]
+  , pure . (, False) <$> parseTerminalInstruction ]
 
 parseTerminalInstruction :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseTerminalInstruction = lexeme $ MP.choice
@@ -164,17 +159,22 @@ parseTerminalInstruction = lexeme $ MP.choice
   ]
 
 -- | Parses an instruction call from the N*'s instruction set.
-parseInstruction :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
-parseInstruction = lexeme $ MP.choice
-  [ parseMv
-  , parseNop
-  , parseSalloc
-  , parseSfree
-  , parseSld
-  , parseSst
-  , parseLd
-  , parseSt
-  ]
+parseInstruction :: (?parserFlags :: ParserFlags) => Parser (Located Instruction, Bool)
+parseInstruction = do
+  isUnsafe <- MP.option False (True <$ lexeme (parseSymbol UnSafe))
+
+  (, isUnsafe) <$> lexeme (
+    MP.choice
+      [ parseMv
+      , parseNop
+      , parseSalloc
+      , parseSfree
+      , parseSld
+      , parseSst
+      , parseLd
+      , parseSt
+      ]
+    )
 
 ------------------------------------------------------------------------------------------------------------
 
