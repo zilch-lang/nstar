@@ -56,6 +56,7 @@ data TypecheckError
   | CannotReturnToStackContinuation Type Position
   | CannotCallWithAbstractContinuation Type Position
   | CannotDiscardContinuationFromStackTop Position
+  | CannotStoreContinuationOntoHeap Register Position Position
 
 data TypecheckWarning
 
@@ -93,6 +94,7 @@ fromTypecheckError (StackIsNotBigEnough n t p)                  = stackIsNotBigE
 fromTypecheckError (CannotReturnToStackContinuation t p)        = cannotReturnToStackContinuation t p
 fromTypecheckError (CannotCallWithAbstractContinuation t p)     = cannotCallOnAbstractContinuation t p
 fromTypecheckError (CannotDiscardContinuationFromStackTop p)    = cannotDiscardContinuationFromStack p
+fromTypecheckError (CannotStoreContinuationOntoHeap r p1 p2)    = cannotStoreContOnHeap r p1 p2
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -318,4 +320,11 @@ cannotDiscardContinuationFromStack :: Position -> Report String
 cannotDiscardContinuationFromStack p =
   reportError "Cannot discard the continuation stored on top of the stack."
     [ (p, This $ "Trying to discard stack top but the current continuation is stored there") ]
+    []
+
+cannotStoreContOnHeap :: Register -> Position -> Position -> Report String
+cannotStoreContOnHeap r p1 p2 =
+  reportError "Cannot move the current continuation into a heap object."
+    [ (p2, This $ "When trying to type-check this instruction")
+    , (p1, Where $ "The register " <> show (prettyText r) <> " contains the current continuation") ]
     []

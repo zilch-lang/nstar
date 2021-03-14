@@ -393,6 +393,38 @@ tc_ld (ptr :@ p1) (RegE r :@ p2) unsafe p3 = do
     ByteOffsetE offset pointer :@ _ -> pure (TC.LD offset pointer r)
     _ -> internalError $ "Invalid 'ld' source " <> show ptrOffset
 
+tc_st :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Bool -> Position -> Typechecker TC.TypedInstruction
+tc_st (src :@ p1) (ptr :@ p2) unsafe p3 = do
+  {-
+      Ξ; Γ; χ; σ; ε ⊢ᵀ e : τ       e ≠ ε      Ξ; Γ; χ; σ; ε ⊢ᵀ o(p) : *τ
+  ───────────────────────────────────────────────────────────────────────────
+                 Ξ; Γ; χ; σ; ε ⊢ᵀ st e, o(p) ⊣ χ; σ; ε
+
+
+      Ξ; Γ; χ; σ; ε ⊢ᵀ e : τ       e ≠ ε      Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
+  ───────────────────────────────────────────────────────────────────────────
+                 Ξ; Γ; χ; σ; ε ⊢ᵀ st e, p[o] ⊣ χ; σ; ε
+  -}
+
+  e :@ p4 <- gets (epsilon . snd)
+
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ e : τ
+  (ty, _) <- typecheckExpr src p1 unsafe
+
+  case (src, e) of
+    -- > e ≠ ε
+    (RegE r1, RegisterContT r2) | unLoc r1 == r2 ->
+      throwError (CannotStoreContinuationOntoHeap r2 p1 p3)
+    _ -> pure ()
+
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ o(p) : *τ
+  (ty2, ptrOffset) <- typecheckExpr ptr p2 unsafe
+  unify (PtrT ty :@ p1) ty2
+
+  case ptrOffset of
+    ByteOffsetE offset pointer :@ _ -> pure (TC.ST (src :@ p1) offset pointer)
+    _ -> internalError $ "Invalid 'st' destination " <> show ptrOffset
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
@@ -528,7 +560,7 @@ typecheckExpr e@(ByteOffsetE off ptr) p unsafe = do
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p : *τ
   (ty2, _) <- typecheckExpr (unLoc ptr) (getPos ptr) unsafe
   t <- freshVar "τ" (getPos ptr)
-  unify ty2 (PtrT t :@ getPos ptr)
+  unify (PtrT t :@ getPos ptr) ty2
 
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ o(p) : *τ
   pure (ty2, e :@ p)
@@ -540,12 +572,12 @@ typecheckExpr (BaseOffsetE ptr off) p unsafe = do
   -}
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ o : s64
   (ty1, _) <- typecheckExpr (unLoc off) (getPos off) unsafe
-  unify ty1 (SignedT 64 :@ p) -- offset must be an integer
+  unify ty1 (SignedT 64 :@ p)
 
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p : *τ
   (ty2, _) <- typecheckExpr (unLoc ptr) (getPos ptr) unsafe
   t <- freshVar "τ" (getPos ptr)
-  sub <- unify ty2 (PtrT t :@ getPos ptr) -- pointer must be a pointer
+  sub <- unify (PtrT t :@ getPos ptr) ty2
 
   off2 <- case unLoc off of
     RegE r -> do

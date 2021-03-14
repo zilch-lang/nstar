@@ -93,5 +93,10 @@ data TypedInstruction where
   -- -> Located Integer   -- ^ > s
      -> Located Register  -- ^ > r
      -> TypedInstruction
+  -- | Copies the value in the register @r@ into the memory space at the address @p + o@.
+  ST :: Located Expr     -- ^ > r
+     -> Located Expr     -- ^ > o
+     -> Located Expr     -- ^ > p
+     -> TypedInstruction
 
 deriving instance Show TypedInstruction

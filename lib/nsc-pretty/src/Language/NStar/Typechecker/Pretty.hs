@@ -47,3 +47,4 @@ instance PrettyText TypedInstruction where
   prettyText (SLD n r)  = text "sld" <+> prettyText n <> comma <+> int 8 <> comma <+> prettyText r
   prettyText (SST v n)  = text "sst" <+> prettyText v <> comma <+> prettyText n
   prettyText (LD o p r) = text "ld" <+> prettyText o <> comma <+> prettyText p <> comma <+> int 8 <> comma <+> prettyText r
+  prettyText (ST r o p) = text "st" <+> prettyText r <> comma <+> prettyText o <> comma <+> prettyText p
