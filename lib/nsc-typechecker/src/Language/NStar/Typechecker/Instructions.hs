@@ -476,8 +476,11 @@ typecheckExpr e@(ByteOffsetE off ptr) p unsafe = do
   ─────────────────────────────────────────────────────────────── pointer byte-offset
                 Ξ; Γ; χ; σ; ε ⊢ᵀ o(p) : *τ
   -}
-  when (not unsafe) do
-    throwError (UnsafeOperationOutOfUnsafeBlock p)
+  case unLoc off of
+    ImmE (I 0 :@ _) -> pure ()
+    _ -> do
+      when (not unsafe) do
+        throwError (UnsafeOperationOutOfUnsafeBlock p)
 
   (ty1, _) <- typecheckExpr (unLoc off) (getPos off) unsafe
   unify ty1 (SignedT 64 :@ p) -- offset must be an integer
