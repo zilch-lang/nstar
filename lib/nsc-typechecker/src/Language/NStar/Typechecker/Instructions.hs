@@ -363,7 +363,7 @@ tc_sst (ex :@ p1) (n :@ p2) p3 = do
   pure (TC.SST (ex :@ p1) (m :@ p2))
 
 tc_ld :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Bool -> Position -> Typechecker TC.TypedInstruction
-tc_ld (ptr :@ p1) dst@(RegE r :@ p2) unsafe p3 = do
+tc_ld (ptr :@ p1) (RegE r :@ p2) unsafe p3 = do
   {-
       r is a register     r ≠ ε      Ξ; Γ; χ; σ; ε ⊢ᵀ o(p) : *τ
   ──────────────────────────────────────────────────────────────────
@@ -390,7 +390,7 @@ tc_ld (ptr :@ p1) dst@(RegE r :@ p2) unsafe p3 = do
       extendChi r (apply sub tau)
 
   case ptrOffset of
-    ByteOffsetE offset pointer :@ _ -> pure (TC.LD offset pointer dst)
+    ByteOffsetE offset pointer :@ _ -> pure (TC.LD offset pointer r)
     _ -> internalError $ "Invalid 'ld' source " <> show ptrOffset
 
 ---------------------------------------------------------------------------------------------------------------------------------------

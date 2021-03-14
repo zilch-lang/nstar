@@ -25,6 +25,7 @@ library
       Language.NStar.CodeGen.Machine.X64.Add
       Language.NStar.CodeGen.Machine.X64.Expression
       Language.NStar.CodeGen.Machine.X64.Jmp
+      Language.NStar.CodeGen.Machine.X64.Ld
       Language.NStar.CodeGen.Machine.X64.Mv
       Language.NStar.CodeGen.Machine.X64.Nop
       Language.NStar.CodeGen.Machine.X64.Salloc

@@ -91,7 +91,7 @@ data TypedInstruction where
   LD :: Located Expr      -- ^ > o
      -> Located Expr      -- ^ > p
   -- -> Located Integer   -- ^ > s
-     -> Located Expr      -- ^ > r
+     -> Located Register  -- ^ > r
      -> TypedInstruction
 
 deriving instance Show TypedInstruction
