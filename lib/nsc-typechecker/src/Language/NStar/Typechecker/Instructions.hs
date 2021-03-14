@@ -406,12 +406,39 @@ setNthInStack n s t@(_ :@ p) = do
     cons t1 ts = ConsT t1 ts :@ p
 
 typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Bool -> Typechecker (Located Type, Located Expr)
-typecheckExpr e@(ImmE (I _ :@ _)) p _  = pure (UnsignedT 64 :@ p, e :@ p)
-typecheckExpr e@(ImmE (C _ :@ _)) p _  = pure (SignedT 8 :@ p, e :@ p)
+typecheckExpr e@(ImmE (I _ :@ _)) p _  =
+  {-
+      i is an integer immediate
+  ────────────────────────────────
+      Ξ; Γ; χ; σ; ε ⊢ᵀ i : u64
+  -}
+  pure (UnsignedT 64 :@ p, e :@ p)
+typecheckExpr e@(ImmE (C _ :@ _)) p _  =
+  {-
+     c is a character immediate
+  ─────────────────────────────────
+      Ξ; Γ; χ; σ; ε ⊢ᵀ c : s8
+  -}
+  pure (SignedT 8 :@ p, e :@ p)
 typecheckExpr e@(RegE r) p _           = do
+  {-
+
+  ────────────────────────────────────
+     Ξ; Γ; χ, r : τ; σ; ε ⊢ᵀ r : τ
+  -}
   ctx <- gets (chi . snd)
   maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) (pure . (, e :@ p)) (Map.lookup r ctx)
 typecheckExpr e@(NameE n@(name :@ _) ts) p _ = do
+  {-
+           l : τ ∈ ΞD
+  ────────────────────────────── data label
+     Ξ; Γ; χ; σ; ε ⊢ᵀ l : *τ
+
+
+     l : ∀(v).ζ ∈ ΞC      Γ ⊢ᴷ s₁ : k₁, s₂ : k₂, … sₚ : kₚ     s = { s₁ : k₁, s₂ : k₂, …, sₚ : kₚ }     s ∼ v
+  ─────────────────────────────────────────────────────────────────────────────────────────────────────────────── code label
+                                     Ξ; Γ; χ; σ; ε ⊢ᵀ l<s> : ∀().ζ
+  -}
   xiD <- gets (xiD . snd)
   xiC <- gets (xiC . snd)
   ty <- maybe (throwError (UnknownDataLabel name p)) pure (Env.lookup n xiD <|> Env.lookup n xiC)
@@ -444,6 +471,11 @@ typecheckExpr e@(NameE n@(name :@ _) ts) p _ = do
     fromVar (VarT n :@ _) = n
     fromVar t             = internalError $ "Cannot get name of non type-variable " <> show t
 typecheckExpr e@(ByteOffsetE off ptr) p unsafe = do
+  {-
+      Ξ; Γ; χ; σ; ε ⊢ᵀ p : *τ       Ξ; Γ; χ; σ; ε ⊢ᵀ o : s64
+  ─────────────────────────────────────────────────────────────── pointer byte-offset
+                Ξ; Γ; χ; σ; ε ⊢ᵀ o(p) : *τ
+  -}
   when (not unsafe) do
     throwError (UnsafeOperationOutOfUnsafeBlock p)
 
@@ -456,6 +488,11 @@ typecheckExpr e@(ByteOffsetE off ptr) p unsafe = do
 
   pure (ty2, e :@ p)
 typecheckExpr (BaseOffsetE ptr off) p unsafe = do
+  {-
+      Ξ; Γ; χ; σ; ε ⊢ᵀ p : *τ       Ξ; Γ; χ; σ; ε ⊢ᵀ o : s64
+  ─────────────────────────────────────────────────────────────── pointer base-offset
+                Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
+  -}
   (ty1, _) <- typecheckExpr (unLoc off) (getPos off) unsafe
   unify ty1 (SignedT 64 :@ p) -- offset must be an integer
 
@@ -478,9 +515,26 @@ typecheckExpr (BaseOffsetE ptr off) p unsafe = do
 typecheckExpr e p _                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
 
 typecheckConstant :: (?tcFlags :: TypecheckerFlags) => Constant -> Position -> Typechecker (Located Type)
-typecheckConstant (IntegerC _) p   = pure (UnsignedT 64 :@ p)
-typecheckConstant (CharacterC _) p = pure (SignedT 8 :@ p)
+typecheckConstant (IntegerC _) p   =
+  {-
+      i is an integer immediate
+  ────────────────────────────────
+      Ξ; Γ; χ; σ; ε ⊢ᵀ i : u64
+  -}
+  pure (UnsignedT 64 :@ p)
+typecheckConstant (CharacterC _) p =
+  {-
+     c is a character immediate
+  ─────────────────────────────────
+      Ξ; Γ; χ; σ; ε ⊢ᵀ c : s8
+  -}
+  pure (SignedT 8 :@ p)
 typecheckConstant (ArrayC csts) p  =
+  {-
+      n ∈ ℕ       Γ ⊢ᴷ τ : Tn       Γ ⊢ᵀ c₁, c₂, …, cₙ : τ
+  ────────────────────────────────────────────────────────────
+                  Γ ⊢ᵀ [c₁, c₂, …, cₙ] : *τ
+  -}
   if | (c1:cs) <- csts -> do
          types <- forM csts \ (c :@ p) -> typecheckConstant c p
          let (t1:ts) = types
