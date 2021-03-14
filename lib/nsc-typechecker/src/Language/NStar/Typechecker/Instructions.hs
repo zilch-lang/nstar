@@ -362,6 +362,37 @@ tc_sst (ex :@ p1) (n :@ p2) p3 = do
 
   pure (TC.SST (ex :@ p1) (m :@ p2))
 
+tc_ld :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Bool -> Position -> Typechecker TC.TypedInstruction
+tc_ld (ptr :@ p1) dst@(RegE r :@ p2) unsafe p3 = do
+  {-
+      r is a register     r ≠ ε      Ξ; Γ; χ; σ; ε ⊢ᵀ o(p) : *τ
+  ──────────────────────────────────────────────────────────────────
+           Ξ; Γ; χ; σ; ε ⊢ᴵ ld o(p), r ⊣ χ, r : τ; σ; ε
+
+
+      r is a register     r ≠ ε      Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
+  ──────────────────────────────────────────────────────────────────
+           Ξ; Γ; χ; σ; ε ⊢ᴵ ld p[o], r ⊣ χ, r : τ; σ; ε
+  -}
+
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ o(p) : *τ
+  (t, ptrOffset) <- typecheckExpr ptr p1 unsafe
+  tau <- freshVar "τ" p1
+  sub <- unify (PtrT tau :@ p1) t
+
+  -- > r is a register
+  -- > r ≠ ε
+  e :@ p4 <- gets (epsilon . snd)
+  case e of
+    RegisterContT r2 | unLoc r == r2 -> throwError (TryingToOverwriteRegisterContinuation r p3)
+    _ -> do
+      -- > Ξ; Γ; χ; σ; ε ⊢ᴵ ld o(p), r ⊣ χ, r : τ; σ; ε
+      extendChi r (apply sub tau)
+
+  case ptrOffset of
+    ByteOffsetE offset pointer :@ _ -> pure (TC.LD offset pointer dst)
+    _ -> internalError $ "Invalid 'ld' source " <> show ptrOffset
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

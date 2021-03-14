@@ -136,6 +136,7 @@ typecheckInstruction i p unsafe = do
     SC.SFREE      -> tc_sfree p
     SC.SLD n r    -> tc_sld n r p
     SC.SST v n    -> tc_sst v n p
+    SC.LD ptr r   -> tc_ld ptr r unsafe p
     _   -> error $ "Unrecognized instruction '" <> show i <> "'."
 
   pure (TInstr (ti :@ p) chi sigma epsilon)

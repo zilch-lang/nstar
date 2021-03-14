@@ -63,21 +63,35 @@ deriving instance Show TypedStatement
 
 -- | The core of the N* abstract machine.
 data TypedInstruction where
-  JMP :: Located Expr
+  -- | Transfers the control flow to the code address pointed by @l@.
+  JMP :: Located Expr      -- ^ > l
       -> TypedInstruction
+  -- | Does absolutely nothing.
   NOP :: TypedInstruction
-  MV :: Located Expr
-     -> Located Register
+  -- | Moves a value @s@ (either a literal value or a value taken from a register) into the destination register @d@
+  MV :: Located Expr       -- ^ > s
+     -> Located Register   -- ^ > d
      -> TypedInstruction
-  SALLOC :: Located Integer
+  -- | Allocates a space of @n@ bytes on top of the stack.
+  SALLOC :: Located Integer   -- ^ > n
          -> TypedInstruction
-  SFREE :: Located Integer
+  -- | Pops a space of @n@ bytes off the top of the stack.
+  SFREE :: Located Integer    -- ^ > n
         -> TypedInstruction
-  SLD :: Located Integer
-      -> Located Register
+  -- | Copies @s@ (@8@) bytes taken @n@ bytes from the top of the stack into the register @r@.
+  SLD :: Located Integer   -- ^ > n
+  --  -> Located Integer   -- ^ > s
+      -> Located Register  -- ^ > r
       -> TypedInstruction
-  SST :: Located Expr
-      -> Located Integer
+  -- | Copies the value in the register @r@ to @n@ bytes from the top of the stack.
+  SST :: Located Expr     -- ^ > r
+      -> Located Integer  -- ^ > n
       -> TypedInstruction
+  -- | Copies @s@ (@8@) bytes at the address @p + o@ into the register @r@.
+  LD :: Located Expr      -- ^ > o
+     -> Located Expr      -- ^ > p
+  -- -> Located Integer   -- ^ > s
+     -> Located Expr      -- ^ > r
+     -> TypedInstruction
 
 deriving instance Show TypedInstruction
