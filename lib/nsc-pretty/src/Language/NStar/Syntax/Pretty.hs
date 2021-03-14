@@ -93,8 +93,9 @@ instance PrettyText Constant where
 instance PrettyText Expr where
   prettyText (ImmE i) = prettyText i
   prettyText (NameE n tys) = text (Text.unpack (unLoc n)) <> encloseSep langle rangle comma (fmap prettyText tys)
-  prettyText (IndexedE idx e) = prettyText idx <> parens (prettyText e)
   prettyText (RegE r) = prettyText r
+  prettyText (BaseOffsetE s o) = prettyText s <> brackets (prettyText o)
+  prettyText (ByteOffsetE o s) = prettyText o <> parens (prettyText s)
 
 instance PrettyText Immediate where
   prettyText (I i) = integer i

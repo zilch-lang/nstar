@@ -443,6 +443,38 @@ typecheckExpr e@(NameE n@(name :@ _) ts) p _ = do
   where
     fromVar (VarT n :@ _) = n
     fromVar t             = internalError $ "Cannot get name of non type-variable " <> show t
+typecheckExpr e@(ByteOffsetE off ptr) p unsafe = do
+  when (not unsafe) do
+    throwError (UnsafeOperationOutOfUnsafeBlock p)
+
+  (ty1, _) <- typecheckExpr (unLoc off) (getPos off) unsafe
+  unify ty1 (SignedT 64 :@ p) -- offset must be an integer
+
+  (ty2, _) <- typecheckExpr (unLoc ptr) (getPos ptr) unsafe
+  t <- freshVar "τ" (getPos ptr)
+  unify ty2 (PtrT t :@ getPos ptr) -- pointer must be a pointer
+
+  pure (ty2, e :@ p)
+typecheckExpr (BaseOffsetE ptr off) p unsafe = do
+  (ty1, _) <- typecheckExpr (unLoc off) (getPos off) unsafe
+  unify ty1 (SignedT 64 :@ p) -- offset must be an integer
+
+  (ty2, _) <- typecheckExpr (unLoc ptr) (getPos ptr) unsafe
+  t <- freshVar "τ" (getPos ptr)
+  sub <- unify ty2 (PtrT t :@ getPos ptr) -- pointer must be a pointer
+
+  off2 <- case unLoc off of
+    RegE r -> do
+      when (not unsafe) do
+        throwError (UnsafeOperationOutOfUnsafeBlock p)
+      pure (RegE r)
+    ImmE (I o :@ _) -> do
+      g <- gets (gamma . snd)
+      m <- liftEither $ first FromReport $ runKindchecker do
+        sizeof =<< kindcheckType g (apply sub t)
+      pure (ImmE (I (o * m) :@ p))
+
+  pure (ty2, ByteOffsetE (off2 :@ getPos off) ptr :@ p)
 typecheckExpr e p _                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
 
 typecheckConstant :: (?tcFlags :: TypecheckerFlags) => Constant -> Position -> Typechecker (Located Type)

@@ -200,10 +200,14 @@ data Expr where
   NameE :: Located Text
         -> [Located Type]
         -> Expr
-  -- | An indexed expression (@⟨idx⟩[⟨expr⟩]@)
-  IndexedE :: Located Expr           -- ^ \- @⟨idx⟩@
-           -> Located Expr           -- ^ \- @⟨expr⟩@
-           -> Expr
+  -- | A byte-offset expression (@〈offset〉(〈expr〉)@)
+  ByteOffsetE :: Located Expr        -- ^ \- @⟨offset⟩@
+              -> Located Expr        -- ^ \- @⟨expr⟩@
+              -> Expr
+  -- | A base-offset expression (@〈expr〉[〈offset〉]@)
+  BaseOffsetE :: Located Expr        -- ^ \- @⟨expr⟩@
+              -> Located Expr        -- ^ \- @⟨offset⟩@
+              -> Expr
   -- | A register (one of the available 'Register's)
   RegE :: Located Register
        -> Expr

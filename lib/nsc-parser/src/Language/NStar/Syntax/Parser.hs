@@ -255,7 +255,6 @@ parseExpr :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
 parseExpr = MP.choice
   [ located $ ImmE <$> parseImmediate
   , parseLabel
-  , parseIndexedExpr
   ]
 
 -- | Parses an immediate literal value.
@@ -278,12 +277,17 @@ parseSpecialization = MP.choice
   , parseType
   ]
 
--- | Parses an indexed addressable expression.
-parseIndexedExpr :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
-parseIndexedExpr = located $ MP.label "an indexed expression" $ do
-  source <- getPos <$> located (pure ())
-  IndexedE <$> (MP.option (ImmE (I 0 :@ source) :@ source) parseExpr)
-           <*> betweenParens parseExpr
+-- | Parses a base-pointer offset.
+parseBasePtrOffset :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
+parseBasePtrOffset = located $
+  BaseOffsetE <$> MP.choice [ located $ RegE <$> parseRegister, parseLabel ]
+              <*> betweenBrackets (MP.choice [ located $ RegE <$> parseRegister, located $ ImmE <$> located (I <$> parseSignedInteger) ])
+
+-- | Parses a byte-pointer offset.
+parseBytePtrOffset :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
+parseBytePtrOffset = located $
+  ByteOffsetE <$> MP.choice [ located $ RegE <$> parseRegister, located $ ImmE <$> located (I <$> parseSignedInteger) ]
+              <*> betweenParens (MP.choice [ located $ RegE <$> parseRegister, parseLabel ])
 
 parseSignedInteger :: (?parserFlags :: ParserFlags) => Parser Integer
 parseSignedInteger = MP.label "an integer" $ (*) <$> sign <*> (unLoc <$> parseInteger)
