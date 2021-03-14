@@ -1,7 +1,7 @@
 section code {
-f: forall (a: Ta) (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
-   jmp g<a, s>
+    f: forall (a: Ta, s: Ts, e: Tc).{ %r5: forall().{| s -> e } | s -> %r5 }
+     = jmp g<a, s, e>
 
-g: forall (b: Ta) (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
-   ret
+    g: forall (b: Ta, s: Ts, e: Tc).{ %r5: forall().{| s -> e } | s -> %r5 }
+     = ret
 }

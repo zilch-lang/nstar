@@ -1,4 +1,4 @@
 section code {
-f: {}
-   jmp a_label_that_doesnt_exist
+    f: forall(s: Ts, e: Tc). {| s -> e}
+     = jmp a_label_that_doesnt_exist
 }

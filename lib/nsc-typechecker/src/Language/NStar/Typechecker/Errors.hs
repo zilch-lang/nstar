@@ -1,5 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TypeFamilies #-}
+
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 {-|
   Module: Language.NStar.Typechecker.Errors
@@ -11,9 +14,9 @@
 
 module Language.NStar.Typechecker.Errors where
 
-import Text.Diagnose (Report, Marker(..), hint, reportError, reportWarning, prettyText)
-import Language.NStar.Typechecker.Core (Type(Record), Register(SP), Kind)
-import Data.Located (Position(..), Located(..))
+import Text.Diagnose (Report, Marker(..), hint, reportError, reportWarning, PrettyText(..))
+import Language.NStar.Typechecker.Core (Type(RecordT, VarT), Kind)
+import Data.Located (getPos, Position(..), Located(..))
 import Language.NStar.Typechecker.Pretty()
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -22,10 +25,12 @@ import qualified Data.Text as Text
 import Data.List (intercalate)
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Language.NStar.Syntax.Core (Register)
+import Text.PrettyPrint.ANSI.Leijen ((<+>), encloseSep, lbrace, rbrace, comma, colon)
 
 data TypecheckError
   = Uncoercible (Located Type) (Located Type)
-  | NoReturnAddress Position (Map (Located Register) (Located Type))
+  | NoReturnAddress Position Register (Map (Located Register) (Located Type))
   | InfiniteType (Located Type) (Located Text)
   | DomainsDoNotSubtype (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
   | RecordUnify TypecheckError (Located (Map (Located Register) (Located Type))) (Located (Map (Located Register) (Located Type)))
@@ -45,6 +50,13 @@ data TypecheckError
   | CannotPopCodeAddress Type Position
   | CannotMovToDestination Type Type Position Position
   | CannotPopIntoDestination Type Type Type Position Position
+  | AbstractContinuationOnReturn Position (Located Type)
+  | TryingToOverwriteRegisterContinuation (Located Register) Position
+  | StackIsNotBigEnough Integer Type Position
+  | CannotReturnToStackContinuation Type Position
+  | CannotCallWithAbstractContinuation Type Position
+  | CannotDiscardContinuationFromStackTop Position
+  | CannotStoreContinuationOntoHeap Register Position Position
 
 data TypecheckWarning
 
@@ -55,7 +67,7 @@ fromTypecheckWarning _ = reportWarning "" [] []
 fromTypecheckError :: TypecheckError -> Report String
 fromTypecheckError (Uncoercible (t1 :@ p1) (t2 :@ p2))          = uncoercibleTypes (t1, p1) (t2, p2)
 fromTypecheckError (InfiniteType (t :@ p1) (v :@ p2))           = infiniteType (t, p1) (v, p2)
-fromTypecheckError (NoReturnAddress p ctx)                      = retWithoutReturnAddress p ctx
+fromTypecheckError (NoReturnAddress p r ctx)                    = retWithoutReturnAddress p r ctx
 fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2))  = recordDomainsDoNotSubset (m1, p1) (m2, p2)
 fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))      = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
                                                                                     --      ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -76,6 +88,13 @@ fromTypecheckError (NonStackPointerRegister ty p p')            = spIsNotAStackR
 fromTypecheckError (CannotPopCodeAddress t p)                   = cannotPopCodespaceAddress t p
 fromTypecheckError (CannotMovToDestination s d p1 p2)           = cannotMovToDestination s d p1 p2
 fromTypecheckError (CannotPopIntoDestination t1 t2 t3 p1 p2)    = cannotPopIntoDestination t1 t2 t3 p1 p2
+fromTypecheckError (AbstractContinuationOnReturn p1 ty)         = cannotReturnToUnknownContinuation p1 ty
+fromTypecheckError (TryingToOverwriteRegisterContinuation r p)  = cannotOverwriteRegisterContinuation r p
+fromTypecheckError (StackIsNotBigEnough n t p)                  = stackIsNotBigEnough n t p
+fromTypecheckError (CannotReturnToStackContinuation t p)        = cannotReturnToStackContinuation t p
+fromTypecheckError (CannotCallWithAbstractContinuation t p)     = cannotCallOnAbstractContinuation t p
+fromTypecheckError (CannotDiscardContinuationFromStackTop p)    = cannotDiscardContinuationFromStack p
+fromTypecheckError (CannotStoreContinuationOntoHeap r p1 p2)    = cannotStoreContOnHeap r p1 p2
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -85,15 +104,11 @@ uncoercibleTypes (t1, p1) (t2, p2) =
     [ hint "Visit <https://github.com/nihil-lang/nsc/blob/develop/docs/type-coercion.md> to learn about type coercion in N*." ]
 
 -- | Happens when the stack infered on a @ret@ call does not have a pointer to some code on the top.
-retWithoutReturnAddress :: Position -> Map (Located Register) (Located Type) -> Report String
-retWithoutReturnAddress p ctx =
-  reportError ("The `ret` instruction expects a return address to be on top of the stack, but did not find any.")
-    [ (p, Where if | Just stack <- rsp -> "The stack infered at this point is: `" <> show (prettyText stack) <> "`"
-                   | otherwise         -> "No stack found at this point") ]
+retWithoutReturnAddress :: Position -> Register -> Map (Located Register) (Located Type) -> Report String
+retWithoutReturnAddress p r ctx =
+  reportError ("The `ret` instruction expects a return address to be stored in the continuation register, but did not find one.")
+    [ (p, Where $ "Found some data of type '" <> show (prettyText $ ctx Map.! (r :@ p)) <> "'") ]
     []
- where
-   rsp = Map.lookup (SP :@ dummyPos) ctx
-   dummyPos = Position (1, 1) (1, 1) "dummy"
 
 -- | Happens when we try to create a substitution like @a ~ [a]@, where a given free type variable would be infinitely replaced,
 --   thus leading to an infinite type.
@@ -107,16 +122,25 @@ infiniteType (ty, p1) (var, p2) =
 -- | Happens when the union of the keys of the first map and of the second map is not equal to the keys of the first map.
 recordDomainsDoNotSubset :: (m ~ Map (Located Register) (Located Type)) => (m, Position) -> (m, Position) -> Report String
 recordDomainsDoNotSubset (m1, p1) (m2, p2) =
-  reportError ("All keys in '" <> show (prettyText $ Record m1 False) <> "' are not present in '" <> show (prettyText $ Record m2 False) <> "'")
+  reportError ("All keys in '" <> show (prettyText m1) <> "' are not present in '" <> show (prettyText m2) <> "'")
     [ (p1, This "") ]
     []
+
+-- needed for the above error
+instance PrettyText (Map (Located Register) (Located Type)) where
+  prettyText = encloseSep lbrace rbrace comma . fmap prettyBind . Map.toList
+    where prettyBind (r, t) = prettyText r <+> colon <+> prettyText t
 
 -- | Happens when two records fields cannot be coerced to each other.
 recordValuesDoNotUnify :: (m ~ Map (Located Register) (Located Type)) => (m, Position) -> (m, Position) -> Report String
 recordValuesDoNotUnify (m1, p1) (m2, p2) =
-  reportError ("Record types cannot be coerced because at least one of their common fields cannot be coerced to each other.")
-    [ (p1, Where ("'" <> show (prettyText (Record m1 False)) <> "' cannot be coerced to '" <> show (prettyText (Record m2 False)) <> "'")) ]
-    [ hint "Visit <https://github.com/nihil-lang/nsc/blob/develop/docs/type-coercion.md> to learn about type coercion in N*." ]
+  let s1 = VarT ("_s1" :@ p1) :@ p1
+      s2 = VarT ("_s2" :@ p2) :@ p2
+      e1 = VarT ("_e1" :@ p1) :@ p1
+      e2 = VarT ("_e2" :@ p2) :@ p2
+  in reportError ("Record types cannot be coerced because at least one of their common fields cannot be coerced to each other.")
+       [ (p1, Where ("'" <> show (prettyText (RecordT m1 s1 e1 False)) <> "' cannot be coerced to '" <> show (prettyText (RecordT m2 s2 e2 False)) <> "'")) ]
+       [ hint "Visit <https://github.com/nihil-lang/nsc/blob/develop/docs/type-coercion.md> to learn about type coercion in N*." ]
 
 -- | Happens when a @ret@ instruction is not in a function. This also means that the instruction has no enclosing scope.
 returnAtTopLevel :: Position -> Report String
@@ -250,4 +274,57 @@ cannotPopIntoDestination expected sHead sTail p1 p2 =
     [ (p2, This $ "Trying to pop a value of type " <> show (prettyText sHead))
     , (p2, Where $ "The stack is infered to '" <> show (prettyText sHead) <> "::" <> show (prettyText sTail) <> "'" )
     , (p1, Where $ "The destination operand was found to accept values of type " <> show (prettyText expected)) ]
+    []
+
+cannotUnifyKinds :: Kind -> Kind -> Position -> Position -> Report String
+cannotUnifyKinds k1 k2 p1 p2 =
+  reportError ("Cannot unify kinds " <> show (prettyText k1) <> " and " <> show (prettyText k2))
+    [ (p1, Where $ show (prettyText k1) <> " is infered from here")
+    , (p2, Where $ show (prettyText k2) <> " is infered from here") ]
+    []
+
+cannotReturnToUnknownContinuation :: Position -> Located Type -> Report String
+cannotReturnToUnknownContinuation p1 cont =
+  reportError "Trying to jump back to a continuation hidden behind a type variable."
+    [ (p1, This $ "Trying to return from here")
+    , (getPos cont, Where $ "The return continuation was infered to " <> show (prettyText cont)) ]
+    [ hint $ "Because the continuation is abstract, I could not define where you wanted me to return to."
+          <> "Therefore I took the liberty to inform you that I'm a bit confused." ]
+
+cannotOverwriteRegisterContinuation :: Located Register -> Position -> Report String
+cannotOverwriteRegisterContinuation (r :@ p1) p2 =
+  reportError "Cannot overwrite the register containing the current continuation."
+    [ (p1, Where $ "This register holds the current continuation, therefore cannot be the destination")
+    , (p2, This $ "While trying to type-check this instruction") ]
+    []
+
+stackIsNotBigEnough :: Integer -> Type -> Position -> Report String
+stackIsNotBigEnough n t p =
+  reportError ("Stack infered must be at least of length " <> show n)
+    [ (p, This $ "Stack is infered from here to " <> show (prettyText t)) ]
+    []
+
+cannotReturnToStackContinuation :: Type -> Position -> Report String
+cannotReturnToStackContinuation t p =
+  reportError "Cannot return to a continuation stored on the stack."
+    [ (p, This $ "The current continuation is " <> show (prettyText t) <> ", which is not a register") ]
+    []
+
+cannotCallOnAbstractContinuation :: Type -> Position -> Report String
+cannotCallOnAbstractContinuation t p =
+  reportError "Cannot call a function when the current continuation is abstract."
+    [ (p, Where $ "The return continuation was infered to '" <> show (prettyText t)) ]
+    []
+
+cannotDiscardContinuationFromStack :: Position -> Report String
+cannotDiscardContinuationFromStack p =
+  reportError "Cannot discard the continuation stored on top of the stack."
+    [ (p, This $ "Trying to discard stack top but the current continuation is stored there") ]
+    []
+
+cannotStoreContOnHeap :: Register -> Position -> Position -> Report String
+cannotStoreContOnHeap r p1 p2 =
+  reportError "Cannot move the current continuation into a heap object."
+    [ (p2, This $ "When trying to type-check this instruction")
+    , (p1, Where $ "The register " <> show (prettyText r) <> " contains the current continuation") ]
     []

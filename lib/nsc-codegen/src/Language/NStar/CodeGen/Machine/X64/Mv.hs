@@ -1,21 +1,21 @@
-module Language.NStar.CodeGen.Machine.X64.Mov
+module Language.NStar.CodeGen.Machine.X64.Mv
 ( -- * Instruction encoding
   -- $encoding
 
   -- * Compiling
-compileMov
+compileMv
 ) where
 
-import Language.NStar.Syntax.Core (Expr(..), Type, Immediate(..))
+import Language.NStar.Syntax.Core (Expr(..), Register)
 import Language.NStar.CodeGen.Compiler (Compiler)
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
-import Data.Located (Located((:@)), unLoc)
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
+import Data.Located (unLoc)
 import Internal.Error (internalError)
 import Language.NStar.CodeGen.Machine.Internal.X64.REX (rexW)
-import Language.NStar.CodeGen.Machine.Internal.X64.SIB (sib)
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
-import Language.NStar.CodeGen.Machine.X64.Expression (int8, compileExprX64)
+import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64)
 import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
+import Language.NStar.CodeGen.Machine.Internal.X64.SIB (sib)
 
 {- $encoding
 
@@ -118,24 +118,12 @@ import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNum
 
 -}
 
-compileMov :: Expr -> Expr -> [Type] -> Compiler [InterOpcode]
-compileMov (Reg src) (Reg dst) [_, _]                                         =
-  pure [rexW, Byte 0x8B, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
-compileMov src@(Imm _) (Reg dst) [_, _]                                       =
-  mappend [rexW, Byte $ 0xB8 + registerNumber (unLoc dst)] <$> compileExprX64 64 src
-compileMov (Name n) (Reg dst) [_, _]                                          =
-  pure [rexW, Byte $ 0xB8 + registerNumber (unLoc dst), Symbol64 (unLoc n)]
-compileMov (Indexed (Reg r1 :@ _) (Reg r2 :@ _)) (Reg dst) [_, _]             =
-  pure [rexW, Byte 0x8B, modRM 0x0 (registerNumber (unLoc dst)) 0x4, sib 0x0 (registerNumber (unLoc r1)) (registerNumber (unLoc r2))]
-compileMov (Reg src) (Indexed (Reg r1 :@ _) (Reg r2 :@ _)) [_, _]             =
-  pure [rexW, Byte 0x89, modRM 0x0 (registerNumber (unLoc src)) 0x4, sib 0x0 (registerNumber (unLoc r1)) (registerNumber (unLoc r2))]
-compileMov (Indexed (Reg r1 :@ _) (Name n :@ _)) (Reg dst) [_, _]             =
-  pure [rexW, Byte 0x8B, modRM 0x2 (registerNumber (unLoc dst)) (registerNumber (unLoc r1)), Symbol32 (unLoc n) 0]
-compileMov (Indexed (Imm (I disp :@ _) :@ _) (Name l :@ _)) (Reg dst) [_, _]  =
-  pure [rexW, Byte 0x8B, modRM 0x0 (registerNumber (unLoc dst)) 0x4, sib 0x0 0x4 0x5, Symbol32 (unLoc l) disp]
-compileMov (Indexed (Imm (I disp :@ _) :@ _) (Reg src :@ _)) (Reg dst) [_, _] =
-  pure $ [rexW, Byte 0x8B, modRM 0x1 (registerNumber (unLoc dst)) (registerNumber (unLoc src))] <> (Byte <$> int8 disp)
-compileMov (Indexed (Reg r1 :@ _) (Name n :@ _)) (Reg dst) [_, _]             =
-  pure [rexW, Byte 0x8B, modRM 0x2 (registerNumber (unLoc dst)) (registerNumber (unLoc r1)), Symbol32 (unLoc n) 0]
-compileMov src dst ts                                                         =
-  internalError $ "Unsupported instruction 'mov " <> show src <> "," <> show dst <> " " <> show ts <> "'."
+compileMv :: Expr -> Register -> Compiler [InterOpcode]
+compileMv (RegE src) dst   =
+  pure [rexW, Byte 0x8B, modRM 0x3 (registerNumber dst) (registerNumber (unLoc src))]
+compileMv src@(ImmE _) dst =
+  mappend [rexW, Byte $ 0xB8 + registerNumber dst] <$> compileExprX64 64 src
+compileMv (NameE l _) dst  =
+  pure [rexW, Byte $ 0xB8 + (registerNumber dst), Symbol64 (unLoc l)]
+compileMv src dst          =
+  internalError $ "Unsupported instruction 'mv " <> show src <> "," <> show dst <> "'."

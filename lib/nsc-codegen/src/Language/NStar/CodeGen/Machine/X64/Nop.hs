@@ -6,10 +6,8 @@ module Language.NStar.CodeGen.Machine.X64.Nop
 compileNop
 ) where
 
-import Language.NStar.Syntax.Core (Type)
 import Language.NStar.CodeGen.Compiler (Compiler)
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
-import Internal.Error (internalError)
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
 
 {- $encoding
 
@@ -35,6 +33,5 @@ import Internal.Error (internalError)
 
 -}
 
-compileNop :: [Type] -> Compiler [InterOpcode]
-compileNop [] = pure [Byte 0x90]
-compileNop ts = internalError $ "Unsupported instruction 'nop " <> show ts <> "'."
+compileNop :: Compiler [InterOpcode]
+compileNop = pure [Byte 0x90]

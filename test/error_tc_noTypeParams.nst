@@ -1,6 +1,7 @@
 section code {
-w: { %r0: u64 }
-   jmp k<>
+    w: forall(s: Ts, e: Tc). { %r0: u64 | s -> e }
+     = jmp k<>
 
-k: forall (a: T8). { %r3: a }
+    k: forall (a: T8, s: Ts, e: Tc). { %r3: a | s -> e }
+     = ret
 }

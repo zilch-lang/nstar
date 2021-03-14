@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           nsc-codegen
-version:        1.0.0
+version:        2.0.0
 build-type:     Simple
 
 library
@@ -23,14 +23,16 @@ library
       Language.NStar.CodeGen.Machine.Internal.X64.SIB
       Language.NStar.CodeGen.Machine.X64
       Language.NStar.CodeGen.Machine.X64.Add
-      Language.NStar.CodeGen.Machine.X64.Call
       Language.NStar.CodeGen.Machine.X64.Expression
       Language.NStar.CodeGen.Machine.X64.Jmp
-      Language.NStar.CodeGen.Machine.X64.Mov
+      Language.NStar.CodeGen.Machine.X64.Ld
+      Language.NStar.CodeGen.Machine.X64.Mv
       Language.NStar.CodeGen.Machine.X64.Nop
-      Language.NStar.CodeGen.Machine.X64.Pop
-      Language.NStar.CodeGen.Machine.X64.Push
-      Language.NStar.CodeGen.Machine.X64.Ret
+      Language.NStar.CodeGen.Machine.X64.Salloc
+      Language.NStar.CodeGen.Machine.X64.Sfree
+      Language.NStar.CodeGen.Machine.X64.Sld
+      Language.NStar.CodeGen.Machine.X64.Sst
+      Language.NStar.CodeGen.Machine.X64.St
       Language.NStar.CodeGen.Machine.X64.Sub
       Language.NStar.CodeGen.PreProcessor
       Language.NStar.CodeGen.PreProcessor.X64

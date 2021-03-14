@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1101b5abb1ba7c74737e0c2ad69856d23d0ff543214607a9bc176e92f3018bc6
+-- hash: 9af13a953f7cc0d82030065b91b0e4dadadff463d8740941538f07a5660fd4da
 
 name:           nsc-core
-version:        1.0.0
+version:        2.0.0
 build-type:     Simple
 
 library

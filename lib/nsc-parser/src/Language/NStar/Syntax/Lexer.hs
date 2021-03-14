@@ -36,8 +36,8 @@ type Lexer a = WriterT [LexicalWarning] (MP.Parsec LexicalError Text) a
 
 -- | @space@ only parses any whitespace (not accounting for newlines and vertical tabs) and discards them.
 space :: (?lexerFlags :: LexerFlags) => Lexer ()
-space = MPL.space spc MP.empty MP.empty
-  where spc = () <$ MP.satisfy (and . (<$> [isSpace, (/= '\n'), (/= '\r'), (/= '\v'), (/= '\f')]) . (&))
+space = MPL.space MP.empty MP.empty MP.empty
+--  where spc = () <$
 
 -- | @lexeme p@ applies @p@ and ignores any space after, if @p@ succeeds. If @p@ fails, @lexeme p@ also fails.
 lexeme :: (?lexerFlags :: LexerFlags) => Lexer a -> Lexer a
@@ -69,7 +69,7 @@ lexProgram :: (?lexerFlags :: LexerFlags) => Lexer [LToken]
 lexProgram = lexeme (pure ()) *> ((<>) <$> tokens <*> ((: []) <$> eof))
   where
     tokens = MP.many . lexeme $ MP.choice
-      [ comment, identifierOrKeyword, literal, anySymbol, eol ]
+      [ comment, identifierOrKeyword, literal, anySymbol, eol, whitespace ]
 
 -- | Parses an end of line and returns 'EOL'.
 eol :: (?lexerFlags :: LexerFlags) => Lexer LToken
@@ -80,6 +80,9 @@ eol = located (EOL <$ MPC.eol)
 --   Note that all files end with 'EOF'.
 eof :: (?lexerFlags :: LexerFlags) => Lexer LToken
 eof = located (EOF <$ MP.eof)
+
+whitespace :: (?lexerFlags :: LexerFlags) => Lexer LToken
+whitespace = located $ HSpace <$ MP.some (MP.satisfy (and . (<$> [isSpace, (/= '\n'), (/= '\r'), (/= '\v'), (/= '\f')]) . (&)))
 
 -- | Parses any kind of comment, inline or multiline.
 comment :: (?lexerFlags :: LexerFlags) => Lexer LToken
@@ -103,7 +106,12 @@ anySymbol = located . MP.choice $ uncurry sat <$> symbols
      , (Comma, ",")
      , (DoubleColon, "::"), (Colon, ":")
      , (Dot, ".")
-     , (Minus, "-"), (Plus, "+") ]
+     , (Arrow, "->"), (Arrow, "→")
+     , (Minus, "-"), (Plus, "+")
+     , (Equal, "=")
+     , (Pipe, "|")
+     , (Semi, ";")
+     ]
 
 -- | Tries to parse an identifier. If the result appears to be a keyword, it instead returns a keyword.
 identifierOrKeyword :: (?lexerFlags :: LexerFlags) => Lexer LToken
@@ -115,13 +123,17 @@ identifierOrKeyword = located do
     transform :: Text -> Token
     transform w@(Text.toLower -> rw) = case rw of
       -- Instructions
-      "mov"     -> Mov
+      "mv"      -> Mv
       "ret"     -> Ret
       "jmp"     -> Jmp
       "call"    -> Call
-      "push"    -> Push
-      "pop"     -> Pop
       "nop"     -> Nop
+      "salloc"  -> Salloc
+      "sfree"   -> Sfree
+      "sld"     -> Sld
+      "sst"     -> Sst
+      "ld"      -> Ld
+      "st"      -> St
       -- Registers
       "r0"      -> R0'
       "r1"      -> R1'
@@ -129,11 +141,9 @@ identifierOrKeyword = located do
       "r3"      -> R3'
       "r4"      -> R4'
       "r5"      -> R5'
-      "sp"      -> SP'
-      "bp"      -> BP'
       -- Keywords
       "forall"  -> Forall
-      "sptr"    -> Sptr
+      "∀"       -> Forall
       "unsafe"  -> UnSafe
       "section" -> Section
       -- Identifier

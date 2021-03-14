@@ -1,0 +1,5 @@
+section code {
+  f: forall(s: Ts, e: Tc).{ %r5: forall().{| s -> e } | s -> %r5 }
+   = sst 0, 3
+   ; ret
+}

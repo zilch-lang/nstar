@@ -261,9 +261,16 @@ void fix_symtab_offset_and_shinfo(elf_object const *obj, Elf64_Object *target)
 {
     int symtab_index = find_section_index_by_name(obj->sections, obj->sections_len, ".symtab");
     Elf64_Word number_of_symbols = obj->sections[symtab_index]->data.s_symtab.symbols_len;
+    elf_symbol **symbols = obj->sections[symtab_index]->data.s_symtab.symbols;
     Elf64_Shdr *symtab = target->section_headers[symtab_index];
+    Elf64_Word number_of_local_symbols = 0;
 
-    symtab->sh_info = number_of_symbols;
+    while ((*symbols++)->binding == SB_LOCAL)
+    {
+        number_of_local_symbols++;
+    }
+
+    symtab->sh_info = number_of_local_symbols;
     symtab->sh_offset = data_end;
 }
 
@@ -279,12 +286,26 @@ void fix_symbol_names_and_sections(elf_object const *obj, Elf64_Object *target)
     if (text_index == -1) text_index = STN_UNDEF;
     if (data_index == -1) data_index = STN_UNDEF;
 
+    int number_of_strings = 0;
+    for (int i = 0; i < strtab->data.s_strtab.strings_len; ++i) number_of_strings += (strtab->data.s_strtab.strings[i] == '\0');
+    char const **strings = malloc(sizeof(char const *) * ++number_of_strings);
+    assert(strings != NULL);
+
+    strings[0] = strtab->data.s_strtab.strings;
+    for (int i = 1, j = 0; i < number_of_strings && j < strtab->data.s_strtab.strings_len; ++j)
+    {
+        if (strtab->data.s_strtab.strings[j] == '\0') strings[i++] = strtab->data.s_strtab.strings + j + 1;
+    }
+
     for (unsigned int i = 0; i < target->symbols_len; ++i)
     {
         elf_symbol const *s = symtab->data.s_symtab.symbols[i];
         Elf64_Sym *sym = target->symbols[i];
-        int string_index = mempos(strtab->data.s_strtab.strings, strtab->data.s_strtab.strings_len,
-                                  s->name, strlen(s->name));
+        int string_index = -1;
+        for (int i = 0; i < number_of_strings && string_index == -1; ++i)
+        {
+            if (strcmp(strings[i], s->name) == 0) string_index = strings[i] - strtab->data.s_strtab.strings;
+        }
 
         sym->st_name = string_index != -1 ? string_index : 0x0;
 
@@ -307,6 +328,8 @@ void fix_symbol_names_and_sections(elf_object const *obj, Elf64_Object *target)
                 sym->st_shndx = STN_UNDEF;
         }
     }
+
+    free(strings);
 }
 
 void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
@@ -383,7 +406,7 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
             Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
 
             current_symbol->st_size = current_symbol_size;
-            current_symbol->st_value = current_offset_in_section;
+            current_symbol->st_value = current_symbol_offset;
 
             current_offset_in_section += current_symbol_size;
         }
@@ -395,7 +418,7 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
             Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
 
             current_symbol->st_size = current_symbol_size;
-            current_symbol->st_value = current_offset_in_section;
+            current_symbol->st_value = current_symbol_offset;
         }
     }
 
@@ -414,7 +437,7 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
             Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
 
             current_symbol->st_size = current_symbol_size;
-            current_symbol->st_value = current_offset_in_section;
+            current_symbol->st_value = current_symbol_offset;
 
             current_offset_in_section += current_symbol_size;
         }
@@ -426,7 +449,7 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
             Elf64_Sym *current_symbol = target->symbols[current_symbol_index];
 
             current_symbol->st_size = current_symbol_size;
-            current_symbol->st_value = current_offset_in_section;
+            current_symbol->st_value = current_symbol_offset;
         }
     }
 

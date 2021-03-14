@@ -1,9 +1,9 @@
 section data {
-x: *u64
-   [ '\0' ]
+    x: **u64 = [ [ '\0' ] ]
 }
 
 section code {
-main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
-      mov 0, (x)
+    main: forall (s: Ts, e: Tc). { %r5: forall().{| s -> e } | s -> %r5 }
+        = st 0, (x)
+        ; ret
 }

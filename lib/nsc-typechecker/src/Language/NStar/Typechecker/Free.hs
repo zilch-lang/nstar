@@ -29,24 +29,24 @@ instance Free t => Free [t] where
 instance (Free a, Free b) => Free (a, b) where
   freeVars = uncurry (<>) . bimap freeVars freeVars
 
-instance Free (Located Type) where
-  freeVars = freeVars . unLoc
-
 instance Free Type where
-  freeVars (Cons t1 t2)      = freeVars t1 <> freeVars t2
-  freeVars (FVar v)          = Set.singleton v
-  freeVars (Ptr t1)          = freeVars t1
-  freeVars (SPtr t1)         = freeVars t1
-  freeVars (ForAll binds ty) = freeVars ty Set.\\ freeVars (fst <$> binds)
-  freeVars (Record fields _) = Map.foldr ((<>) . freeVars) mempty fields
-  freeVars (Var _)           = mempty
-  freeVars (Signed _)        = mempty
-  freeVars (Unsigned _)      = mempty
-  freeVars (Register _)      = mempty
+  freeVars (ConsT t1 t2)                 = freeVars t1 <> freeVars t2
+  freeVars (FVarT v)                     = Set.singleton v
+  freeVars (PtrT t1)                     = freeVars t1
+  freeVars (ForAllT binds ty)            = freeVars ty Set.\\ freeVars (fst <$> binds)
+  freeVars (RecordT fields stack cont _) = Map.foldr ((<>) . freeVars) mempty fields <> freeVars stack <> freeVars cont
+  freeVars (StackContT _)                = mempty
+  freeVars (RegisterContT _)             = mempty
+  freeVars (VarT _)                      = mempty
+  freeVars (SignedT _)                   = mempty
+  freeVars (UnsignedT _)                 = mempty
+  freeVars (RegisterT _)                 = mempty
   -- Please refrain yourself from putting the three above cases under the same pattern "_".
   -- Those three are separated in order to keep GHC's warning about incomplete pattern matchings.
   --
   -- Yes, it's because I forget to add new types in there everytime.
 
+instance Free a => Free (Located a) where
+  freeVars = freeVars . unLoc
 
 -- No -XPolyKinds in N*, so no need to make an instance for @Free Kind@.

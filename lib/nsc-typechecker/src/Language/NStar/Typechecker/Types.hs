@@ -16,7 +16,9 @@ module Language.NStar.Typechecker.Types
 
 import Control.Monad.State
 import Language.NStar.Typechecker.Core
-import Language.NStar.Syntax.Core hiding (Token(..))
+import Language.NStar.Syntax.Core hiding (Token(..), Instruction(..))
+import qualified Language.NStar.Syntax.Core as SC (Instruction(..))
+import qualified Language.NStar.Typechecker.Core as TC (TypedInstruction(..))
 import Data.Located
 import Data.Bifunctor (first, second, bimap)
 import Control.Monad.Except
@@ -29,10 +31,11 @@ import Language.NStar.Typechecker.Instructions
 import Language.NStar.Typechecker.TC
 import Console.NStar.Flags (TypecheckerFlags(..))
 import Data.Foldable (foldl')
+import qualified Language.NStar.Typechecker.Env as Env
 
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
 typecheck :: (?tcFlags :: TypecheckerFlags) => Program -> Either (Diagnostic s String m) (TypedProgram, Diagnostic s String m)
-typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT (evalStateT (typecheckProgram p) (0, mempty)))
+typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT (evalStateT (typecheckProgram p) mempty))
   where toDiagnostic = (diagnostic <++>) . fromTypecheckError
         toDiagnostic' = foldl' (<++>) diagnostic . fmap fromTypecheckWarning
 
@@ -41,12 +44,12 @@ typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT 
 -- | Entry point of the typechecker.
 --
 --   Typechecks a program, and return an elaborated form of it.
-typecheckProgram :: (?tcFlags :: TypecheckerFlags) => Program -> Typechecker TypedProgram
-typecheckProgram (Program [Data dataSect :@ p1, ROData rodataSect :@ p2, UData udataSect :@ p3, Code code :@ p4]) = do
+typecheckProgram :: (?tcFlags :: TypecheckerFlags) => Program -> TC TypedProgram
+typecheckProgram (Program [DataS dataSect :@ p1, RODataS rodataSect :@ p2, UDataS udataSect :@ p3, CodeS code :@ p4]) = do
   registerAllLabels code
   registerAllDataLabels dataSect
 
-  instrs <- concat <$> mapM (flip typecheckStatement False) code
+  instrs <- concat <$> mapM (typecheckStatement) code
 
   -- Check that the type of `main` is actually usable, and that states
   -- can be guaranteed at compile time.
@@ -75,24 +78,25 @@ typecheckProgram (Program _) = error "Unexpected invalid Program"
 --
 --   This unfortunately has to perform a complete lookup into the program before-hand,
 --   worsening the overall complexity of the typechecking.
-registerAllLabels :: (?tcFlags :: TypecheckerFlags) => [Located Statement] -> Typechecker ()
-registerAllLabels = mapM_ addLabelType . filter isLabel
-  where isLabel (unLoc -> Label _ _) = True
-        isLabel _                    = False
-
-        addLabelType (unLoc -> Label name ty) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
-        addLabelType (unLoc -> t)             = error ("Adding type of non-label '" <> show t <> "' is impossible.")
+registerAllLabels :: (?tcFlags :: TypecheckerFlags) => [Located Statement] -> TC ()
+registerAllLabels = mapM_ addLabelType
+  where addLabelType (unLoc -> Label name ty _) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
+        addLabelType (unLoc -> t)               = error ("Adding type of non-label '" <> show t <> "' is impossible.")
 
 -- | Brings all the data labels with their current types into the context.
 --
 --   This allows to access labels that are not in the @code@ section when typechecking instructions.
-registerAllDataLabels :: (?tcFlags :: TypecheckerFlags) => [Located Binding] -> Typechecker ()
+registerAllDataLabels :: (?tcFlags :: TypecheckerFlags) => [Located Binding] -> TC ()
 registerAllDataLabels = mapM_ addBinding
   where
     addBinding (unLoc -> Bind name ty (val :@ p)) = do
+      TCCtx xiC xiD <- get
+      let __unusedSigma = VarT ("@__s" :@ p) :@ p
+          __unusedEpsilon = VarT ("@__e" :@ p) :@ p
+
       liftEither (first FromReport $ kindcheck ty)
-      unify ty =<< typecheckConstant val p
-      addDataLabel name (Ptr ty :@ p)
+      lift $ evalStateT (unify ty =<< typecheckConstant val p) (0, Ctx xiC xiD mempty mempty __unusedSigma __unusedEpsilon)
+      addDataLabel name (PtrT ty :@ p)
 
 -- | Typechecks a statement.
 --
@@ -100,35 +104,40 @@ registerAllDataLabels = mapM_ addBinding
 --   and add kind bindings of the @forall@ if there is one.
 --
 --   When it's an instruction, just typecheck the instruction accordingly.
-typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> Bool -> Typechecker [Located TypedStatement]
-typecheckStatement (Label name ty :@ p) isUnsafe = do
-  let (binders, record) = removeForallQuantifierIfAny ty
-  setCurrentTypeContext (toRegisterMap record)
-  setCurrentKindContext (Map.fromList $ first toVarName <$> binders)
-  setLabel name
+typecheckStatement :: (?tcFlags :: TypecheckerFlags) => Located Statement -> TC [Located TypedStatement]
+typecheckStatement (Label name ty is :@ p) = do
+  TCCtx xiC xiD <- get
+  let (binders, RecordT chi sigma epsilon _ :@ _) = removeForallQuantifierIfAny ty
+  let gamma = Env.fromList (first toVarName <$> binders)
 
-  pure $ [TLabel name :@ p]
+  typed <- lift $ flip evalStateT (0, Ctx xiC xiD gamma chi sigma epsilon) $
+             forM is \ (i :@ p1, isUnsafe) -> do
+               typecheckInstruction i p1 isUnsafe
+
+  pure [TLabel name typed :@ p]
  where
-   removeForallQuantifierIfAny (unLoc -> ForAll b ty) = (b, ty)
+   removeForallQuantifierIfAny (unLoc -> ForAllT b ty) = (b, ty)
    removeForallQuantifierIfAny ty                     = (mempty, ty)
 
-   toRegisterMap (unLoc -> Record m _) = m
-   toRegisterMap (unLoc -> t)          = error $ "Cannot retrieve register mappings from non-record type '" <> show t <> "'"
-
-   toVarName (Var v :@ _) = v
+   toVarName (VarT v :@ _) = v
    toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
-typecheckStatement (Instr i :@ p) isUnsafe      = pure . (:@ p) <$> typecheckInstruction i p isUnsafe
-typecheckStatement (Unsafe is :@ p) _           = mconcat <$> forM is (flip typecheckStatement True)
 
-typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => Instruction -> Position -> Bool -> Typechecker TypedStatement
+typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => SC.Instruction -> Position -> Bool -> Typechecker TypedStatement
 typecheckInstruction i p unsafe = do
-  uncurry TInstr . (i :@ p ,) <$>
-    case i of
-      RET          -> tc_ret p
-      MOV src dst  -> tc_mov src dst unsafe p
-      JMP lbl tys  -> tc_jmp lbl tys p
-      CALL lbl tys -> tc_call lbl tys p
-      PUSH src     -> tc_push src unsafe p
-      POP dst      -> tc_pop dst unsafe p
-      NOP          -> tc_nop p
-      _            -> error $ "Unrecognized instruction '" <> show i <> "'."
+  Ctx _ _ _ chi sigma epsilon <- gets snd
+
+  ti <- case i of
+    SC.NOP        -> tc_nop p
+    SC.MV src dst -> tc_mv src dst p
+    SC.RET        -> tc_ret p
+    SC.JMP l      -> tc_jmp l p
+    SC.CALL l     -> tc_call l p
+    SC.SALLOC t   -> tc_salloc t p
+    SC.SFREE      -> tc_sfree p
+    SC.SLD n r    -> tc_sld n r p
+    SC.SST v n    -> tc_sst v n p
+    SC.LD ptr r   -> tc_ld ptr r unsafe p
+    SC.ST e ptr   -> tc_st e ptr unsafe p
+    _   -> error $ "Unrecognized instruction '" <> show i <> "'."
+
+  pure (TInstr (ti :@ p) chi sigma epsilon)

@@ -1,0 +1,12 @@
+section code {
+    main: forall(s: Ts, e: Tc).{| forall().{ %r0 : u64 | s -> e }::s -> 0 }
+        = salloc u64
+        ; salloc u64
+        ; sst 0, 1
+        ; sfree
+        ; sld 0, %r0
+        ; sld 1, %r5
+        ; sfree
+        ; sfree
+        ; ret
+}

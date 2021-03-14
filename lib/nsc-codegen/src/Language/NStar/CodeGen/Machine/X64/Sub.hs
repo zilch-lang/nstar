@@ -6,9 +6,9 @@ module Language.NStar.CodeGen.Machine.X64.Sub
 compileSub
 ) where
 
-import Language.NStar.Syntax.Core (Expr(..), Type)
+import Language.NStar.Syntax.Core (Expr(..))
 import Language.NStar.CodeGen.Compiler (Compiler)
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
 import Language.NStar.CodeGen.Machine.Internal.X64.REX (rexW)
 import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64)
@@ -83,6 +83,6 @@ import Internal.Error (internalError)
 +-------+------------------+---------------+-----------+-----------+
 -}
 
-compileSub :: Expr -> Expr -> [Type] -> Compiler [InterOpcode]
-compileSub src@(Imm _) (Reg dst) [_, _] = mappend [rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <$> compileExprX64 64 src
-compileSub src dst ts                   = internalError $ "Unsupported instruction 'sub " <> show src <> "," <> show dst <> " " <> show ts <> "'."
+compileSub :: Expr -> Expr -> TypeContext -> Compiler [InterOpcode]
+compileSub src@(ImmE _) (RegE dst) _ = mappend [rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x5] <$> compileExprX64 64 src
+compileSub src dst _                 = internalError $ "Unsupported instruction 'sub " <> show src <> "," <> show dst <> "'."

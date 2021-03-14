@@ -1,9 +1,11 @@
 section code {
-main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r0: s64 }::s }
-      call g<*{ %sp: sptr s, %r0: s64 }::s>
-      ret
+    main: forall (s: Ts, e: Tc).{| forall().{ %r0: s64 | s -> e }::s -> 0 }
+        = mv g_ret<s, e>, %r5
+        ; call g<forall().{ %r0: s64 | s -> e }::s, 0>
+    g_ret: forall(s: Ts, e: Tc).{| forall().{ %r0: s64 | s -> e }::s -> 0}
+         = ret
 
-g: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r3: s64 }::s }
-   mov 0, %r3
-   ret
+    g: forall (s: Ts). { %r5: forall().{ %r0: s64 | s -> e } | s -> %r5 }
+     = mv 0, %r3
+     ; ret
 }

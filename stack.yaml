@@ -9,7 +9,6 @@ packages:
 - ./lib/nsc-flags
 - ./lib/nsc-codegen
 - ./lib/elfgen
-- ./lib/nsc-branchchecker
 
 extra-deps:
 - git: https://github.com/mesabloo/diagnose.git

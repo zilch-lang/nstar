@@ -38,7 +38,10 @@ data ElfSymbol (n :: Size)
   deriving (Eq, Show, Generic)
 
 instance Ord (ElfSymbol n) where
-  ElfSymbol _ t1 _ _ <= ElfSymbol _ t2 _ _ = t1 <= t2
+  ElfSymbol _ t1 b1 _ <= ElfSymbol _ t2 b2 _ = case compare b1 b2 of
+    LT -> True
+    EQ -> t1 <= t2
+    GT -> False
 
 -- | Symbol type
 data SymbolType

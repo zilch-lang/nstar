@@ -1,4 +1,0 @@
-section code {
-unsafe {
-       mov 0, %r0
-}

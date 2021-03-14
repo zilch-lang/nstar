@@ -8,7 +8,7 @@ compileAdd
 
 import Language.NStar.Syntax.Core (Expr(..), Type)
 import Language.NStar.CodeGen.Compiler (Compiler)
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
 import Language.NStar.CodeGen.Machine.Internal.X64.REX (rexW)
 import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64)
@@ -83,7 +83,7 @@ import Internal.Error (internalError)
 +-------+------------------+---------------+-----------+-----------+
 -}
 
-compileAdd :: Expr -> Expr -> [Type] -> Compiler [InterOpcode]
-compileAdd (Reg src) (Reg dst) [_, _]   = pure [rexW, Byte 0x01, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
-compileAdd src@(Imm _) (Reg dst) [_, _] = mappend [rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x0] <$> compileExprX64 64 src
-compileAdd src dst ts                   = internalError $ "Unsupported instruction 'add " <> show src <> "," <> show dst <> " " <> show ts <> "'."
+compileAdd :: Expr -> Expr -> TypeContext -> Compiler [InterOpcode]
+compileAdd (RegE src) (RegE dst) _   = pure [rexW, Byte 0x01, modRM 0x3 (registerNumber (unLoc dst)) (registerNumber (unLoc src))]
+compileAdd src@(ImmE _) (RegE dst) _ = mappend [rexW, Byte 0x81, modRM 0x3 (registerNumber (unLoc dst)) 0x0] <$> compileExprX64 64 src
+compileAdd src dst è                 = internalError $ "Unsupported instruction 'add " <> show src <> "," <> show dst <> "'."
