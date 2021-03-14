@@ -174,6 +174,10 @@ data Instruction where
   SST :: Located Expr
       -> Located Integer
       -> Instruction
+  -- | Dereferences a pointer into a register.
+  LD :: Located Expr
+     -> Located Expr
+     -> Instruction
 
   -- TODO: add more instructions
 
@@ -262,6 +266,8 @@ data Token where
   Sld :: Token
   -- | The @sst@ instruction
   Sst :: Token
+  -- | The @ld@ instruction
+  Ld :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@

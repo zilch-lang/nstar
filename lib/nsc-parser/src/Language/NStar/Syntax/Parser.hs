@@ -172,6 +172,7 @@ parseInstruction = lexeme $ MP.choice
   , parseSfree
   , parseSld
   , parseSst
+  , parseLd
   ]
 
 ------------------------------------------------------------------------------------------------------------
@@ -286,7 +287,9 @@ parseBasePtrOffset = located $
 -- | Parses a byte-pointer offset.
 parseBytePtrOffset :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
 parseBytePtrOffset = located $
-  ByteOffsetE <$> MP.choice [ located $ RegE <$> parseRegister, located $ ImmE <$> located (I <$> parseSignedInteger) ]
+  ByteOffsetE <$> do
+                  source <- getPos <$> located (pure ())
+                  MP.option (ImmE (I 0 :@ source) :@ source) (MP.choice [ located $ RegE <$> parseRegister, located $ ImmE <$> located (I <$> parseSignedInteger) ])
               <*> betweenParens (MP.choice [ located $ RegE <$> parseRegister, parseLabel ])
 
 parseSignedInteger :: (?parserFlags :: ParserFlags) => Parser Integer
@@ -350,3 +353,9 @@ parseSst = located $
   lexeme (parseSymbol Sst) *>
     (SST <$> MP.choice [ located $ RegE <$> parseRegister, located $ ImmE <$> parseImmediate, parseLabel ]
          <*> (lexeme (parseSymbol Comma) *> parseInteger))
+
+parseLd :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseLd = located $
+  lexeme (parseSymbol Ld) *>
+    (LD <$> MP.choice [ MP.try parseBytePtrOffset, parseBasePtrOffset ]
+        <*> (lexeme (parseSymbol Comma) *> (located $ RegE <$> parseRegister)))

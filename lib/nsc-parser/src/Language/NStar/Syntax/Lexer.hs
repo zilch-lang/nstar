@@ -132,6 +132,7 @@ identifierOrKeyword = located do
       "sfree"   -> Sfree
       "sld"     -> Sld
       "sst"     -> Sst
+      "ld"      -> Ld
       -- Registers
       "r0"      -> R0'
       "r1"      -> R1'
