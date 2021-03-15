@@ -7,7 +7,7 @@
   Stability: experimental
 -}
 
-module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds, kindcheckType) where
+module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds, kindcheckType, requireSized, sizeof) where
 
 {-
 
@@ -17,8 +17,7 @@ module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds, 
     One thing that belongs here is the kind checking.
     So:
     - `a::s` needs `a: T8|Ta` and `s: Ts` and returns `Ts`
-    - `{%rax: s}` needs `a: T8`
-    - `sptr s` needs `s: Ts` and returns `T8`
+    - `{%r0: a}` needs `a <: T8`
     - `*a` needs `a: T8|Ta` and returns `T8` (on x64)
 
 -}
@@ -35,6 +34,8 @@ import Control.Applicative (liftA2)
 import Language.NStar.Typechecker.Errors
 import Console.NStar.Flags (TypecheckerFlags(..))
 import Language.NStar.Typechecker.Subst
+import Language.NStar.Typechecker.Env (Env)
+import qualified Language.NStar.Typechecker.Env as Env
 
 type Kindchecker a = Except KindcheckError a
 
@@ -43,6 +44,7 @@ data KindcheckError
   | NotADataType (Located Kind) Position
   | NotSized (Located Kind) Position
   | UnboundTypeVariable (Located Text)
+  | CannotUnifyKinds (Located Kind) (Located Kind)
 
 --------------------------------------------------------------------------------------------
 
@@ -53,32 +55,38 @@ kindcheck :: (?tcFlags :: TypecheckerFlags) => Located Type -> Either (Report St
 kindcheck = second (const ()) . runKindchecker . kindcheckType mempty
 
 fromKindcheckError :: KindcheckError -> Report String
-fromKindcheckError (NotAStackType (k :@ p1) p2)   = kindIsNotAStackKind k p1 p2
-fromKindcheckError (NotADataType (k :@ p1) p2)    = kindIsNotADataKind k p1 p2
-fromKindcheckError (NotSized (k :@ p1) p2)        = kindIsUnsized k p1 p2
-fromKindcheckError (UnboundTypeVariable (v :@ p)) = unboundTypeVariable v p
+fromKindcheckError (NotAStackType (k :@ p1) p2)             = kindIsNotAStackKind k p1 p2
+fromKindcheckError (NotADataType (k :@ p1) p2)              = kindIsNotADataKind k p1 p2
+fromKindcheckError (NotSized (k :@ p1) p2)                  = kindIsUnsized k p1 p2
+fromKindcheckError (UnboundTypeVariable (v :@ p))           = unboundTypeVariable v p
+fromKindcheckError (CannotUnifyKinds (k1 :@ p1) (k2 :@ p2)) = cannotUnifyKinds k1 k2 p1 p2
 
-kindcheckType :: (?tcFlags :: TypecheckerFlags) => Map (Located Text) (Located Kind) -> Located Type -> Kindchecker (Located Kind)
-kindcheckType _ (Signed _ :@ p)                          = pure (T8 :@ p)
-kindcheckType _ (Unsigned _ :@ p)                        = pure (T8 :@ p)
+kindcheckType :: (?tcFlags :: TypecheckerFlags) => Env Kind -> Located Type -> Kindchecker (Located Kind)
+kindcheckType _ (SignedT _ :@ p)                                      = pure (T8 :@ p)
+kindcheckType _ (UnsignedT _ :@ p)                                    = pure (T8 :@ p)
     -- TODO: For now we ignore the size of both types, because there are no sized kinds other than @T8@.
-kindcheckType ctx (ForAll newCtx ty :@ _)                = kindcheckType (Map.fromList (first varName <$> newCtx) <> ctx) ty
-  where varName (Var v :@ _) = v
+kindcheckType ctx (ForAllT newCtx ty :@ p)                            = (T8 :@ p) <$ kindcheckType (Env.fromList (first varName <$> newCtx) <> ctx) ty
+  where varName (VarT v :@ _) = v
         varName (t :@ _)     = error $ "Cannot fetch name of non type-variable type '" <> show t <> "'."
-kindcheckType ctx (Var v :@ _)                           = maybe (throwError (UnboundTypeVariable v)) pure (Map.lookup v ctx)
-kindcheckType _ (FVar v :@ _)                            = throwError (UnboundTypeVariable v)
-kindcheckType ctx (Ptr t :@ p)                           = (T8 :@ p) <$ kindcheckType ctx t
-kindcheckType ctx (SPtr t@(_ :@ p1) :@ p)                = (T8 :@ p) <$ (requireStackType p1 =<< kindcheckType ctx t)
-kindcheckType ctx (Cons t1@(_ :@ p1) t2@(_ :@ p2) :@ p)  = do
+kindcheckType ctx (VarT v :@ _)                                       = maybe (throwError (UnboundTypeVariable v)) pure (Env.lookup v ctx)
+kindcheckType _ (FVarT v :@ _)                                        = throwError (UnboundTypeVariable v)
+kindcheckType ctx (PtrT t :@ p)                                       = (T8 :@ p) <$ kindcheckType ctx t
+--kindcheckType ctx (SPtr t@(_ :@ p1) :@ p)                = (T8 :@ p) <$ (requireStackType p1 =<< kindcheckType ctx t)
+kindcheckType ctx (ConsT t1@(_ :@ p1) t2@(_ :@ p2) :@ p)              = do
   liftA2 (*>) (requireDataType p1) (requireSized p1) =<< kindcheckType ctx t1
   requireStackType p2 =<< kindcheckType ctx t2
   pure (Ts :@ p)
-kindcheckType ctx (Record mappings _ :@ p)               =
-  (Ta :@ p) <$ Map.traverseWithKey handleTypeFromRegister mappings
+kindcheckType ctx (RecordT mappings st@(_ :@ p2) e@(_ :@ p3) _ :@ p)  = do
+  Map.traverseWithKey handleTypeFromRegister mappings
+  requireStackType p2 =<< kindcheckType ctx st
+  requireCont p3 =<< kindcheckType ctx e
+
+  pure (Ta :@ p)
        -- FIXME: Kind checking does not take into account the size of the types, so if they are sized, they all are 8-bytes big at the moment.
- where handleTypeFromRegister (SP :@ _) (SPtr ty :@ _)   = requireStackType p =<< kindcheckType ctx ty
-       handleTypeFromRegister _ ty@(_ :@ p)              = liftA2 (*>) (requireDataType p) (requireSized p) =<< kindcheckType ctx ty
-kindcheckType _ (Register _ :@ p)                        = pure (T8 :@ p)
+ where handleTypeFromRegister _ ty@(_ :@ p)              = liftA2 (*>) (requireDataType p) (requireSized p) =<< kindcheckType ctx ty
+kindcheckType _ (RegisterContT _ :@ p)                                = pure (Tc :@ p)
+kindcheckType _ (StackContT _ :@ p)                                   = pure (Tc :@ p)
+kindcheckType _ (RegisterT _ :@ p)                                    = pure (T8 :@ p)
      -- NOTE: just a kind placeholder. rN types never appear after parsing.
 
 --------------------------------------------------------------------------------------------
@@ -89,16 +97,20 @@ unifyKinds (k1 :@ p1) (k2 :@ p2) = case (k1, k2) of
   (T8, T8) -> pure mempty
   (Ta, T8) -> pure mempty
   (Ta, Ta) -> pure mempty
+  (Tc, Tc) -> pure mempty
 ----------------------------------------------------------------------------------------
-  (Ts, _) -> throwError (NotAStackType (k2 :@ p2) p2)
+  (Ts, _)  -> throwError (NotAStackType (k2 :@ p2) p2)
   (T8, Ta) -> throwError (NotSized (k2 :@ p2) p2)
-  (T8, _) -> throwError (NotADataType (k2 :@ p2) p2)
-  (Ta, _) -> throwError (NotADataType (k2 :@ p2) p2)
+  (T8, _)  -> throwError (NotADataType (k2 :@ p2) p2)
+  (Ta, _)  -> throwError (NotADataType (k2 :@ p2) p2)
+  (_, _)   -> throwError (CannotUnifyKinds (k1 :@ p1) (k2 :@ p2))
 
 
 
 
-
+sizeof :: Located Kind -> Kindchecker Integer
+sizeof (T8 :@ _) = pure 8
+sizeof (k :@ p)  = throwError (NotSized (k :@ p) p)
 
 -----------------------------------------------------------------------------------------------
 
@@ -127,3 +139,6 @@ requireDataType p k = do
 --   Essentially a wrapper around 'isSized', but in the 'Kindchecker' monad.
 requireSized :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
 requireSized p k = () <$ unifyKinds (T8 :@ p) k
+
+requireCont :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
+requireCont p k = () <$ unifyKinds (Tc :@ p) k

@@ -1,6 +1,5 @@
 section code {
-main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r3: *s64 }::s }
-  mov 0, %r0
-  mov %r0, %r3
-  ret
+    main: forall (s: Ts, e: Tc). { %r0: forall().{ %r3: *s64 | s -> e } | s -> %r0 }
+        = mv 0, %r3
+        ; ret
 }

@@ -1,3 +1,5 @@
 section code {
-MoV %r0, %r0
+    f: forall(s: Ts, e: Tc).{| s -> e}
+     = Mv %r0, %r0
+     ; ret
 }

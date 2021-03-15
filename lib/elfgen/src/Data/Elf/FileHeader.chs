@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 {-# OPTIONS -Wno-duplicate-exports #-}
 
@@ -24,6 +25,7 @@ import Foreign.Storable (Storable(..))
 import Foreign.Ptr (Ptr)
 import Foreign.C.Types (CInt)
 import Foreign.Marshal.Alloc (malloc, free)
+import GHC.Generics (Generic)
 
 #include "file_header.h"
 
@@ -37,19 +39,20 @@ data ElfHeader (n :: Size)
       !Arch          -- ^ Architecture
       !Version       -- ^ Object file version (@'ev_current'@ or @'ev_none'@)
       !(EFlags n)    -- ^ Processor-specific flags
+  deriving (Generic)
 
 -- | ELF class
-{#enum elf_class as Class {C_NONE as C_None, C_32 as C_32, C_64 as C_64}#}
+{#enum elf_class as Class {C_NONE as C_None, C_32 as C_32, C_64 as C_64} deriving (Generic)#}
 -- | Data encoding
-{#enum elf_encoding as Encoding {D_NONE as D_None, D_2LSB as D_2LSB, D_2MSB as D_2MSB}#}
+{#enum elf_encoding as Encoding {D_NONE as D_None, D_2LSB as D_2LSB, D_2MSB as D_2MSB} deriving (Generic)#}
 -- | OS ABI identification
-{#enum elf_osabi as OSABI {OSABI_NONE as OSABI_None, OSABI_SYSV as OSABI_SysV}#}
+{#enum elf_osabi as OSABI {OSABI_NONE as OSABI_None, OSABI_SYSV as OSABI_SysV} deriving (Generic)#}
 -- | Legal values for @'e_type'@
-{#enum elf_file_type as ObjFileType {OFT_NONE as ET_None, OFT_REL as ET_Rel, OFT_EXEC as ET_Exec, OFT_DYN as ET_Dyn, OFT_CORE as ET_Core}#}
+{#enum elf_file_type as ObjFileType {OFT_NONE as ET_None, OFT_REL as ET_Rel, OFT_EXEC as ET_Exec, OFT_DYN as ET_Dyn, OFT_CORE as ET_Core} deriving (Generic)#}
 -- | Legal values for @'e_machine'@
-{#enum elf_arch as Arch {MA_NONE as EM_None, MA_SPARC as EM_sparc, MA_X86_64 as EM_x86_64, MA_ARM as EM_arm}#}
+{#enum elf_arch as Arch {MA_NONE as EM_None, MA_SPARC as EM_sparc, MA_X86_64 as EM_x86_64, MA_ARM as EM_arm} deriving (Generic)#}
 -- | File version
-{#enum elf_version as Version {VER_NONE as EV_None, VER_CURRENT as EV_Current}#}
+{#enum elf_version as Version {VER_NONE as EV_None, VER_CURRENT as EV_Current} deriving (Generic)#}
 
 ---------------------------------------------------------------------------------------------------------------
 

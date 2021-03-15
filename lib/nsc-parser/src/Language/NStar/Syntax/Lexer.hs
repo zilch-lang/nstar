@@ -36,8 +36,8 @@ type Lexer a = WriterT [LexicalWarning] (MP.Parsec LexicalError Text) a
 
 -- | @space@ only parses any whitespace (not accounting for newlines and vertical tabs) and discards them.
 space :: (?lexerFlags :: LexerFlags) => Lexer ()
-space = MPL.space spc MP.empty MP.empty
-  where spc = () <$ MP.satisfy (and . (<$> [isSpace, (/= '\n'), (/= '\r'), (/= '\v'), (/= '\f')]) . (&))
+space = MPL.space MP.empty MP.empty MP.empty
+--  where spc = () <$
 
 -- | @lexeme p@ applies @p@ and ignores any space after, if @p@ succeeds. If @p@ fails, @lexeme p@ also fails.
 lexeme :: (?lexerFlags :: LexerFlags) => Lexer a -> Lexer a
@@ -69,7 +69,7 @@ lexProgram :: (?lexerFlags :: LexerFlags) => Lexer [LToken]
 lexProgram = lexeme (pure ()) *> ((<>) <$> tokens <*> ((: []) <$> eof))
   where
     tokens = MP.many . lexeme $ MP.choice
-      [ comment, identifierOrKeyword, literal, anySymbol, eol ]
+      [ comment, identifierOrKeyword, literal, anySymbol, eol, whitespace ]
 
 -- | Parses an end of line and returns 'EOL'.
 eol :: (?lexerFlags :: LexerFlags) => Lexer LToken
@@ -81,18 +81,21 @@ eol = located (EOL <$ MPC.eol)
 eof :: (?lexerFlags :: LexerFlags) => Lexer LToken
 eof = located (EOF <$ MP.eof)
 
+whitespace :: (?lexerFlags :: LexerFlags) => Lexer LToken
+whitespace = located $ HSpace <$ MP.some (MP.satisfy (and . (<$> [isSpace, (/= '\n'), (/= '\r'), (/= '\v'), (/= '\f')]) . (&)))
+
 -- | Parses any kind of comment, inline or multiline.
 comment :: (?lexerFlags :: LexerFlags) => Lexer LToken
-comment = lexeme $ located (inline MP.<|> multiline)
+comment = located (inline MP.<|> multiline)
   where
     inline = InlineComment . Text.pack <$> (symbol "#" *> MP.manyTill MP.anySingle (MP.lookAhead (() <$ MPC.eol MP.<|> MP.eof)))
     multiline = MultilineComment . Text.pack <$> (symbol "/*" *> MP.manyTill MP.anySingle (symbol "*/"))
 
 -- | Parses any symbol like @[@ or @,@.
 anySymbol :: (?lexerFlags :: LexerFlags) => Lexer LToken
-anySymbol = lexeme . located . MP.choice $ sat <$> symbols
+anySymbol = located . MP.choice $ uncurry sat <$> symbols
  where
-   sat (ret, sym) = ret <$ MPC.string sym
+   sat ret sym = ret <$ MPC.string sym
 
    symbols =
      [ (LParen, "("), (LBrace, "{"), (LBracket, "["), (LAngle, "<")
@@ -103,11 +106,16 @@ anySymbol = lexeme . located . MP.choice $ sat <$> symbols
      , (Comma, ",")
      , (DoubleColon, "::"), (Colon, ":")
      , (Dot, ".")
-     , (Minus, "-"), (Plus, "+") ]
+     , (Arrow, "->"), (Arrow, "→")
+     , (Minus, "-"), (Plus, "+")
+     , (Equal, "=")
+     , (Pipe, "|")
+     , (Semi, ";")
+     ]
 
 -- | Tries to parse an identifier. If the result appears to be a keyword, it instead returns a keyword.
 identifierOrKeyword :: (?lexerFlags :: LexerFlags) => Lexer LToken
-identifierOrKeyword = lexeme $ located do
+identifierOrKeyword = located do
   transform . Text.pack
            <$> ((:) <$> MPC.letterChar
                     <*> MP.many (MPC.alphaNumChar MP.<|> MPC.char '_'))
@@ -115,13 +123,17 @@ identifierOrKeyword = lexeme $ located do
     transform :: Text -> Token
     transform w@(Text.toLower -> rw) = case rw of
       -- Instructions
-      "mov"     -> Mov
+      "mv"      -> Mv
       "ret"     -> Ret
       "jmp"     -> Jmp
       "call"    -> Call
-      "push"    -> Push
-      "pop"     -> Pop
       "nop"     -> Nop
+      "salloc"  -> Salloc
+      "sfree"   -> Sfree
+      "sld"     -> Sld
+      "sst"     -> Sst
+      "ld"      -> Ld
+      "st"      -> St
       -- Registers
       "r0"      -> R0'
       "r1"      -> R1'
@@ -129,11 +141,9 @@ identifierOrKeyword = lexeme $ located do
       "r3"      -> R3'
       "r4"      -> R4'
       "r5"      -> R5'
-      "sp"      -> SP'
-      "bp"      -> BP'
       -- Keywords
       "forall"  -> Forall
-      "sptr"    -> Sptr
+      "∀"       -> Forall
       "unsafe"  -> UnSafe
       "section" -> Section
       -- Identifier
@@ -141,7 +151,7 @@ identifierOrKeyword = lexeme $ located do
 
 -- | Parses a literal value (integer or character).
 literal :: (?lexerFlags :: LexerFlags) => Lexer LToken
-literal = lexeme . located $ MP.choice
+literal = located $ MP.choice
   [ Integer <$> prefixed "0b" (Text.pack <$> MP.some binary)
   , Integer <$> prefixed "0x" (Text.pack <$> MP.some hexadecimal)
   , Integer <$> prefixed "0o" (Text.pack <$> MP.some octal)

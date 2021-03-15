@@ -1,8 +1,8 @@
 section code {
-f: { %r0: u64 }
-   jmp g
+    f: forall(s: Ts, e: Tc).{ %r0: u64, %r5: forall().{| s -> e } | s -> %r5 }
+     = jmp g<s, e>
 
-g: {}
-   mov 0, %r0
-   jmp f
+    g: forall(s: Ts, e: Tc).{ %r5: forall().{| s -> e } | s -> %r5 }
+     = mv 0, %r0
+     ; jmp f<s, e>
 }

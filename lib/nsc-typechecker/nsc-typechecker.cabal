@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           nsc-typechecker
-version:        0.0.1.0
+version:        2.0.0
 build-type:     Simple
 
 library
@@ -15,8 +15,6 @@ library
       Language.NStar.Typechecker.Free
       Language.NStar.Typechecker.Instructions
       Language.NStar.Typechecker.Kinds
-      Language.NStar.Typechecker.PostProcessor
-      Language.NStar.Typechecker.PostProcessor.PointerOffsets
       Language.NStar.Typechecker.Subst
       Language.NStar.Typechecker.TC
       Language.NStar.Typechecker.Types

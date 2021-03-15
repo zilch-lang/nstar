@@ -1,0 +1,10 @@
+section data {
+    x: u64 = 0
+}
+
+section code {
+    main: forall (s: Ts, e: Tc).{ %r5: forall().{ %r0: u64 | s -> e } | s -> %r5 }
+        = st 4, (x)
+        ; ld (x), %r0
+        ; ret
+}

@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Data.Elf.SectionHeader
 ( SectionHeader(..)
@@ -21,6 +22,7 @@ import Foreign.Ptr (Ptr, castPtr)
 import Data.List (intercalate)
 import Foreign.Marshal.Alloc (malloc, free)
 import Debug.Trace
+import GHC.Generics (Generic)
 
 #include "section_header.h"
 
@@ -50,7 +52,7 @@ data SectionHeader (n :: Size)
   | SStrTab
       String
       [String]
-
+  deriving (Generic)
 deriving instance Eq (SectionHeader n)
 deriving instance Ord (SectionHeader n)
 

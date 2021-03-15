@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Main (main) where
 
@@ -12,18 +13,20 @@ import System.FilePath.Glob (glob)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
 import Language.NStar.Syntax (lexFile, parseFile, postProcessAST)
-import Language.NStar.Typechecker (typecheck, postProcessTypedAST)
-import Language.NStar.Branchchecker (branchcheck)
+import Language.NStar.Typechecker (typecheck)
+import Language.NStar.CodeGen
 import Data.List (isInfixOf)
-import Text.Diagnose ((<~<), prettyText)
+import Text.Diagnose ((<~<), prettyText, Diagnostic, reportError, Marker(..), diagnostic, (<++>))
 import Data.Bifunctor (first)
 import Console.NStar.Flags (LexerFlags(..), ParserFlags(..), TypecheckerFlags(..))
+import Control.DeepSeq (deepseq, NFData)
+import Control.Spoon (teaspoon)
 
 data Error
   = Lx
   | Ps
   | Tc
-  | Bc
+  | Cg
   | Any
   | No
  deriving Eq
@@ -32,7 +35,7 @@ instance Show Error where
   show Lx = "lexing"
   show Ps = "parsing"
   show Tc = "type-checking"
-  show Bc = "branch-checking"
+  show Cg = "codegen"
   show Any = "any"
   show No = "no"
 
@@ -65,7 +68,6 @@ check file = do
         if | "error_lx_" `isInfixOf` file -> Lx
            | "error_ps_" `isInfixOf` file -> Ps
            | "error_tc_" `isInfixOf` file -> Tc
-           | "error_bc_" `isInfixOf` file -> Bc
            | "error_" `isInfixOf` file    -> Any
            | otherwise                    -> No
 
@@ -78,8 +80,7 @@ check file = do
         (ast, _) <- first (, Ps) $! parseFile file tokens
         ast <- pure $! postProcessAST ast
         (ast, _) <- first (, Tc) $! typecheck ast
-        ast <- pure $! postProcessTypedAST ast
-        _ <- first (, Bc) $! branchcheck ast
+        _ <- maybeToEither errorCallCodeGen $ teaspoon (compileToElf @S64 X64 ast `deepseq` ())
         pure ast
 
   specify file $
@@ -94,3 +95,37 @@ check file = do
                                                show (prettyText (d <~< (file, lines $ Text.unpack content))))
       Right _ | expectedError /= No    -> expectationFailure ("Test should have failed in " <> show expectedError <> " phase, but passed all phases!")
               | otherwise              -> pure () -- test passes as expected
+
+maybeToEither :: e -> Maybe a -> Either e a
+maybeToEither e = maybe (Left e) Right
+
+errorCallCodeGen :: (Diagnostic [] String Char, Error)
+errorCallCodeGen = (diagnostic <++> reportError "Error call during code generation" [] [], Cg)
+
+-- Orphan instances for 'deepseq'
+
+instance NFData (ElfObject n)
+
+instance NFData (ElfHeader n)
+instance NFData (EFlags n)
+instance NFData (Class)
+instance NFData (Encoding)
+instance NFData (OSABI)
+instance NFData (ObjFileType)
+instance NFData (Arch)
+instance NFData (Version)
+
+instance NFData (ProgramHeader n)
+instance NFData (PFlags n)
+
+instance NFData (SectionHeader n)
+instance NFData (SFlags n)
+
+instance NFData (RelocationSymbol n)
+instance NFData (RelocationOrigin)
+instance NFData (RelocationType)
+
+instance NFData (ElfSymbol n)
+instance NFData (SymbolType)
+instance NFData (SymbolBinding)
+instance NFData (SymbolVisibility)

@@ -33,16 +33,16 @@ deriving instance Show Program
 
 data Section where
   -- | The @code@ section
-  Code :: [Located Statement]
+  CodeS :: [Located Statement]
        -> Section
   -- | The @data@ section
-  Data :: [Located Binding]
+  DataS :: [Located Binding]
        -> Section
   -- | The @rodata@ section
-  ROData :: [Located Binding]
+  RODataS :: [Located Binding]
          -> Section
   -- | The @udata@ section
-  UData :: [Located ReservedSpace]
+  UDataS :: [Located ReservedSpace]
         -> Section
 
 deriving instance Show Section
@@ -67,54 +67,50 @@ deriving instance Show ReservedSpace
 -- | A statement is either
 data Statement where
   -- | A typed label
-  Label :: Located Text           -- ^ The label's name. It may not be empty
-        -> Located Type           -- ^ The "label's type", describing the minimal type expected when jumping to this label
+  Label :: Located Text                   -- ^ The label's name. It may not be empty
+        -> Located Type                   -- ^ The "label's type", describing the minimal type expected when jumping to this label
+        -> [(Located Instruction, Bool)]  -- ^ Instructions contained in its block as well as the unsafetiness of each one
         -> Statement
-  -- | An instruction call
-  Instr :: Instruction -> Statement
-  -- | An unsafe block
-  Unsafe :: [Located Statement] -> Statement
 
 deriving instance Show Statement
 
 data Type where
   -- | Signed integer
-  Signed :: Natural                                        -- ^ The size of the integer (a multiple of 2 greater than 4)
+  SignedT :: Natural                                        -- ^ The size of the integer (a multiple of 2 greater than 4)
          -> Type
   -- | Unsigned integer
-  Unsigned :: Natural                                      -- ^ The size of the integer (a multiple of 2 greater than 4)
+  UnsignedT :: Natural                                      -- ^ The size of the integer (a multiple of 2 greater than 4)
            -> Type
   -- | Stack constructor
-  Cons :: Located Type                                     -- ^ Stack head
+  ConsT :: Located Type                                     -- ^ Stack head
        -> Located Type                                     -- ^ Stack tail
        -> Type
   -- | Type variable
-  Var :: Located Text                                      -- ^ The name of the type variable
+  VarT :: Located Text                                      -- ^ The name of the type variable
       -> Type
   -- | Free type variable
-  FVar :: Located Text                                     -- ^ The name of the type variable
+  FVarT :: Located Text                                     -- ^ The name of the type variable
        -> Type
   -- | Record type
-  Record :: Map (Located Register) (Located Type)          -- ^ A mapping from 'Register's to their expected 'Type's
+  RecordT :: Map (Located Register) (Located Type)          -- ^ A mapping from 'Register's to their expected 'Type's
+         -> Located Type                                   -- ^ The stack required on this context
+         -> Located Type                                   -- ^ The return continuation
          -> Bool                                           -- ^ Is the record opened or closed?
          -> Type
   -- | Pointer to a normal type
-  Ptr :: Located Type
+  PtrT :: Located Type
       -> Type
-  -- | Pointer to a stack type
-  --
-  -- We separate stack pointers from normal pointers
-  -- because they are used as a different construct
-  -- in the source code (@*ty@ vs @sptr sty@)
-  SPtr :: Located Type
-       -> Type
   -- | Forall type variable binder
-  ForAll :: [(Located Type, Located Kind)]                  -- ^ Variables along with their 'Kind's
+  ForAllT :: [(Located Type, Located Kind)]                  -- ^ Variables along with their 'Kind's
          -> Located Type
          -> Type
   -- | Register type
-  Register :: Natural                                       -- ^ Register size
+  RegisterT :: Natural                                       -- ^ Register size
            -> Type
+  -- | Stack continuation
+  StackContT :: Integer -> Type
+  -- | Register continuation
+  RegisterContT :: Register -> Type
 
 deriving instance Show Type
 deriving instance Eq Type
@@ -126,6 +122,8 @@ data Kind where
   Ts :: Kind
   -- | Kind of unsized types
   Ta :: Kind
+  -- | Kind of continuations
+  Tc :: Kind
 
 deriving instance Show Kind
 deriving instance Eq Kind
@@ -133,8 +131,6 @@ deriving instance Eq Kind
 data Register where
   -- | General purpose register
   R0, R1, R2, R3, R4, R5 :: Register
-  -- | Pointer register
-  SP, BP :: Register
 
 deriving instance Show Register
 deriving instance Eq Register
@@ -142,37 +138,50 @@ deriving instance Ord Register
 
 -- | N*'s instruction set
 data Instruction where
-  -- | @mov a, v@ is the same as @v <- a@.
-  MOV :: Located Expr         -- ^ The destination of the move. It must be addressable
-      -> Located Expr         -- ^ The source value moved into the destination
-      -> Instruction
   -- | @ret@ returns to the address on top of the stack.
   RET :: Instruction
   -- | @jmp@ alters the control flow by unconditionally jumping to the given address.
   JMP :: Located Expr
-      -> [Located Type]
       -> Instruction
   -- | @call@ alters the control flow by pushing the current address onto the stack and jumping
   --   to the given address (either as a label or in a register).
   CALL :: Located Expr
-       -> [Located Type]
        -> Instruction
   -- |
   ADD :: Located Expr    -- ^ The source operand
       -> Located Expr    -- ^ The increment value
       -> Instruction
   -- |
-  PUSH :: Located Expr
-       -> Instruction
-  -- |
-  POP :: Located Expr
-      -> Instruction
-  -- |
   SUB :: Located Expr
       -> Located Expr
       -> Instruction
-  -- |
+  -- | Does strictly nothing. May be used as a padding instruction.
   NOP :: Instruction
+  -- | Moves a literal or from a register into a register.
+  MV :: Located Expr
+     -> Located Register
+     -> Instruction
+  -- | Allocates some space on top of the stack.
+  SALLOC :: Located Type
+         -> Instruction
+  -- | Frees the top-most stack cell.
+  SFREE :: Instruction
+  -- | Loads a value from the nth cell of the stack into a register.
+  SLD :: Located Integer
+      -> Located Register
+      -> Instruction
+  -- | Stores a literal value or from a register into an already-allocated stack cell.
+  SST :: Located Expr
+      -> Located Integer
+      -> Instruction
+  -- | Dereferences a pointer into a register.
+  LD :: Located Expr
+     -> Located Expr
+     -> Instruction
+  -- | Puts a value at a specific memory address.
+  ST :: Located Expr
+     -> Located Expr
+     -> Instruction
 
   -- TODO: add more instructions
 
@@ -180,34 +189,35 @@ deriving instance Show Instruction
 
 data Constant where
   -- | A constant integer
-  CInteger :: Located Integer
+  IntegerC :: Located Integer
            -> Constant
   -- | A constant character
-  CCharacter :: Located Char
+  CharacterC :: Located Char
              -> Constant
   -- | An array of constants
-  CArray :: [Located Constant]
+  ArrayC :: [Located Constant]
          -> Constant
 
 deriving instance Show Constant
 
 data Expr where
   -- | An immediate value (@$⟨val⟩@)
-  Imm :: Located Immediate          -- ^ \- @⟨val⟩@
-      -> Expr
-  -- | A label name
-  Name :: Located Text
+  ImmE :: Located Immediate          -- ^ \- @⟨val⟩@
        -> Expr
-  -- | An indexed expression (@⟨idx⟩[⟨expr⟩]@)
-  Indexed :: Located Expr           -- ^ \- @⟨idx⟩@
-          -> Located Expr           -- ^ \- @⟨expr⟩@
-          -> Expr
+  -- | A label name with optional specialization (@〈label〉<〈type〉...>@)
+  NameE :: Located Text
+        -> [Located Type]
+        -> Expr
+  -- | A byte-offset expression (@〈offset〉(〈expr〉)@)
+  ByteOffsetE :: Located Expr        -- ^ \- @⟨offset⟩@
+              -> Located Expr        -- ^ \- @⟨expr⟩@
+              -> Expr
+  -- | A base-offset expression (@〈expr〉[〈offset〉]@)
+  BaseOffsetE :: Located Expr        -- ^ \- @⟨expr⟩@
+              -> Located Expr        -- ^ \- @⟨offset⟩@
+              -> Expr
   -- | A register (one of the available 'Register's)
-  Reg :: Located Register
-      -> Expr
-  -- | Type specialization (used on a @call@) (@⟨expr⟩\<⟨type⟩\>@)
-  Spec :: Located Expr             -- ^ \- @⟨expr⟩@
-       -> Located Type             -- ^ \- @⟨type⟩@
+  RegE :: Located Register
        -> Expr
 
 deriving instance Show Expr
@@ -240,22 +250,30 @@ data Token where
   Id :: Text -> Token
   -- Registers
   -- | Registers reserved words
-  R0', R1', R2', R3', R4', R5', SP', BP' :: Token
+  R0', R1', R2', R3', R4', R5' :: Token
   -- Instructions
-  -- | The @mov@ instruction
-  Mov :: Token
+  -- | The @mv@ instruction
+  Mv :: Token
   -- | The @ret@ instruction
   Ret :: Token
   -- | The @jmp@ instruction
   Jmp :: Token
   -- | The @call@ instruction
   Call :: Token
-  -- | The @push@ instruction
-  Push :: Token
-  -- | The @pop@ instruction
-  Pop :: Token
   -- | The @nop@ instruction
   Nop :: Token
+  -- | The @salloc@ instruction
+  Salloc :: Token
+  -- | The @sfree@ instruction
+  Sfree :: Token
+  -- | The @sld@ instruction
+  Sld :: Token
+  -- | The @sst@ instruction
+  Sst :: Token
+  -- | The @ld@ instruction
+  Ld :: Token
+  -- | The @st@ instruction
+  St :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@
@@ -280,11 +298,17 @@ data Token where
   Minus :: Token
   -- | Addition "@+@"
   Plus :: Token
+  -- | Separator "@|@"
+  Pipe :: Token
+  -- | Separator "@=@"
+  Equal :: Token
+  -- | Separator "@->@" or "@→@"
+  Arrow :: Token
+  -- | Instruction separator "@;@"
+  Semi :: Token
   -- Keywords
-  -- | \"@forall@\" type variable binder in type
+  -- | \"@forall@\" (or "@∀@") type variable binder in type
   Forall :: Token
-  -- | \"@sptr@\" stack pointer quantifier
-  Sptr :: Token
   -- | \"@unsafe@\" block
   UnSafe :: Token
   -- | \"@section@\" block
@@ -300,6 +324,8 @@ data Token where
   EOL :: Token
   -- | End Of File
   EOF :: Token
+  -- | An horizontal space
+  HSpace :: Token
 
 deriving instance Show Token
 deriving instance Eq Token

@@ -1,14 +1,11 @@
 section data {
-x: u64
-   0
+    x: u64 = 0
 }
 
 section code {
-main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s, %r0: u64 }::s }
-      mov 0, %r1
-
-unsafe {
-      mov %r1(x), %r0
-}
-      ret
+    main: forall(s: Ts, e: Tc).{ %r5: forall().{ %r0: u64 | s -> e } | s -> %r5 }
+        = mv 0, %r1
+        ; unsafe ld %r1(x), %r0
+        ; unsafe ld %r1(x), %r0
+        ; ret
 }

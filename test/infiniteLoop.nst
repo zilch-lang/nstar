@@ -1,7 +1,7 @@
 section code {
-f: forall (s: Ts). { %sp: sptr *{ %sp: sptr s}::s }
-   jmp g<s>
+    f: forall (s: Ts). {| s -> %r0 }
+     = jmp g<s>
 
-g: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
-   jmp f<s>
+    g: forall (s: Ts). {| s -> %r0 }
+     = jmp f<s>
 }

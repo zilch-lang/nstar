@@ -1,6 +1,7 @@
 section code {
-f: forall (s: Ts). { %sp: sptr s }
-   jmp g<s64>
+    f: forall (s: Ts). {| s -> %r0 }
+     = jmp g<s64>
 
-g: forall (s: Ts). { %sp: sptr s64::s }
+    g: forall (s: Ts). {| s64::s -> %r0 }
+     = ret
 }

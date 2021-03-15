@@ -1,4 +1,0 @@
-section code {
-f: forall (x: Ta). { %sp: *s64 }
-   mov %r0, %r0    # test comment
-}

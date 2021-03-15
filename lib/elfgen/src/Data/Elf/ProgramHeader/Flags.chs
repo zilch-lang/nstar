@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Data.Elf.ProgramHeader.Flags
 ( PFlags
@@ -12,10 +13,12 @@ module Data.Elf.ProgramHeader.Flags
 import Data.Bits (Bits, shiftL)
 import Data.Elf.Types
 import Data.Elf.Internal.BusSize
+import GHC.Generics (Generic)
 
 type PFlags = Flag
 
 newtype Flag (n :: Size) = Flag (Elf_Word n)
+  deriving (Generic)
 --  deriving (Show, Eq, Ord, Bits, Num, Integral, Real, Enum)
 deriving instance Show (Flag n)
 deriving instance Eq (Flag n)

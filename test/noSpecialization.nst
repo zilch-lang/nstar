@@ -1,6 +1,0 @@
-section code {
-i: {}
-   jmp j
-j: {}
-   jmp i<>
-}

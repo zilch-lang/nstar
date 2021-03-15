@@ -50,20 +50,21 @@ instance Substitutable a => Substitutable (Located a) where
   apply = fmap . apply
 
 instance Substitutable Type where
-  apply _ t@(Signed _)              = t
-  apply _ t@(Unsigned _)            = t
-  apply _ t@(Var _)                 = t
-  apply _ t@(Register _)            = t
-  apply s (Cons t1 t2)              = Cons (apply s t1) (apply s t2)
-  apply (Subst s) t@(FVar v)        = fromMaybe t (unLoc <$> Map.lookup v s)
-  apply s (Record rts o)            = Record (apply s <$> rts) o
-  apply s (Ptr t)                   = Ptr (apply s t)
-  apply s (SPtr t)                  = SPtr (apply s t)
-  apply (Subst s) (ForAll binds ty) = ForAll binds (apply newS ty)
+  apply _ t@(SignedT _)              = t
+  apply _ t@(UnsignedT _)            = t
+  apply _ t@(VarT _)                 = t
+  apply _ t@(RegisterT _)            = t
+  apply _ t@(RegisterContT _)        = t
+  apply _ t@(StackContT _)           = t
+  apply s (ConsT t1 t2)              = ConsT (apply s t1) (apply s t2)
+  apply (Subst s) t@(FVarT v)        = fromMaybe t (unLoc <$> Map.lookup v s)
+  apply s (RecordT rts st ct o)      = RecordT (apply s <$> rts) (apply s st) (apply s ct) o
+  apply s (PtrT t)                   = PtrT (apply s t)
+  apply (Subst s) (ForAllT binds ty) = ForAllT binds (apply newS ty)
     where newS = Subst (Map.withoutKeys s (Set.fromList (keys binds)))
 
           keys []                     = []
-          keys ((Var v :@ _, _) : xs) = v : keys xs
+          keys ((VarT v :@ _, _) : xs) = v : keys xs
           keys ((t :@ _, _) : _)      = error ("Trying to get name of non-type variable '" <> show t <> "'")
 
 instance Substitutable Kind where

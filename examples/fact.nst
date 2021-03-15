@@ -1,15 +1,29 @@
-fact: forall (s: Ts). { %rsp: sptr *{ %rax: u64, %rsp: sptr s }::s, %rdi: u64 }
-    jz %rdi, fact_if_0<s>   # Jump to "fact_if_0" if %rdi is 0
+section code {
+  fact: forall(s: Ts, e: Tc).{ %r5: forall().{ %r0: u64 | s -> e }, %r1: u64 | s -> %r5 }
+      = jz %r1, fact_0<s, e>, fact_N<s, e>
+      # Jump to fact_0 if %r1 == 0 else jump to fact_N
 
-    mov %rbx, %rdi
-    dec %rdi                # We decrement the argument in the recursive call
-    call fact<s>
-    mul %rax, %rbx          # And we perform the multiplication
-    jmp fact_end<s>
+  fact_0: forall(s: Ts, e: Tc).{ %r5: forall().{ %r0: u64 | s -> e }, %r1: u64 | s -> %r5 }
+        = mv 1, %r0 ;
+        # The neutral element of the product: 1
+          ret
 
-  fact_if_0: forall (s: Ts). { %rsp: sptr *{ %rax: u64, %rsp: sptr s }::s }
-    mov %rax, 1
-    jmp fact_end<s>
-
-  fact_end: forall (s: Ts). { %rax: u64, %rsp: sptr *{ %rax: u64, %rsp: sptr s }::s }
-    ret
+  fact_N: forall(s: Ts, e: Tc).{ %r5: forall().{ %r0: u64 | s -> e }, %r1: u64 | s -> %r5 }
+        = mv %r1, %r2                           ;
+        # Copy parameter `n` in %r1 into %r2
+          dec %r1                               ;
+        # Decrease `n` by 1
+          salloc forall().{ %r0: u64 | s -> e } ;
+          sst %r5, 0                            ;
+        # Put the current continuation on top of the stack
+          mv fact_ret<s, e>, %r5                ;
+          call fact<forall().{ %r0: u64 | s -> e }::s, 0>
+        # Call the factorial with parameter `n - 1`, result will be in %r0
+  fact_ret: forall(s: Ts, e: Tc).{ %r2: u64, %r0: u64 | forall().{ %r0: u64 | s -> e }::s -> 0 }
+          = mul %r2, %r0 ;
+          # Multiply the old `n` with the result of the recursive call (in %r0), and store result in %r0
+            sld 0, %r5   ;
+            sfree        ;
+          # Load the old continuation into a register, and free the top of the stack
+            ret
+}

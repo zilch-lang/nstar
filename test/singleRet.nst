@@ -1,4 +1,4 @@
 section code {
-main: forall (s: Ts). { %sp: sptr *{ %sp: sptr s }::s }
-      ret
+    main: forall(s: Ts, e: Tc).{ %r5: forall().{| s -> e } | s -> %r5 }
+        = ret
 }
