@@ -41,7 +41,7 @@ library
       src
       cbits
   default-extensions: LambdaCase BinaryLiterals BlockArguments TypeApplications DataKinds FlexibleInstances MultiParamTypeClasses ScopedTypeVariables TypeFamilies FlexibleContexts UndecidableInstances StandaloneDeriving AllowAmbiguousTypes
-  cpp-options: -Wall -Wextra
+  cc-options: -Wall -Wextra
   include-dirs:
       cbits/include
   c-sources:
@@ -60,5 +60,5 @@ library
     , some
     , text
   if flag(debug)
-    cpp-options: -g
+    cc-options: -g3
   default-language: Haskell2010

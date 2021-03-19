@@ -13,14 +13,14 @@ library:
   - cbits/elf64/fix.c
   - cbits/elf64/internal_fix.c
   - cbits/strings.c
-  cpp-options:
+  cc-options:
   - -Wall
   - -Wextra
 
   when:
   - condition: flag(debug)
-    cpp-options:
-    - -g
+    cc-options:
+    - -g3
 
 default-extensions:
 - LambdaCase
