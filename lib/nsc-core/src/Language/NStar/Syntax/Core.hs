@@ -44,6 +44,9 @@ data Section where
   -- | The @udata@ section
   UDataS :: [Located ReservedSpace]
         -> Section
+  -- | The @include@ section
+  IncludeS :: [Located Text]
+           -> Section
 
 deriving instance Show Section
 
@@ -248,6 +251,8 @@ data Token where
   Char :: Char -> Token
   -- | An identifier (also called name)
   Id :: Text -> Token
+  -- | A @"@ delimited string
+  Str :: Text -> Token
   -- Registers
   -- | Registers reserved words
   R0', R1', R2', R3', R4', R5' :: Token
@@ -313,6 +318,8 @@ data Token where
   UnSafe :: Token
   -- | \"@section@\" block
   Section :: Token
+  -- \ \"@include@\" block
+  Include :: Token
   -- Comments
   -- | A comment starting with "@#@" and spanning until the end of the current line
   InlineComment :: Text        -- ^ The content of the comment

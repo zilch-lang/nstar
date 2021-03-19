@@ -146,6 +146,7 @@ identifierOrKeyword = located do
       "∀"       -> Forall
       "unsafe"  -> UnSafe
       "section" -> Section
+      "include" -> Include
       -- Identifier
       _         -> Id w
 
@@ -156,6 +157,7 @@ literal = located $ MP.choice
   , Integer <$> prefixed "0x" (Text.pack <$> MP.some hexadecimal)
   , Integer <$> prefixed "0o" (Text.pack <$> MP.some octal)
   , Integer . Text.pack <$> MP.some decimal
+  , Str . Text.pack <$> (MPC.char '"' *> MP.manyTill charLiteral (MPC.char '"'))
   , Char <$> MP.between (MPC.char '\'') (MPC.char '\'') charLiteral ]
  where
    charLiteral = escapeChar MP.<|> MP.satisfy (liftA2 (&&) (/= '\n') (/= '\r'))

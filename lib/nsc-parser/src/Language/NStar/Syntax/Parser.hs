@@ -30,6 +30,7 @@ import Console.NStar.Flags (ParserFlags(..))
 import Control.Monad.Writer (WriterT, runWriterT)
 import Data.Foldable (foldl')
 import Language.NStar.Syntax.Errors
+import Internal.Error (internalError)
 
 type Parser a = WriterT [ParseWarning] (MP.Parsec SemanticError [LToken]) a
 
@@ -58,7 +59,7 @@ parseFile file tokens = bimap (megaparsecBundleToDiagnostic "Parse error on inpu
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program
 parseProgram = lexeme (pure ()) *> (Program <$> MP.many section) <* parseEOF
-  where section = lexeme . located $ MP.choice [ MP.try parseCodeSection, parseDataSection ]
+  where section = lexeme . located $ MP.choice [ parseInclude, MP.try parseCodeSection, parseDataSection ]
 
 parseCodeSection :: (?parserFlags :: ParserFlags) => Parser Section
 parseCodeSection = CodeS <$> do
@@ -75,6 +76,14 @@ parseDataSection = DataS <$> do
                        <*> (lexeme parseType <* lexeme (parseSymbol Equal))
                        <*> (lexeme parseConstant)
 
+parseInclude :: (?parserFlags :: ParserFlags) => Parser Section
+parseInclude = IncludeS <$> do
+  lexeme (parseSymbol Include)
+  betweenBraces $ MP.many (fmap toText <$> parseString)
+  where
+    toText (Str s) = s
+    toText t       = internalError $ "Cannot get text of non string token " <> show t
+
 -- | Parses the end of file. There is no guarantee that any parser will try to parse something after the end of file.
 --   This has to be dealt with on our own. No more token should be available after consuming the end of file.
 parseEOF :: (?parserFlags :: ParserFlags) => Parser ()
@@ -88,6 +97,11 @@ parseIdentifier = MP.label "an identifier" $ lexeme do
  where
    isIdentifier (Id _ :@ _) = True
    isIdentifier (_ :@ _)    = False
+
+parseString :: (?parserFlags :: ParserFlags) => Parser LToken
+parseString = MP.label "a string" $ lexeme $ MP.satisfy isString
+  where isString (Str _ :@ _) = True
+        isString _            = False
 
 -- | Parses a symbol and returns it.
 parseSymbol :: (?parserFlags :: ParserFlags) => Token -> Parser LToken
