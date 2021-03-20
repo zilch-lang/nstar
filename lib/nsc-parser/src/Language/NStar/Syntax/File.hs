@@ -20,11 +20,11 @@ import System.Directory (doesFileExist, getCurrentDirectory)
 import Control.Monad.IO.Class (liftIO)
 import Data.ByteString (readFile, ByteString)
 import Data.Bifunctor (bimap, first, second)
-import Data.Located (Located((:@)), Position(..))
+import Data.Located (unLoc, Located((:@)), Position(..))
 import System.IO (stderr)
 import Data.IORef
 import System.FilePath.Posix ((</>))
-import Data.List (intercalate)
+import Data.List (union, intercalate)
 import Debug.Trace (trace)
 import Text.Diagnose.Report (Marker(This))
 
@@ -69,7 +69,10 @@ parseUnit includeGraph includeFiles path@(filePath :@ _) = do
         liftIO $ modifyIORef' includeGraph (first (`G.overlay` G.edge path f))
         checkCycles =<< liftIO (readIORef includeGraph)
 
-        parseUnit includeGraph includeFiles f
+        alreadyIncluded <- fmap fst <$> liftIO (readIORef includeFiles)
+        if unLoc f `elem` alreadyIncluded
+        then pure (Program [])
+        else parseUnit includeGraph includeFiles f
 
       pure $ mconcat (toSections <$> includedFiles)
     s                   -> pure [s]
