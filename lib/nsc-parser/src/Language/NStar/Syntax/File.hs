@@ -98,7 +98,7 @@ dfs :: [Located FilePath] -> G.AdjacencyMap (Located FilePath) -> Located FilePa
 dfs stack g root =
   forM_ (G.postSet root g) \ p -> do
     when (p `elem` stack) do
-      throwError (cyclicInclude $ reverse $ p:stack)
+      throwError (cyclicInclude $ dropWhile (/= p) $ reverse $ p:stack)
     dfs (p:stack) g p
 
 cyclicInclude :: [Located FilePath] -> Diagnostic [] String Char
