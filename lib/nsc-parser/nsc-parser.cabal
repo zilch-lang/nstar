@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d1674605b433eef4e03bb8f1e9878910e31709129d2b6d87b29bbe004791e3f3
+-- hash: 54018cb7f0ce8a6d2f8faac5b87c3da78709137a1684e2c079f9937bd9a45621
 
 name:           nsc-parser
 version:        2.0.0
@@ -13,6 +13,7 @@ build-type:     Simple
 library
   exposed-modules:
       Language.NStar.Syntax.Errors
+      Language.NStar.Syntax.File
       Language.NStar.Syntax.Hints
       Language.NStar.Syntax.Internal
       Language.NStar.Syntax.Lexer
@@ -24,11 +25,15 @@ library
   hs-source-dirs:
       src
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
-  ghc-options: -Wno-name-shadowing -Wall
+  ghc-options: -Wno-name-shadowing -Wall -g3
   build-depends:
-      base >=4.7 && <5
+      algebraic-graphs
+    , base >=4.7 && <5
+    , bytestring
     , containers >=0.6
     , diagnose
+    , directory
+    , filepath
     , megaparsec >=8.0
     , mtl
     , nsc-core

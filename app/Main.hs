@@ -10,7 +10,7 @@
 
 module Main (main) where
 
-import Language.NStar.Syntax (lexFile, parseFile, postProcessAST)
+import Language.NStar.Syntax (parseFile)
 import Language.NStar.Typechecker (typecheck)
 import Language.NStar.CodeGen (SupportedArch(..), compileToElf)
 -- ! Experimental; remove once tested
@@ -30,6 +30,7 @@ import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Except (runExceptT, liftEither)
 import System.Directory (createDirectoryIfMissing, getCurrentDirectory)
 import System.FilePath.Posix (joinPath)
+import Data.IORef
 
 main :: IO ()
 main = do
@@ -48,27 +49,30 @@ tryCompile flags file = do
       dumpAST = dump_ast (debugging flags)
       dumpTypedAST = dump_tast (debugging flags)
 
-  cwd <- getCurrentDirectory
-
   let ?lexerFlags  = LexerFlags {}
   let ?parserFlags = ParserFlags {}
   let ?tcFlags     = TypecheckerFlags {}
 
-  let fileContent = (file, lines $ Text.unpack content)
+  allFiles <- newIORef []
 
   result <- runExceptT do
+    {-
         (tks, lexWarnings)    <- liftEither $ lexFile file content
         liftIO (printDiagnostic withColor stderr (lexWarnings <~< fileContent))
         (ast, parseWarnings)  <- liftEither $ parseFile file tks
         liftIO (printDiagnostic withColor stderr (parseWarnings <~< fileContent))
         ast                   <- pure $ postProcessAST ast
+    -}
+        (files, res) <- liftIO (parseFile file)
+        liftIO $ writeIORef allFiles files
+        ast <- liftEither res
 
         when dumpAST do
           liftIO $ createDirectoryIfMissing True (joinPath [".nsc", "dump"])
           liftIO $ Prelude.writeFile (joinPath [".nsc", "dump", "ast.debug"]) (show $ prettyText ast)
 
         (tast, tcWarnings)    <- liftEither $ typecheck ast
-        liftIO (printDiagnostic withColor stderr (tcWarnings <~< fileContent))
+        liftIO (printDiagnostic withColor stderr (foldl (<~<) tcWarnings files))
 
         when dumpTypedAST do
           liftIO $ createDirectoryIfMissing True (joinPath [".nsc", "dump"])
@@ -77,7 +81,9 @@ tryCompile flags file = do
         pure tast
   case result of
     Left diag    -> do
-      printDiagnostic withColor stderr (diag <~< fileContent)
+      files <- readIORef allFiles
+
+      printDiagnostic withColor stderr (foldl (<~<) diag files)
       exitFailure
     Right p     -> do
       -- ! Experimental codegen
