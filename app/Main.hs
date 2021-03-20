@@ -43,8 +43,6 @@ main = do
 
 tryCompile :: Flags -> FilePath -> IO ()
 tryCompile flags file = do
-  content <- readFileUtf8 file
-
   let withColor = diagnostic_color (configuration flags)
       dumpAST = dump_ast (debugging flags)
       dumpTypedAST = dump_tast (debugging flags)
@@ -56,13 +54,6 @@ tryCompile flags file = do
   allFiles <- newIORef []
 
   result <- runExceptT do
-    {-
-        (tks, lexWarnings)    <- liftEither $ lexFile file content
-        liftIO (printDiagnostic withColor stderr (lexWarnings <~< fileContent))
-        (ast, parseWarnings)  <- liftEither $ parseFile file tks
-        liftIO (printDiagnostic withColor stderr (parseWarnings <~< fileContent))
-        ast                   <- pure $ postProcessAST ast
-    -}
         (files, res) <- liftIO (parseFile file)
         liftIO $ writeIORef allFiles files
         ast <- liftEither res
@@ -93,13 +84,3 @@ tryCompile flags file = do
       bytes <- compile @S64 LE elfObject   -- we want little endian as a test
       Elf.writeFile (output flags) bytes
       exitSuccess
-
--- | Strictly read a file into a 'ByteString'.
-readFile :: FilePath -> IO ByteString
-readFile = Data.ByteString.readFile
-
--- | Strictly read a file into a 'Text' using a UTF-8 character
--- encoding. In the event of a character encoding error, a Unicode
--- replacement character will be used (a.k.a., @lenientDecode@).
-readFileUtf8 :: FilePath -> IO Text
-readFileUtf8 = fmap decodeUtf8 . Main.readFile
