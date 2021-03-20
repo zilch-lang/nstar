@@ -117,7 +117,7 @@ anySymbol = located . MP.choice $ uncurry sat <$> symbols
 identifierOrKeyword :: (?lexerFlags :: LexerFlags) => Lexer LToken
 identifierOrKeyword = located do
   transform . Text.pack
-           <$> ((:) <$> MPC.letterChar
+           <$> ((:) <$> (MPC.letterChar MP.<|> MPC.char '_')
                     <*> MP.many (MPC.alphaNumChar MP.<|> MPC.char '_'))
  where
     transform :: Text -> Token
