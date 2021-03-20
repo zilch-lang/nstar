@@ -51,6 +51,8 @@ tryCompile flags file = do
   let ?parserFlags = ParserFlags {}
   let ?tcFlags     = TypecheckerFlags {}
 
+  let ?includePath = includePath flags
+
   allFiles <- newIORef []
 
   result <- runExceptT do
