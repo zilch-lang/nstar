@@ -1,0 +1,8 @@
+### x86-amd64 code driver
+
+section code {
+  main: forall(s: Ts, e: Tc).{| forall().{ %r0: u64 | s -> e }::s -> 0 }
+      = sld 0, %r5           # move the continuation from the stack to %r5
+      ; sfree                # free the old stack cell which contained the continuation
+      ; call _main<s, e>     # and call our main function
+}
