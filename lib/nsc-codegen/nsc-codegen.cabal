@@ -41,6 +41,7 @@ library
   hs-source-dirs:
       src
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
+  ghc-options: -Wall -Wextra
   build-depends:
       base >=4.7 && <5
     , binary

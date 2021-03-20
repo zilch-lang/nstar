@@ -3,6 +3,9 @@ version: !include "../../version.yaml"
 
 library:
   source-dirs: src
+  ghc-options:
+  - -Wall
+  - -Wextra
 
 default-extensions: !include "../../default-extensions.yaml"
 
