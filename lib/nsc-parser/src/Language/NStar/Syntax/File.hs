@@ -23,7 +23,7 @@ import Data.Bifunctor (bimap, first, second)
 import Data.Located (unLoc, Located((:@)), Position(..))
 import System.IO (stderr)
 import Data.IORef
-import System.FilePath.Posix ((</>))
+import System.FilePath.Posix ((</>), isValid)
 import Data.List (union, intercalate)
 import Debug.Trace (trace)
 import Text.Diagnose.Report (Marker(This))
@@ -37,7 +37,9 @@ parseFile file = do
   graph <- newIORef (G.empty, f)
   files <- newIORef []
 
-  (,) <$> readIORef files <*> runExceptT (parseUnit graph files f)
+  res <- runExceptT (parseUnit graph files f)
+  files <- readIORef files
+  pure (files, res)
 
 parseUnit :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags)
           => IORef (G.AdjacencyMap (Located FilePath), (Located FilePath))
@@ -48,7 +50,9 @@ parseUnit includeGraph includeFiles path@(filePath :@ _) = do
   cwd <- liftIO getCurrentDirectory
   fileExists <- liftIO $ doesFileExist (cwd </> filePath)
   when (not fileExists) do
-    throwError (unknownFile filePath)
+    throwError (unknownFile path)
+  when (not $ isValid filePath) do
+    throwError (invalidFilePath path)
 
   fileContent <- liftIO $ readFileUtf8 (cwd </> filePath)
   let content = (filePath, lines $ Text.unpack fileContent)
@@ -88,8 +92,11 @@ parseUnit includeGraph includeFiles path@(filePath :@ _) = do
 readFileUtf8 :: FilePath -> IO Text
 readFileUtf8 = fmap decodeUtf8 . Data.ByteString.readFile
 
-unknownFile :: FilePath -> Diagnostic [] String Char
-unknownFile f = diagnostic <++> reportError ("File not found: " <> f) [] []
+unknownFile :: Located FilePath -> Diagnostic [] String Char
+unknownFile (f :@ p) = diagnostic <++> reportError ("File not found: '" <> f <> "'") [ (p, This "") ] []
+
+invalidFilePath :: Located FilePath -> Diagnostic [] String Char
+invalidFilePath (f :@ p) = diagnostic <++> reportError ("Invalid file path '" <> f <> "'") [ (p, This "") ] []
 
 checkCycles :: (G.AdjacencyMap (Located FilePath), Located FilePath) -> CompUnit ()
 checkCycles (g, root) = dfs [root] g root
