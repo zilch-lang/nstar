@@ -22,7 +22,7 @@ import qualified Data.Set as Set
 import Data.Foldable (fold)
 import Data.Bifunctor (first, second)
 import Control.Monad (join)
-import Data.List (intercalate)
+import Data.List (intercalate, union)
 
 extractFlags :: IO Flags
 extractFlags = customExecParser preferences opts
@@ -37,6 +37,7 @@ cli = do
     <*> outputFlag
     <*> (mconcat <$> many config)
     <*> (mconcat <$> many debug)
+    <*> (union ["."] <$> many include)
   pure f
 
 config :: Parser ConfigurationFlags
@@ -56,6 +57,8 @@ configOptions = subparser $ commandGroup "Available configuration (option -f):" 
   where
     noop = info (option (readerError "This should never be printed!") idm)
 
+include :: Parser FilePath
+include = strOption (short 'I' <> metavar "PATH" <> help "Adds a PATH to the include path")
 
 debug :: Parser DebugFlags
 debug = do
