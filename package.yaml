@@ -29,6 +29,20 @@ dependencies:
 library:
   source-dirs: src
 
+ghc-options:
+- -Wall
+
+when:
+  - condition: flag(debug)
+    ghc-options:
+    - -g3
+
+flags:
+  debug:
+    description: "Enable/disable compiling with debugging symbols"
+    manual: true
+    default: false
+
 default-extensions: !include "default-extensions.yaml"
 
 executables:

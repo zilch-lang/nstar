@@ -19,6 +19,8 @@ library:
 
   when:
   - condition: flag(debug)
+    ghc-options:
+    - -g3
     cc-options:
     - -g3
 

@@ -22,6 +22,11 @@ source-repository head
   type: git
   location: https://github.com/mesabloo/n-star
 
+flag debug
+  description: Enable/disable compiling with debugging symbols
+  manual: True
+  default: False
+
 library
   exposed-modules:
       Language.NStar.CodeGen
@@ -33,6 +38,7 @@ library
   hs-source-dirs:
       src
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
+  ghc-options: -Wall
   build-depends:
       base >=4.7 && <5
     , diagnose
@@ -41,6 +47,8 @@ library
     , nsc-core
     , nsc-parser
     , nsc-typechecker
+  if flag(debug)
+    ghc-options: -g3
   default-language: Haskell2010
 
 executable nsc
@@ -50,7 +58,7 @@ executable nsc
   hs-source-dirs:
       app
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring
@@ -66,6 +74,8 @@ executable nsc
     , nsc-parser
     , nsc-typechecker
     , text
+  if flag(debug)
+    ghc-options: -g3
   default-language: Haskell2010
 
 test-suite nsc-tests
@@ -76,7 +86,7 @@ test-suite nsc-tests
   hs-source-dirs:
       test
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Glob
     , base >=4.7 && <5
@@ -92,4 +102,6 @@ test-suite nsc-tests
     , nsc-typechecker
     , spoon
     , text
+  if flag(debug)
+    ghc-options: -g3
   default-language: Haskell2010
