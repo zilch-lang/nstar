@@ -16,6 +16,9 @@ library:
   cc-options:
   - -Wall
   - -Wextra
+  ghc-options:
+  - -Wall
+  - -Wextra
 
   when:
   - condition: flag(debug)
