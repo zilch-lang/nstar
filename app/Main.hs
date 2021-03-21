@@ -17,18 +17,13 @@ import Language.NStar.CodeGen (SupportedArch(..), compileToElf)
 import Data.Elf as Elf (compile, Size(..), Endianness(..), writeFile)
 -- ! end
 import Text.Diagnose (printDiagnostic, (<~<), prettyText)
-import System.IO (stderr, stdout)
-import Data.Text (Text)
-import qualified Data.Text as Text (unpack)
-import Data.Text.Encoding (decodeUtf8)
-import System.IO (utf8, hSetEncoding, hGetContents)
+import System.IO (stderr)
 import Console.NStar.Flags
 import Control.Monad (forM_, when)
 import System.Exit (exitFailure, exitSuccess)
-import Data.ByteString (readFile, ByteString)
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Except (runExceptT, liftEither)
-import System.Directory (createDirectoryIfMissing, getCurrentDirectory)
+import System.Directory (createDirectoryIfMissing)
 import System.FilePath.Posix (joinPath)
 import Data.IORef
 
@@ -83,6 +78,6 @@ tryCompile flags file = do
       --   For now, only write ELF output in a file named "test.o".
 
       let elfObject = compileToElf X64 p
-      bytes <- compile @S64 LE elfObject   -- we want little endian as a test
+      bytes <- compile @'S64 LE elfObject   -- we want little endian as a test
       Elf.writeFile (output flags) bytes
       exitSuccess

@@ -38,7 +38,7 @@ library
   hs-source-dirs:
       src
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
-  ghc-options: -Wall
+  ghc-options: -Wall -Wextra
   build-depends:
       base >=4.7 && <5
     , diagnose
@@ -58,7 +58,7 @@ executable nsc
   hs-source-dirs:
       app
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wextra -threaded -rtsopts -with-rtsopts=-N -Wall -Wextra
   build-depends:
       base >=4.7 && <5
     , bytestring
@@ -86,7 +86,7 @@ test-suite nsc-tests
   hs-source-dirs:
       test
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wextra -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Glob
     , base >=4.7 && <5

@@ -31,6 +31,7 @@ library:
 
 ghc-options:
 - -Wall
+- -Wextra
 
 when:
   - condition: flag(debug)
@@ -53,6 +54,8 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
+    - -Wextra
     dependencies:
     - nsc-lib
     - nsc-flags
