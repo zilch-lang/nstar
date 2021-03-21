@@ -10,7 +10,7 @@
 
 module Main (main) where
 
-import Language.NStar.Syntax (parseFile)
+import Language.NStar.Syntax (Section(IncludeS), Program(Program), parseAST)
 import Language.NStar.Typechecker (typecheck)
 import Language.NStar.CodeGen (SupportedArch(..), compileToElf)
 -- ! Experimental; remove once tested
@@ -19,25 +19,27 @@ import Data.Elf as Elf (compile, Size(..), Endianness(..), writeFile)
 import Text.Diagnose (printDiagnostic, (<~<), prettyText)
 import System.IO (stderr)
 import Console.NStar.Flags
-import Control.Monad (forM_, when)
+import Control.Monad (when)
 import System.Exit (exitFailure, exitSuccess)
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Except (runExceptT, liftEither)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath.Posix (joinPath)
 import Data.IORef
+import Data.Located
+import qualified Data.Text as Text
 
 main :: IO ()
 main = do
   flags <- extractFlags
   -- print flags
 
-  forM_ (files flags) (tryCompile flags)
+  tryCompile flags (files flags)
 
 ------------------------------------------------------------------------------------------------
 
-tryCompile :: Flags -> FilePath -> IO ()
-tryCompile flags file = do
+tryCompile :: Flags -> [FilePath] -> IO ()
+tryCompile flags files = do
   let withColor = diagnostic_color (configuration flags)
       dumpAST = dump_ast (debugging flags)
       dumpTypedAST = dump_tast (debugging flags)
@@ -50,8 +52,12 @@ tryCompile flags file = do
 
   allFiles <- newIORef []
 
+  let dummyPos = Position (0, 0) (0, 0) "<command-line>"
+      file = "command-line" :@ dummyPos
+      program = Program [IncludeS ((:@ dummyPos) . Text.pack <$> files) :@ dummyPos]
+
   result <- runExceptT do
-        (files, res) <- liftIO (parseFile file)
+        (files, res) <- liftIO (parseAST file program)
         liftIO $ writeIORef allFiles files
         ast <- liftEither res
 

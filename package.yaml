@@ -32,6 +32,7 @@ library:
 ghc-options:
 - -Wall
 - -Wextra
+- -Wno-name-shadowing
 
 when:
   - condition: flag(debug)
@@ -54,8 +55,6 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    - -Wall
-    - -Wextra
     dependencies:
     - nsc-lib
     - nsc-flags

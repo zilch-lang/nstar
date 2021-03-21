@@ -1,7 +1,7 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TupleSections #-}
 
-module Language.NStar.Syntax.File (parseFile) where
+module Language.NStar.Syntax.File (parseFile, parseAST) where
 
 import Language.NStar.Syntax.Lexer
 import qualified Language.NStar.Syntax.Parser as P
@@ -45,6 +45,21 @@ parseFile file = do
   files <- readIORef files
   pure (files, res)
 
+parseAST :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
+         => Located FilePath -> Program -> IO ([(FilePath, [String])], Either (Diagnostic [] String Char) Program)
+parseAST f prog = do
+  files <- newIORef []
+
+  includePath <- mapM canonicalizePath ?includePath
+  let includePath_ = head <$> groupBy equalFilePath includePath
+  includePath <- mapM makeRelativeToCurrentDirectory includePath_
+  let ?includePath = includePath
+
+  res <- runExceptT (processUnitAST G.empty files f prog)
+  files <- readIORef files
+  pure (files, res)
+
+
 parseUnit :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
           => G.AdjacencyMap (Located FilePath)
           -> IORef [(FilePath, [String])]
@@ -71,6 +86,15 @@ parseUnit includeGraph includeFiles path@(filePath :@ p) = do
   (ast, warns) <- liftEither $ P.parseFile filePath tokens
   liftIO $ printDiagnostic True stderr (warns <~< content)
 
+  processUnitAST includeGraph includeFiles path ast
+
+processUnitAST :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
+               => G.AdjacencyMap (Located FilePath)
+               -> IORef [(FilePath, [String])]
+               -> Located FilePath
+               -> Program
+               -> CompUnit Program
+processUnitAST includeGraph includeFiles path ast = do
   let Program sections = ast
   newSections <- mconcat <$> forM sections \ case
     IncludeS files :@ _ -> do
