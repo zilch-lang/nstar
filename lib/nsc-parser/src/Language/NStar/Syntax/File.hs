@@ -131,7 +131,6 @@ checkCycles (g, root) = dfs [root] g root
 dfs :: [Located FilePath] -> G.AdjacencyMap (Located FilePath) -> Located FilePath -> CompUnit ()
 dfs stack g root =
   forM_ (G.postSet root g) \ p -> do
-    --trace ("Visiting " <> show p) $ pure ()
     when (p `elem` stack) do
       throwError (cyclicInclude $ dropWhile (/= p) $ reverse $ p:stack)
     dfs (p:stack) g p
