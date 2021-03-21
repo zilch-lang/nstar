@@ -35,7 +35,6 @@ parseFile :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePa
 parseFile file = do
   let f = file :@ Position (0, 0) (0, 0) "command-line"
 
-  graph <- newIORef (G.empty, f)
   files <- newIORef []
 
   includePath <- mapM canonicalizePath ?includePath
@@ -43,12 +42,12 @@ parseFile file = do
   includePath <- mapM makeRelativeToCurrentDirectory includePath_
   let ?includePath = includePath
 
-  res <- runExceptT (parseUnit graph files f)
+  res <- runExceptT (parseUnit G.empty files f)
   files <- readIORef files
   pure (files, res)
 
 parseUnit :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
-          => IORef (G.AdjacencyMap (Located FilePath), (Located FilePath))
+          => G.AdjacencyMap (Located FilePath)
           -> IORef [(FilePath, [String])]
           -> Located FilePath
           -> CompUnit Program
@@ -76,18 +75,17 @@ parseUnit includeGraph includeFiles path@(filePath :@ p) = do
   let Program sections = ast
   newSections <- mconcat <$> forM sections \ case
     IncludeS files :@ _ -> do
-      includedFiles <- forM files \ newFile -> do
+      (includedFiles, includeGraph) <- second G.overlays . unzip <$> forM files \ newFile -> do
         let f = Text.unpack <$> newFile
+        pure (f, includeGraph `G.overlay` G.edge path f)
 
-        liftIO $ modifyIORef' includeGraph (first (`G.overlay` G.edge (filePath :@ p) f))
-        checkCycles =<< liftIO (readIORef includeGraph)
+      checkCycles (includeGraph, path)
 
+      mconcat . fmap toSections <$> forM includedFiles \ f -> do
         alreadyIncluded <- fmap fst <$> liftIO (readIORef includeFiles)
         if unLoc f `elem` alreadyIncluded
         then pure (Program [])
         else parseUnit includeGraph includeFiles f
-
-      pure $ mconcat (toSections <$> includedFiles)
     s                   -> pure [s]
 
   pure (postProcessAST $ Program newSections)
@@ -133,6 +131,7 @@ checkCycles (g, root) = dfs [root] g root
 dfs :: [Located FilePath] -> G.AdjacencyMap (Located FilePath) -> Located FilePath -> CompUnit ()
 dfs stack g root =
   forM_ (G.postSet root g) \ p -> do
+    --trace ("Visiting " <> show p) $ pure ()
     when (p `elem` stack) do
       throwError (cyclicInclude $ dropWhile (/= p) $ reverse $ p:stack)
     dfs (p:stack) g p
