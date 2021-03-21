@@ -151,16 +151,16 @@ void fix_header_count_and_offsets(elf_object const *obj, Elf64_Object *target)
 
 void fix_header_shstrtab_index(elf_object const *obj, Elf64_Object *target)
 {
-    Elf64_Half shstrtab_index = find_section_index_by_name(obj->sections, obj->sections_len, ".shstrtab");
+    int shstrtab_index = find_section_index_by_name(obj->sections, obj->sections_len, ".shstrtab");
 
     assert(shstrtab_index != -1);
 
-    target->file_header->e_shstrndx = shstrtab_index;
+    target->file_header->e_shstrndx = (Elf64_Half) shstrtab_index;
 }
 
 void fix_symtab_strtab_index(elf_object const *obj, Elf64_Object *target)
 {
-    Elf64_Word strtab_index, symtab_index;
+    int strtab_index, symtab_index;
 
     strtab_index = find_section_index_by_name(obj->sections, obj->sections_len, ".strtab");
     symtab_index = find_section_index_by_name(obj->sections, obj->sections_len, ".symtab");
@@ -168,7 +168,7 @@ void fix_symtab_strtab_index(elf_object const *obj, Elf64_Object *target)
     assert(strtab_index != -1);
     assert(symtab_index != -1);
 
-    target->section_headers[symtab_index]->sh_link = strtab_index;
+    target->section_headers[(size_t) symtab_index]->sh_link = (Elf64_Word) strtab_index;
 }
 
 void fix_section_names(elf_object const *obj, Elf64_Object *target)
@@ -290,13 +290,13 @@ void fix_symbol_names_and_sections(elf_object const *obj, Elf64_Object *target)
     if (text_index == -1) text_index = STN_UNDEF;
     if (data_index == -1) data_index = STN_UNDEF;
 
-    int number_of_strings = 0;
-    for (int i = 0; i < strtab->data.s_strtab.strings_len; ++i) number_of_strings += (strtab->data.s_strtab.strings[i] == '\0');
+    size_t number_of_strings = 0;
+    for (size_t i = 0; i < strtab->data.s_strtab.strings_len; ++i) number_of_strings += (strtab->data.s_strtab.strings[i] == '\0');
     char const **strings = malloc(sizeof(char const *) * ++number_of_strings);
     assert(strings != NULL);
 
     strings[0] = strtab->data.s_strtab.strings;
-    for (int i = 1, j = 0; i < number_of_strings && j < strtab->data.s_strtab.strings_len; ++j)
+    for (size_t i = 1, j = 0; i < number_of_strings && j < strtab->data.s_strtab.strings_len; ++j)
     {
         if (strtab->data.s_strtab.strings[j] == '\0') strings[i++] = strtab->data.s_strtab.strings + j + 1;
     }
@@ -306,7 +306,7 @@ void fix_symbol_names_and_sections(elf_object const *obj, Elf64_Object *target)
         elf_symbol const *s = symtab->data.s_symtab.symbols[i];
         Elf64_Sym *sym = target->symbols[i];
         int string_index = -1;
-        for (int i = 0; i < number_of_strings && string_index == -1; ++i)
+        for (size_t i = 0; i < number_of_strings && string_index == -1; ++i)
         {
             if (strcmp(strings[i], s->name) == 0) string_index = strings[i] - strtab->data.s_strtab.strings;
         }
@@ -353,8 +353,8 @@ void fix_symbol_values(elf_object const *obj, Elf64_Object *target)
     //              => we then have a correct way of identifying which symbol appeared first in the section
     //              => which means we can implement the strategy above
 
-    int data_sym_count = 0;
-    int text_sym_count = 0;
+    size_t data_sym_count = 0;
+    size_t text_sym_count = 0;
 
     for (unsigned int i = 0; i < target->symbols_len; ++i)
     {

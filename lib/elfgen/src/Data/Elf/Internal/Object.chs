@@ -9,14 +9,12 @@ import Data.Elf.Internal.ProgramHeader
 import Data.Elf.Internal.SectionHeader
 import Data.Elf.Internal.Symbol
 import Data.Word (Word8)
-import GHC.TypeNats (Nat)
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.Elf.Internal.Serialize (Serializable(..))
 import Foreign.Ptr (Ptr, castPtr)
 import Foreign.C.Types (CUChar, CULong)
 import Foreign.Storable (Storable(..))
 import Foreign.Marshal.Array (peekArray)
-import Debug.Trace (trace, traceShow)
 
 #include "object.h"
 
@@ -57,7 +55,7 @@ data C_Object (n :: Size)
       CULong
       CULong
 
-instance Storable (C_Object S64) where
+instance Storable (C_Object 'S64) where
   sizeOf _ = {#sizeof Elf64_Object#}
   alignment _ = {#alignof Elf64_Object#}
   peek ptr = do

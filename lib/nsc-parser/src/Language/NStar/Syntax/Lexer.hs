@@ -25,7 +25,7 @@ import qualified Data.Text as Text (pack, toLower)
 import Data.Char (isSpace)
 import Data.Function ((&))
 import Text.Diagnose (Diagnostic, diagnostic, (<++>))
-import Data.Bifunctor (first, second, bimap)
+import Data.Bifunctor (second, bimap)
 import Control.Applicative (liftA2)
 import Console.NStar.Flags (LexerFlags(..))
 import Control.Monad.Writer (WriterT, runWriterT)
@@ -46,10 +46,6 @@ lexeme = MPL.lexeme space
 -- | @symbol str@ tries to parse @str@ exactly, and discards spaces after.
 symbol :: (?lexerFlags :: LexerFlags) => Text -> Lexer Text
 symbol = MPL.symbol space
-
--- | Case insensitive variant of 'symbol'.
-symbol' :: (?lexerFlags :: LexerFlags) => Text -> Lexer Text
-symbol' = MPL.symbol' space
 
 ---------------------------------------------------------------------------------------------------------------------------
 

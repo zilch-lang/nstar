@@ -22,7 +22,6 @@ library
       Language.NStar.CodeGen.Machine.Internal.X64.REX
       Language.NStar.CodeGen.Machine.Internal.X64.SIB
       Language.NStar.CodeGen.Machine.X64
-      Language.NStar.CodeGen.Machine.X64.Add
       Language.NStar.CodeGen.Machine.X64.Expression
       Language.NStar.CodeGen.Machine.X64.Jmp
       Language.NStar.CodeGen.Machine.X64.Ld
@@ -33,7 +32,6 @@ library
       Language.NStar.CodeGen.Machine.X64.Sld
       Language.NStar.CodeGen.Machine.X64.Sst
       Language.NStar.CodeGen.Machine.X64.St
-      Language.NStar.CodeGen.Machine.X64.Sub
       Language.NStar.CodeGen.PreProcessor
       Language.NStar.CodeGen.PreProcessor.X64
   other-modules:
@@ -41,7 +39,7 @@ library
   hs-source-dirs:
       src
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
-  ghc-options: -Wall -Wextra
+  ghc-options: -Wall -Wextra -Wno-name-shadowing -Wno-unused-matches -Wno-overlapping-patterns
   build-depends:
       base >=4.7 && <5
     , binary

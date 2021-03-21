@@ -12,18 +12,17 @@ import Data.Bits ((.|.))
 import Language.NStar.CodeGen.Arch (SupportedArch(..))
 import Language.NStar.Typechecker.Core (TypedProgram)
 import Language.NStar.CodeGen.Compiler (MachineInfo(..), SymbolType'(..), DataTable(..), RelocType'(..))
-import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as Text (unpack)
 import Data.Maybe (mapMaybe)
 import Data.Functor ((<&>))
-import Data.List (sort)
+import Internal.Error (internalError)
 
 class CompileToElf (n :: Size) where
   compileToElf :: SupportedArch -> TypedProgram -> ElfObject n
 
-instance CompileToElf S64 where
+instance CompileToElf 'S64 where
   compileToElf arch prog =
     let MInfo opcodes syms (DataTable dataLabels dataSect) relocs = compile arch prog
         relaTextSect = generateRelocationEntries (dataLabels <> fmap indexFromFunction syms) relocs
@@ -35,11 +34,12 @@ instance CompileToElf S64 where
         , SProgBits ".data" dataSect (shf_alloc .|. shf_write)
         , SNoBits ".bss" 0 (shf_alloc .|. shf_write)
         , SRela ".rela.text" relaTextSect
-        , SSymTab ".symtab" (generateSymbolTableFrom @S64 syms <> generateDataSymbols @S64 dataLabels) ]
+        , SSymTab ".symtab" (generateSymbolTableFrom @'S64 syms <> generateDataSymbols @'S64 dataLabels) ]
 
 
 indexFromFunction :: (Text, SymbolType') -> (Text, Integer)
 indexFromFunction (n, Function i) = (n, i)
+indexFromFunction _ = internalError $ "Unreachable pattern 'indexFromFunction s'"
 
 generateSymbolTableFrom :: forall (n :: Size). [(Text, SymbolType')] -> [ElfSymbol n]
 generateSymbolTableFrom = fmap \ (k, l) ->

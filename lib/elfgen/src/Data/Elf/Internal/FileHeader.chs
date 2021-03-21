@@ -5,6 +5,8 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 
+{-# OPTIONS_GHC -Wno-duplicate-exports #-}
+
 module Data.Elf.Internal.FileHeader
 ( Elf_Ehdr(..)
   -- * @'e_ident'@
@@ -44,7 +46,6 @@ module Data.Elf.Internal.FileHeader
 
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))
-import GHC.TypeNats (Nat)
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.Elf.Internal.Serialize (Serializable(..))
 import Foreign.Marshal.Array (peekArray, newArray)
@@ -68,7 +69,7 @@ data Elf_Ehdr n = Elf_Ehdr
   , e_shstrndx  :: !(Elf_Half n)    -- ^ Section header string table index
   }
 
-instance Storable (Elf_Ehdr S64) where
+instance Storable (Elf_Ehdr 'S64) where
   sizeOf _ = {#sizeof Elf64_Ehdr#}
   alignment _ = {#alignof Elf64_Ehdr#}
   peek ptr =
@@ -102,22 +103,22 @@ instance Storable (Elf_Ehdr S64) where
     {#set struct Elf64_Ehdr->e_shnum#} ptr (fromIntegral e_shnum)
     {#set struct Elf64_Ehdr->e_shstrndx#} ptr (fromIntegral e_shstrndx)
 
-instance Serializable S64 e (Elf_Ehdr S64) where
+instance Serializable 'S64 e (Elf_Ehdr 'S64) where
   put e Elf_Ehdr{..} = do
-    put @S64 e e_ident
-    put @S64 e e_type
-    put @S64 e e_machine
-    put @S64 e e_version
-    put @S64 e e_entry
-    put @S64 e e_phoff
-    put @S64 e e_shoff
-    put @S64 e e_flags
-    put @S64 e e_ehsize
-    put @S64 e e_phentsize
-    put @S64 e e_phnum
-    put @S64 e e_shentsize
-    put @S64 e e_shnum
-    put @S64 e e_shstrndx
+    put @'S64 e e_ident
+    put @'S64 e e_type
+    put @'S64 e e_machine
+    put @'S64 e e_version
+    put @'S64 e e_entry
+    put @'S64 e e_phoff
+    put @'S64 e e_shoff
+    put @'S64 e e_flags
+    put @'S64 e e_ehsize
+    put @'S64 e e_phentsize
+    put @'S64 e e_phnum
+    put @'S64 e e_shentsize
+    put @'S64 e e_shnum
+    put @'S64 e e_shstrndx
 
 -- Versions
 

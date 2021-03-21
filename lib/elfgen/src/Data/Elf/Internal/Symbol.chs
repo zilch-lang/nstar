@@ -36,7 +36,7 @@ data Elf_Sym (n :: Size)
   , st_size   :: Elf_Xword n     -- ^ Symbol size
   }
 
-instance Storable (Elf_Sym S64) where
+instance Storable (Elf_Sym 'S64) where
   sizeOf _ = {#sizeof Elf64_Sym#}
   alignment _ = {#alignof Elf64_Sym#}
   peek ptr =
@@ -54,14 +54,14 @@ instance Storable (Elf_Sym S64) where
     {#set struct Elf64_Sym->st_value#} ptr (fromIntegral st_value)
     {#set struct Elf64_Sym->st_size#} ptr (fromIntegral st_size)
 
-instance Serializable S64 e (Elf_Sym S64) where
+instance Serializable 'S64 e (Elf_Sym 'S64) where
   put e Elf_Sym{..} = do
-    put @S64 e st_name
-    put @S64 e st_info
-    put @S64 e st_other
-    put @S64 e st_shndx
-    put @S64 e st_value
-    put @S64 e st_size
+    put @'S64 e st_name
+    put @'S64 e st_info
+    put @'S64 e st_other
+    put @'S64 e st_shndx
+    put @'S64 e st_value
+    put @'S64 e st_size
 
 -- Symbol binding type
 
@@ -116,7 +116,7 @@ data Elf_Rela (n :: Size)
   , r_addend :: Elf_Rel_Addend n    -- ^ Addend
   }
 
-instance Storable (Elf_Rela S64) where
+instance Storable (Elf_Rela 'S64) where
   sizeOf _ = {#sizeof Elf64_Rela#}
   alignment _ = {#alignof Elf64_Rela#}
   peek ptr =
@@ -128,11 +128,11 @@ instance Storable (Elf_Rela S64) where
     {#set struct Elf64_Rela->r_info#} ptr (fromIntegral r_info)
     {#set struct Elf64_Rela->r_addend#} ptr (fromIntegral r_addend)
 
-instance Serializable S64 e (Elf_Rela S64) where
+instance Serializable 'S64 e (Elf_Rela 'S64) where
   put e Elf_Rela{..} = do
-    put @S64 e r_offset
-    put @S64 e r_info
-    put @S64 e r_addend
+    put @'S64 e r_offset
+    put @'S64 e r_info
+    put @'S64 e r_addend
 
 -------- AMD x86-64 relocations
 -- | No reloc

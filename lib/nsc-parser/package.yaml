@@ -21,6 +21,8 @@ dependencies:
 - filepath
 
 ghc-options:
-- -Wno-name-shadowing
 - -Wall
+- -Wextra
 - -g3
+- -Wno-unused-matches
+- -Wno-name-shadowing

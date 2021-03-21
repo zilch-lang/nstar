@@ -19,6 +19,8 @@ library:
   ghc-options:
   - -Wall
   - -Wextra
+  - -Wno-name-shadowing
+  - -Wno-unused-matches
 
   when:
   - condition: flag(debug)

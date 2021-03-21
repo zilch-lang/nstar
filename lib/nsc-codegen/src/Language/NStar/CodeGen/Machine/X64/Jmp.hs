@@ -8,10 +8,9 @@ compileJmp
 
 import Language.NStar.Syntax.Core (Expr(..))
 import Language.NStar.CodeGen.Compiler (Compiler)
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
 import Data.Located (unLoc)
 import Internal.Error (internalError)
-import Data.Text (Text)
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
 import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
 

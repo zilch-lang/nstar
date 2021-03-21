@@ -10,26 +10,24 @@ import Language.NStar.Typechecker.TC
 import Language.NStar.Typechecker.Free
 import Language.NStar.Typechecker.Subst
 import Language.NStar.Typechecker.Core
-import Language.NStar.Syntax.Core (Expr(..), Immediate(..), Constant(..))
+import Language.NStar.Syntax.Core (Immediate(..), Constant(..))
 import qualified Language.NStar.Typechecker.Core as TC (TypedInstruction(..))
 import Data.Located (Located(..), unLoc, getPos, Position)
 import qualified Data.Map as Map
 import Control.Monad.State (gets)
-import Control.Monad.Except (liftEither, throwError, catchError)
+import Control.Monad.Except (liftEither, throwError)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Data.Maybe (fromJust)
-import Data.Foldable (foldrM, fold, foldlM)
+import Data.Foldable (fold, foldlM)
 import Console.NStar.Flags (TypecheckerFlags(..))
 import Internal.Error (internalError)
 import qualified Language.NStar.Typechecker.Env as Env (lookup)
 import Control.Monad (forM)
 import Data.Bifunctor (first)
 import Language.NStar.Typechecker.Kinds (sizeof, unifyKinds, kindcheckType, runKindchecker, requireSized)
-import Control.Monad (forM_, when, guard)
+import Control.Monad (forM_, when)
 import Data.Functor ((<&>))
-import Debug.Trace (trace, traceShow)
 import Control.Applicative ((<|>))
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker TC.TypedInstruction
@@ -392,6 +390,7 @@ tc_ld (ptr :@ p1) (RegE r :@ p2) unsafe p3 = do
   case ptrOffset of
     ByteOffsetE offset pointer :@ _ -> pure (TC.LD offset pointer r)
     _ -> internalError $ "Invalid 'ld' source " <> show ptrOffset
+tc_ld ptr r unsafe p3 = internalError $ "Invalid 'ld' destination " <> show r
 
 tc_st :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Bool -> Position -> Typechecker TC.TypedInstruction
 tc_st (src :@ p1) (ptr :@ p2) unsafe p3 = do
@@ -589,6 +588,7 @@ typecheckExpr (BaseOffsetE ptr off) p unsafe = do
       m <- liftEither $ first FromReport $ runKindchecker do
         sizeof =<< kindcheckType g (apply sub t)
       pure (ImmE (I (o * m) :@ p))
+    o -> internalError $ "Invalid pointer offset " <> show o
 
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
   pure (ty2, ByteOffsetE (off2 :@ getPos off) ptr :@ p)

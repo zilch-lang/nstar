@@ -6,32 +6,18 @@ module Language.NStar.CodeGen.Machine.X64 (compileX64) where
 import Language.NStar.CodeGen.Compiler
 import Language.NStar.Syntax.Core hiding (Label, Instruction(..))
 import Language.NStar.Typechecker.Core
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
-import Language.NStar.CodeGen.Machine.Internal.X64.SIB
-import Language.NStar.CodeGen.Machine.Internal.X64.ModRM
-import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
 import Data.Located (unLoc, Located(..))
-import Language.NStar.CodeGen.Errors
-import Control.Monad.Except (throwError)
 import Internal.Error (internalError)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Word (Word8)
-import Data.Bits ((.&.), shiftR)
 import Control.Monad.Writer (tell)
 import Data.Text (Text)
-import Data.Binary.Put
-import qualified Data.ByteString.Lazy as BS (unpack)
-import Data.Char (ord)
-import Data.Bits ((.&.), (.|.), shiftL)
-import Debug.Trace (traceShow)
 import Data.Bifunctor (second)
 import Data.Elf (RelocationType(..))
 import Language.NStar.CodeGen.Machine.X64.Jmp (compileJmp)
 import Language.NStar.CodeGen.Machine.X64.Nop (compileNop)
 import Language.NStar.CodeGen.Machine.X64.Mv (compileMv)
-import Language.NStar.CodeGen.Machine.X64.Add (compileAdd)
-import Language.NStar.CodeGen.Machine.X64.Sub (compileSub)
 import Language.NStar.CodeGen.Machine.X64.Expression (int32, int64, compileConstantX64)
 import Language.NStar.CodeGen.Machine.X64.Salloc (compileSalloc)
 import Language.NStar.CodeGen.Machine.X64.Sfree (compileSfree)

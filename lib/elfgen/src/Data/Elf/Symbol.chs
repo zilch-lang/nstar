@@ -16,10 +16,9 @@ module Data.Elf.Symbol
 , newRelocationSymbol, peekRelocationSymbol, freeRelocationSymbol
 ) where
 
-import Data.Elf.Types
 import Data.Elf.Internal.BusSize (Size)
 import Foreign.C.String (CString, newCString, peekCString)
-import Foreign.C.Types (CULong, CInt)
+import Foreign.C.Types (CULong)
 import Foreign.Storable (Storable(..))
 import Foreign.Ptr (Ptr, castPtr)
 import Foreign.Marshal.Alloc (malloc, free)

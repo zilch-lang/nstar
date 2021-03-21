@@ -13,7 +13,6 @@ module Data.Elf.Internal.ProgramHeader
 
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))
-import GHC.TypeNats (Nat)
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.Elf.Internal.Serialize (Serializable(..))
 
@@ -31,7 +30,7 @@ data Elf_Phdr n = Elf_Phdr
   , p_align   :: !(Elf_Xword n)   -- ^ Segment alignment
   }
 
-instance Storable (Elf_Phdr S64) where
+instance Storable (Elf_Phdr 'S64) where
   sizeOf _ = {#sizeof Elf64_Phdr#}
   alignment _ = {#alignof Elf64_Phdr#}
   peek ptr =
@@ -53,16 +52,16 @@ instance Storable (Elf_Phdr S64) where
     {#set struct Elf64_Phdr->p_memsz#} ptr (fromIntegral p_memsz)
     {#set struct Elf64_Phdr->p_align#} ptr (fromIntegral p_align)
 
-instance Serializable S64 e (Elf_Phdr S64) where
+instance Serializable 'S64 e (Elf_Phdr 'S64) where
   put e Elf_Phdr{..} = do
-    put @S64 e p_type
-    put @S64 e p_flags
-    put @S64 e p_offset
-    put @S64 e p_vaddr
-    put @S64 e p_paddr
-    put @S64 e p_filesz
-    put @S64 e p_memsz
-    put @S64 e p_align
+    put @'S64 e p_type
+    put @'S64 e p_flags
+    put @'S64 e p_offset
+    put @'S64 e p_vaddr
+    put @'S64 e p_paddr
+    put @'S64 e p_filesz
+    put @'S64 e p_memsz
+    put @'S64 e p_align
 
 -- Segment types
 

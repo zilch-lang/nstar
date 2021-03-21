@@ -7,7 +7,7 @@ compileNop
 ) where
 
 import Language.NStar.CodeGen.Compiler (Compiler)
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
 
 {- $encoding
 

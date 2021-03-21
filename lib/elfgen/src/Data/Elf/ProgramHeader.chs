@@ -10,13 +10,11 @@ module Data.Elf.ProgramHeader
 , peekProgramHeader, newProgramHeader, freeProgramHeader
 ) where
 
-import Data.Elf.Types
 import Data.Elf.ProgramHeader.Flags
 import Data.Elf.Internal.BusSize (Size)
 import Data.Word (Word8, Word32)
 import Foreign.Storable (Storable(..))
 import Foreign.Ptr (Ptr, castPtr)
-import Foreign.C.Types (CChar)
 import Foreign.C.String (CString, peekCString, newCString)
 import Foreign.Marshal.Array (peekArray, newArray)
 import Foreign.Marshal.Alloc (malloc, free)

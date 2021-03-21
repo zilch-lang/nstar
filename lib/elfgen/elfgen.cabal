@@ -41,7 +41,7 @@ library
       src
       cbits
   default-extensions: LambdaCase BinaryLiterals BlockArguments TypeApplications DataKinds FlexibleInstances MultiParamTypeClasses ScopedTypeVariables TypeFamilies FlexibleContexts UndecidableInstances StandaloneDeriving AllowAmbiguousTypes
-  ghc-options: -Wall -Wextra
+  ghc-options: -Wall -Wextra -Wno-name-shadowing -Wno-unused-matches
   cc-options: -Wall -Wextra
   include-dirs:
       cbits/include

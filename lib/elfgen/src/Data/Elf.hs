@@ -32,6 +32,5 @@ import Data.Elf.FileHeader
 import Data.Elf.SectionHeader
 import Data.Elf.ProgramHeader
 import Data.Elf.Object
-import Data.ByteString (ByteString)
 import Data.Elf.CompileToBytes
 import Data.Elf.Symbol

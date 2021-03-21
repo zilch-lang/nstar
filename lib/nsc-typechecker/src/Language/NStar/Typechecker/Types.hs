@@ -18,14 +18,12 @@ import Control.Monad.State
 import Language.NStar.Typechecker.Core
 import Language.NStar.Syntax.Core hiding (Token(..), Instruction(..))
 import qualified Language.NStar.Syntax.Core as SC (Instruction(..))
-import qualified Language.NStar.Typechecker.Core as TC (TypedInstruction(..))
 import Data.Located
 import Data.Bifunctor (first, second, bimap)
 import Control.Monad.Except
 import Text.Diagnose hiding (Kind)
 import Language.NStar.Typechecker.Errors
 import Control.Monad.Writer
-import qualified Data.Map as Map
 import Language.NStar.Typechecker.Kinds (kindcheck)
 import Language.NStar.Typechecker.Instructions
 import Language.NStar.Typechecker.TC

@@ -6,6 +6,9 @@ library:
   ghc-options:
   - -Wall
   - -Wextra
+  - -Wno-name-shadowing
+  - -Wno-unused-matches
+  - -Wno-overlapping-patterns
 
 default-extensions: !include "../../default-extensions.yaml"
 

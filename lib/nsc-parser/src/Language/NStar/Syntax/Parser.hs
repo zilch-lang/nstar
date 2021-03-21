@@ -267,12 +267,6 @@ parseContinuation = located $ MP.choice
 
 ------------------------------------------------------------------------------------------------------------
 
-parseExpr :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
-parseExpr = MP.choice
-  [ located $ ImmE <$> parseImmediate
-  , parseLabel
-  ]
-
 -- | Parses an immediate literal value.
 parseImmediate :: (?parserFlags :: ParserFlags) => Parser (Located Immediate)
 parseImmediate = located $ MP.choice

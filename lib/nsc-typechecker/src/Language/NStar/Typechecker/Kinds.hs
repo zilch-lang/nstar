@@ -28,7 +28,6 @@ import Language.NStar.Typechecker.Core
 import Text.Diagnose (Report)
 import Data.Bifunctor (first, second)
 import Data.Text (Text)
-import Data.Map (Map)
 import qualified Data.Map as Map
 import Control.Applicative (liftA2)
 import Language.NStar.Typechecker.Errors

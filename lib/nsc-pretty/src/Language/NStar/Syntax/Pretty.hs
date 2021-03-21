@@ -23,6 +23,7 @@ instance PrettyText Section where
   prettyText (DataS sect)   = text "section data {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
   prettyText (RODataS sect) = text "section rodata {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
   prettyText (UDataS sect)  = text "section udata {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
+  prettyText (IncludeS sec) = text "include {" <$> indent 4 (vsep (fmap prettyText sec)) <$> text "}"
 
 instance PrettyText Binding where
   prettyText (Bind name ty cst) = prettyText name <> colon <+> prettyText ty <+> equals <+> prettyText cst

@@ -10,5 +10,5 @@ data Order
   | B   -- ^ big
 
 data Endianness :: Order -> Type where
-  LE :: Endianness L    -- ^ little endian
-  BE :: Endianness B    -- ^ big endian
+  LE :: Endianness 'L    -- ^ little endian
+  BE :: Endianness 'B    -- ^ big endian

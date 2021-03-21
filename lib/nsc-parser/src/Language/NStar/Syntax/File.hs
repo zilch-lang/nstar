@@ -12,21 +12,20 @@ import Data.Text.Encoding (decodeUtf8)
 import Text.Diagnose (Diagnostic, reportError, diagnostic, (<++>), printDiagnostic, (<~<))
 import Language.NStar.Syntax.Core (Program(..), Section(..))
 import qualified Algebra.Graph.AdjacencyMap as G
-import qualified Algebra.Graph.Acyclic.AdjacencyMap as AG
 import Control.Monad.Except (ExceptT, runExceptT, throwError, liftEither)
 import Control.Monad (when, forM, forM_)
 import Console.NStar.Flags (ParserFlags, LexerFlags)
-import System.Directory (canonicalizePath, makeAbsolute, makeRelativeToCurrentDirectory, doesFileExist, getCurrentDirectory)
+import System.Directory (canonicalizePath, makeRelativeToCurrentDirectory, doesFileExist)
 import Control.Monad.IO.Class (liftIO)
-import Data.ByteString (readFile, ByteString)
-import Data.Bifunctor (bimap, first, second)
+import Data.ByteString (readFile)
+import Data.Bifunctor (second)
 import Data.Located (unLoc, Located((:@)), Position(..))
 import System.IO (stderr)
 import Data.IORef
 import System.FilePath.Posix (equalFilePath, normalise, (</>), isValid, takeFileName)
-import Data.List (union, intercalate, groupBy)
-import Debug.Trace (traceShow, trace)
+import Data.List (intercalate, groupBy)
 import Text.Diagnose.Report (Marker(This))
+import Internal.Error (internalError)
 
 type CompUnit = ExceptT (Diagnostic [] String Char) IO
 
@@ -121,6 +120,7 @@ invalidFilePath :: Located FilePath -> Diagnostic [] String Char
 invalidFilePath (f :@ p) = diagnostic <++> reportError ("Invalid file path '" <> f <> "'") [ (p, This "") ] []
 
 multipleFilesFound :: [FilePath] -> Diagnostic [] String Char
+multipleFilesFound [] = internalError "Unreachable case 'multipleFilesFound []'"
 multipleFilesFound fs@(f:_) =
   let paths = mappend "- " <$> fs
   in diagnostic <++> reportError ("Cannot include file '" <> takeFileName f <> "' because more than one has been found in the include path:\n" <> intercalate "\n" paths) [] []
