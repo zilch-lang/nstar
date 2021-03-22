@@ -11,7 +11,6 @@ module Data.Elf.Internal.SectionHeader
 
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))
-import GHC.TypeNats (Nat)
 import Data.Elf.Internal.Serialize (Serializable(..))
 import Data.Elf.Internal.BusSize (Size(..))
 
@@ -31,7 +30,7 @@ data Elf_Shdr n = Elf_Shdr
   , sh_entsize     :: !(Elf_Xword n)   -- ^ Entry size if section holds table
   }
 
-instance Storable (Elf_Shdr S64) where
+instance Storable (Elf_Shdr 'S64) where
   sizeOf _ = {#sizeof Elf64_Shdr#}
   alignment _ = {#alignof Elf64_Shdr#}
   peek ptr =
@@ -57,18 +56,18 @@ instance Storable (Elf_Shdr S64) where
     {#set struct Elf64_Shdr->sh_addralign#} ptr (fromIntegral sh_addralign)
     {#set struct Elf64_Shdr->sh_entsize#} ptr (fromIntegral sh_entsize)
 
-instance Serializable S64 e (Elf_Shdr S64) where
+instance Serializable 'S64 e (Elf_Shdr 'S64) where
   put e Elf_Shdr{..} = do
-    put @S64 e sh_name
-    put @S64 e sh_type
-    put @S64 e sh_flags
-    put @S64 e sh_addr
-    put @S64 e sh_offset
-    put @S64 e sh_size
-    put @S64 e sh_link
-    put @S64 e sh_info
-    put @S64 e sh_addralign
-    put @S64 e sh_entsize
+    put @'S64 e sh_name
+    put @'S64 e sh_type
+    put @'S64 e sh_flags
+    put @'S64 e sh_addr
+    put @'S64 e sh_offset
+    put @'S64 e sh_size
+    put @'S64 e sh_link
+    put @'S64 e sh_info
+    put @'S64 e sh_addralign
+    put @'S64 e sh_entsize
 
 -- Section types
 

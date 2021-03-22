@@ -13,14 +13,21 @@ library:
   - cbits/elf64/fix.c
   - cbits/elf64/internal_fix.c
   - cbits/strings.c
-  cpp-options:
+  cc-options:
   - -Wall
   - -Wextra
+  ghc-options:
+  - -Wall
+  - -Wextra
+  - -Wno-name-shadowing
+  - -Wno-unused-matches
 
   when:
   - condition: flag(debug)
-    cpp-options:
-    - -g
+    ghc-options:
+    - -g3
+    cc-options:
+    - -g3
 
 default-extensions:
 - LambdaCase

@@ -9,19 +9,17 @@ module Data.Elf.SectionHeader
 , peekSectionHeader, newSectionHeader, freeSectionHeader
 ) where
 
-import Data.Elf.Types
 import Data.Elf.Internal.BusSize (Size)
 import Data.Word (Word8, Word32, Word64)
 import Data.Elf.SectionHeader.Flags
 import Data.Elf.Symbol
 import Foreign.Storable (Storable(..))
-import Foreign.C.Types (CULong, CInt)
+import Foreign.C.Types (CULong)
 import Foreign.C.String (CString, peekCStringLen, peekCString, newCString, newCStringLen)
 import Foreign.Marshal.Array (newArray, peekArray)
 import Foreign.Ptr (Ptr, castPtr)
 import Data.List (intercalate)
 import Foreign.Marshal.Alloc (malloc, free)
-import Debug.Trace
 import GHC.Generics (Generic)
 
 #include "section_header.h"
@@ -203,6 +201,7 @@ freeSectionHeader ptr = do
 -- > split (== ':') "::xyz:abc::123::" == ["","","xyz","abc","","123","",""]
 -- > split (== ',') "my,list,here" == ["my","list","here"]
 split :: (a -> Bool) -> [a] -> [[a]]
-split f [] = [[]]
-split f (x:xs) | f x = [] : split f xs
+split f []                          = [[]]
+split f (x:xs) | f x                = [] : split f xs
 split f (x:xs) | y:ys <- split f xs = (x:y) : ys
+split _ (_:_)                       = error $ "Unreachable case 'split _ (_:_)'"

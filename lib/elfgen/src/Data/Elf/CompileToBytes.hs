@@ -17,15 +17,7 @@ import Data.Elf.Object (ElfObject)
 import Data.ByteString.Lazy (ByteString, writeFile)
 import Data.Elf.Internal.Compile (unabstract, CompileFor)
 import Data.Elf.Internal.Object (Object)
-import Data.Elf.Internal.FileHeader (Elf_Ehdr)
-import Data.Elf.Internal.ProgramHeader (Elf_Phdr)
-import Data.Elf.Internal.SectionHeader (Elf_Shdr)
 import Data.Elf.Types (ReifySize)
-import Data.Elf.FileHeader (ElfHeader)
-import Data.Elf.ProgramHeader (ProgramHeader)
-import Data.Elf.SectionHeader (SectionHeader)
-import Data.Elf.Symbol (RelocationSymbol, ElfSymbol)
-import Data.Elf.Internal.Symbol (Elf_Rela, Elf_Sym)
 
 -- | Completely compiles an abstract ELF file down to a 'ByteString' ready to be written to a file.
 --

@@ -25,7 +25,7 @@ module Data.Elf.FileHeader.Flags
 #include <elf.h>
 
 import Data.Elf.Types
-import Data.Bits (Bits, (.&.))
+import Data.Bits (Bits)
 import Data.Elf.Internal.BusSize
 import GHC.Generics (Generic)
 

@@ -15,7 +15,6 @@ module Data.Elf.Internal.Serialize
 ) where
 
 import Data.Elf.Types
-import GHC.TypeNats (Nat)
 import Data.Kind (Type)
 import qualified Data.Binary.Put as B
 import Data.Word (Word8, Word16, Word32, Word64)

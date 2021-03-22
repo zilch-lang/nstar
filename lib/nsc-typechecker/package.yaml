@@ -22,3 +22,5 @@ ghc-options:
 - -Wno-name-shadowing
 - -Wno-unused-matches
 - -Wno-unused-do-bind
+- -Wno-unused-local-binds
+- -Wno-overlapping-patterns

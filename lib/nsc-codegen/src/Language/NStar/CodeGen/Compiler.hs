@@ -2,7 +2,6 @@ module Language.NStar.CodeGen.Compiler where
 
 import Control.Monad.Writer (Writer)
 import Data.Word (Word8)
-import Data.Map (Map)
 import Data.Text (Text)
 import Data.Elf (RelocationType)
 

@@ -22,13 +22,14 @@ concatSections (Program sects) = Program concatSects
     dummyPos = Position (1, 1) (1, 1) ""
 
 groupSectionsByName :: [Located Section] -> Map String (Located Section)
-groupSectionsByName = foldl (\acc e -> Map.insertWith concat' (sectionName e) e acc) mempty
+groupSectionsByName = foldl (\acc e -> Map.insertWith (flip concat') (sectionName e) e acc) mempty
 
 sectionName :: Located Section -> String
-sectionName (DataS _ :@ _)   = "data"
-sectionName (RODataS _ :@ _) = "rodata"
-sectionName (UDataS _ :@ _)  = "udata"
-sectionName (CodeS _ :@ _)   = "code"
+sectionName (DataS _ :@ _)    = "data"
+sectionName (RODataS _ :@ _)  = "rodata"
+sectionName (UDataS _ :@ _)   = "udata"
+sectionName (CodeS _ :@ _)    = "code"
+sectionName (IncludeS _ :@ _) = "include"
 
 concat' :: Located Section -> Located Section -> Located Section
 concat' (DataS d1 :@ p) (DataS d2 :@ _)     = DataS (d1 <> d2) :@ p

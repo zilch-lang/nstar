@@ -12,7 +12,9 @@ import Test.Hspec
 import System.FilePath.Glob (glob)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
-import Language.NStar.Syntax (lexFile, parseFile, postProcessAST)
+import Language.NStar.Syntax.Lexer (lexFile)
+import Language.NStar.Syntax.Parser (parseFile)
+import Language.NStar.Syntax.PostProcessor (postProcessAST)
 import Language.NStar.Typechecker (typecheck)
 import Language.NStar.CodeGen
 import Data.List (isInfixOf)

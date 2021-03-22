@@ -25,7 +25,7 @@ import qualified Data.Text as Text (pack, toLower)
 import Data.Char (isSpace)
 import Data.Function ((&))
 import Text.Diagnose (Diagnostic, diagnostic, (<++>))
-import Data.Bifunctor (first, second, bimap)
+import Data.Bifunctor (second, bimap)
 import Control.Applicative (liftA2)
 import Console.NStar.Flags (LexerFlags(..))
 import Control.Monad.Writer (WriterT, runWriterT)
@@ -46,10 +46,6 @@ lexeme = MPL.lexeme space
 -- | @symbol str@ tries to parse @str@ exactly, and discards spaces after.
 symbol :: (?lexerFlags :: LexerFlags) => Text -> Lexer Text
 symbol = MPL.symbol space
-
--- | Case insensitive variant of 'symbol'.
-symbol' :: (?lexerFlags :: LexerFlags) => Text -> Lexer Text
-symbol' = MPL.symbol' space
 
 ---------------------------------------------------------------------------------------------------------------------------
 
@@ -117,7 +113,7 @@ anySymbol = located . MP.choice $ uncurry sat <$> symbols
 identifierOrKeyword :: (?lexerFlags :: LexerFlags) => Lexer LToken
 identifierOrKeyword = located do
   transform . Text.pack
-           <$> ((:) <$> MPC.letterChar
+           <$> ((:) <$> (MPC.letterChar MP.<|> MPC.char '_')
                     <*> MP.many (MPC.alphaNumChar MP.<|> MPC.char '_'))
  where
     transform :: Text -> Token
@@ -146,6 +142,7 @@ identifierOrKeyword = located do
       "∀"       -> Forall
       "unsafe"  -> UnSafe
       "section" -> Section
+      "include" -> Include
       -- Identifier
       _         -> Id w
 
@@ -156,6 +153,7 @@ literal = located $ MP.choice
   , Integer <$> prefixed "0x" (Text.pack <$> MP.some hexadecimal)
   , Integer <$> prefixed "0o" (Text.pack <$> MP.some octal)
   , Integer . Text.pack <$> MP.some decimal
+  , Str . Text.pack <$> (MPC.char '"' *> MP.manyTill charLiteral (MPC.char '"'))
   , Char <$> MP.between (MPC.char '\'') (MPC.char '\'') charLiteral ]
  where
    charLiteral = escapeChar MP.<|> MP.satisfy (liftA2 (&&) (/= '\n') (/= '\r'))

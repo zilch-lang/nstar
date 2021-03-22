@@ -7,37 +7,23 @@ module Data.Elf.Internal.Compile (unabstract, CompileFor) where
 import Data.Elf.Types
 import Data.Elf.Object
 import qualified Data.Elf.Internal.Object as Internal
-import Unsafe.Coerce (unsafeCoerce)
 import Data.Elf.SectionHeader (SectionHeader(..))
 import Data.Elf.ProgramHeader (ProgramHeader(PPhdr, PLoad), section, pf_r)
-import Data.Elf.FileHeader (ElfHeader)
-import Data.Elf.Internal.SectionHeader (Elf_Shdr)
-import Data.Elf.Internal.ProgramHeader (Elf_Phdr)
-import Data.Elf.Internal.FileHeader (Elf_Ehdr)
-import qualified Data.Text as Text (pack)
 import Data.Maybe (mapMaybe)
-import Data.List (intersperse, sort, sortBy)
-import Data.Word (Word8)
+import Data.List (sort)
 import Data.Elf.Internal.BusSize (Size(..))
-import qualified Data.ByteString as BS (unpack)
 import Data.Elf.Symbol
-import Data.Elf.Internal.Symbol (Elf_Rela, Elf_Sym)
 import Data.Functor ((<&>))
-import Debug.Trace (traceShow)
-import Data.Bifunctor (second)
 import Foreign.Ptr (Ptr, FunPtr)
-import Foreign.ForeignPtr (ForeignPtr, mallocForeignPtr, addForeignPtrFinalizer, withForeignPtr)
-import Control.Monad.IO.Class (MonadIO(..))
-import Foreign.Marshal.Alloc (malloc, free)
-import Foreign.Storable (Storable(..))
+import Foreign.ForeignPtr (mallocForeignPtr, addForeignPtrFinalizer, withForeignPtr)
 import Data.Kind (Type)
 import Data.HashMap.Strict.InsOrd (InsOrdHashMap)
 import qualified Data.HashMap.Strict.InsOrd as Map
 
 foreign import ccall unsafe "compile_x64"
-  c_compileX64 :: Ptr (C_ElfObject S64) -> Ptr (Internal.C_Object S64) -> IO ()
+  c_compileX64 :: Ptr (C_ElfObject 'S64) -> Ptr (Internal.C_Object 'S64) -> IO ()
 foreign import ccall unsafe "&free_elf64_object"
-  freeInternalObjectX64 :: FunPtr (Ptr (Internal.C_Object S64) -> IO ())
+  freeInternalObjectX64 :: FunPtr (Ptr (Internal.C_Object 'S64) -> IO ())
 --foreign import ccall unsafe "compile_x86"
 --  c_compileX86 :: Ptr (ElfObject S32) -> ForeignPtr (Internal.Object S32) -> IO ()
 
@@ -55,11 +41,11 @@ class CompileFor (n :: Size) (a :: Size -> Type) (b :: Size -> Type) where
   -- | Compiles a value of type @a@ into a value of type @b@ parameterized by the target architecture bus size @n@.
   compileFor :: a n -> IO (b n)
 
-instance CompileFor S64 ElfObject Internal.Object where
+instance CompileFor 'S64 ElfObject Internal.Object where
   compileFor obj = do
-    aObj <- newObject (mkAbstractObject @S64 obj)
+    aObj <- newObject (mkAbstractObject @'S64 obj)
 
-    obj <- mallocForeignPtr @(Internal.C_Object S64)
+    obj <- mallocForeignPtr @(Internal.C_Object 'S64)
     addForeignPtrFinalizer freeInternalObjectX64 obj
     cObj <- withForeignPtr obj \ ptr -> do
       c_compileX64 aObj ptr

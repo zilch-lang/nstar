@@ -15,7 +15,14 @@ dependencies:
 - megaparsec >=8.0
 - nsc-flags
 - mtl
+- algebraic-graphs
+- directory
+- bytestring
+- filepath
 
 ghc-options:
-- -Wno-name-shadowing
 - -Wall
+- -Wextra
+- -g3
+- -Wno-unused-matches
+- -Wno-name-shadowing

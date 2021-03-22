@@ -4,7 +4,6 @@
 
 module Data.Elf.Object where
 
-import Data.Elf.Types
 import Data.Elf.FileHeader (ElfHeader, C_ElfFileHeader, peekFileHeader, newFileHeader, freeFileHeader)
 import Data.Elf.SectionHeader (SectionHeader(SSymTab), C_ElfSectionHeader, peekSectionHeader, newSectionHeader, freeSectionHeader)
 import Data.Elf.ProgramHeader (ProgramHeader, C_ElfProgramHeader, peekProgramHeader, newProgramHeader, freeProgramHeader)

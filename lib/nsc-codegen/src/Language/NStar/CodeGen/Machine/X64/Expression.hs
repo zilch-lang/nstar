@@ -8,13 +8,16 @@ import Language.NStar.CodeGen.Compiler (Compiler)
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
 import Data.Binary.Put (runPut, putInt64le, putInt32le, putInt8, putWord8)
 import Data.Char (ord)
+import Internal.Error (internalError)
 
 compileExprX64 :: Integer -> Expr -> Compiler [InterOpcode]
 compileExprX64 n (ImmE i) = case (n, unLoc i) of
   (32, I int) -> pure (Byte <$> int32 int)
   (64, I int) -> pure (Byte <$> int64 int)
   (64, C c)   -> pure (Byte <$> char8 c)
+  (n, e)      -> internalError $ "Incomplete match '(" <> show n <> ", " <> show e <> ")'"
 -- ^^^^^ all these matches are intentionally left incomplete.
+compileExprX64 n e = internalError $ "Incomplete match 'compileExprX64 " <> show n <> ", " <> show e <> "'"
 
 int64 :: Integer -> [Word8]
 int64 = BS.unpack . runPut . putInt64le . fromIntegral

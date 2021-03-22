@@ -17,7 +17,6 @@ module Data.Elf.FileHeader
 , peekFileHeader, newFileHeader, freeFileHeader
 ) where
 
-import Data.Elf.Types
 import Data.Elf.FileHeader.Flags
 import Data.Elf.Internal.BusSize (Size)
 import Data.Word (Word8, Word32)

@@ -6,6 +6,7 @@ data Flags
   , output        :: FilePath
   , configuration :: ConfigurationFlags
   , debugging     :: DebugFlags
+  , includePath   :: [FilePath]
   }
  deriving (Show)
 

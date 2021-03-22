@@ -14,16 +14,9 @@ module Data.Elf.Types
 
 import Data.Word (Word8, Word16, Word32, Word64)
 import Data.Int (Int32, Int64)
-import GHC.TypeNats (Nat)
-import qualified Data.Binary.Put as B
-import Data.Bool (bool)
 import Data.Elf.Internal.BusSize (Size(..))
-import Data.Bits (Bits)
 import Data.Some
 import Unsafe.Coerce (unsafeCoerce)
-
-
-type IsInteger n = (Num n, Integral n, Real n, Enum n, Bits n, Eq n, Ord n, Show n)
 
 
 -- | Unsigned 8-bits integer
@@ -41,32 +34,32 @@ type Elf_Sxword (n :: Size) = Int64
 -- | [32 bits] Unsigned 32-bits integer
 --   [64 bits] Unsigned 64-bits integer
 data Elf_Addr (n :: Size) where
-  Elf32_Addr :: Word32 -> Elf_Addr S32
-  Elf64_Addr :: Word64 -> Elf_Addr S64
+  Elf32_Addr :: Word32 -> Elf_Addr 'S32
+  Elf64_Addr :: Word64 -> Elf_Addr 'S64
 -- | [32 bits] Unsigned 32-bits integer
 --   [64 bits] Unsigned 64-bits integer
 data Elf_Off (n :: Size) where
-  Elf32_Off :: Word32 -> Elf_Off S32
-  Elf64_Off :: Word64 -> Elf_Off S64
+  Elf32_Off :: Word32 -> Elf_Off 'S32
+  Elf64_Off :: Word64 -> Elf_Off 'S64
 -- | Unsigned 16-bits integer
 type Elf_Section (n :: Size) = Word16
 -- | [32 bits] Unsigned 32-bits integer
 --   [64 bits] Unsigned 64-bits integer
 data Elf_Rel_Info (n :: Size) where
-  Elf32_Rel_Info :: Word32 -> Elf_Rel_Info S32
-  Elf64_Rel_Info :: Word64 -> Elf_Rel_Info S64
+  Elf32_Rel_Info :: Word32 -> Elf_Rel_Info 'S32
+  Elf64_Rel_Info :: Word64 -> Elf_Rel_Info 'S64
 -- | [32 bits] Signed 32-bits integer
 --   [64 bits] Signed 64-bits integer
 data Elf_Rel_Addend (n :: Size) where
-  Elf32_Rel_Addend :: Word32 -> Elf_Rel_Addend S32
-  Elf64_Rel_Addend :: Word64 -> Elf_Rel_Addend S64
+  Elf32_Rel_Addend :: Word32 -> Elf_Rel_Addend 'S32
+  Elf64_Rel_Addend :: Word64 -> Elf_Rel_Addend 'S64
 
 
 class ReifySize (n :: Size) where
   reifySize :: Size
-instance ReifySize S32 where
+instance ReifySize 'S32 where
   reifySize = S32
-instance ReifySize S64 where
+instance ReifySize 'S64 where
   reifySize = S64
 
 instance ReifySize n => Num (Elf_Addr n) where

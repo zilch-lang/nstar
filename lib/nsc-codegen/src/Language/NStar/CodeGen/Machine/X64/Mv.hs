@@ -8,14 +8,13 @@ compileMv
 
 import Language.NStar.Syntax.Core (Expr(..), Register)
 import Language.NStar.CodeGen.Compiler (Compiler)
-import Language.NStar.CodeGen.Machine.Internal.Intermediate (TypeContext, InterOpcode(..))
+import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode(..))
 import Data.Located (unLoc)
 import Internal.Error (internalError)
 import Language.NStar.CodeGen.Machine.Internal.X64.REX (rexW)
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
 import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64)
 import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
-import Language.NStar.CodeGen.Machine.Internal.X64.SIB (sib)
 
 {- $encoding
 

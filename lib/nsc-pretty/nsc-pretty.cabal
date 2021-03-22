@@ -17,7 +17,7 @@ library
   hs-source-dirs:
       src
   default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
-  ghc-options: -Wall -Wno-unused-matches -Wno-orphans
+  ghc-options: -Wall -Wno-unused-matches -Wno-orphans -Wno-name-shadowing
   build-depends:
       ansi-wl-pprint
     , base >=4.7 && <5

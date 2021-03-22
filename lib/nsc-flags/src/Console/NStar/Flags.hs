@@ -22,7 +22,7 @@ import qualified Data.Set as Set
 import Data.Foldable (fold)
 import Data.Bifunctor (first, second)
 import Control.Monad (join)
-import Data.List (intercalate)
+import Data.List (union)
 
 extractFlags :: IO Flags
 extractFlags = customExecParser preferences opts
@@ -37,6 +37,7 @@ cli = do
     <*> outputFlag
     <*> (mconcat <$> many config)
     <*> (mconcat <$> many debug)
+    <*> (union ["."] <$> many include)
   pure f
 
 config :: Parser ConfigurationFlags
@@ -49,13 +50,8 @@ config = do
     configKeys =
       [ "color-diagnostics" ]
 
-configOptions :: Parser ()
-configOptions = subparser $ commandGroup "Available configuration (option -f):" <> hidden <> fold
-  [ command "color-diagnostics=<yes|no>" (noop $ progDesc "Whether to enable colored errors/messages" <> footer "Defaults to 'no' if unspecified")
-  ]
-  where
-    noop = info (option (readerError "This should never be printed!") idm)
-
+include :: Parser FilePath
+include = strOption (short 'I' <> metavar "PATH" <> help "Adds a PATH to the include path")
 
 debug :: Parser DebugFlags
 debug = do
@@ -75,6 +71,7 @@ outputFlag = strOption (long "out" <> short 'o' <> metavar "FILE" <> value "obje
 fromYesNo :: String -> Bool
 fromYesNo "yes" = True
 fromYesNo "no"  = False
+fromYesNo c     = error $ "Unknown choice " <> c
 
 parseConfigFlag :: String -> Either String (Map String (Maybe String))
 parseConfigFlag = first toStringError . Mega.runParser configFlags "cli-config"
