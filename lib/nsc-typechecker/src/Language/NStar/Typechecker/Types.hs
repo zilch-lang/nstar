@@ -43,9 +43,10 @@ typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT 
 --
 --   Typechecks a program, and return an elaborated form of it.
 typecheckProgram :: (?tcFlags :: TypecheckerFlags) => Program -> TC TypedProgram
-typecheckProgram (Program [DataS dataSect :@ p1, RODataS rodataSect :@ p2, UDataS udataSect :@ p3, CodeS code :@ p4]) = do
+typecheckProgram (Program [DataS dataSect :@ p1, RODataS rodataSect :@ p2, UDataS udataSect :@ p3, CodeS code :@ p4, ExternCodeS ecode :@ p5]) = do
   registerAllLabels code
   registerAllDataLabels dataSect
+  registerAllExternCodeLabels ecode
 
   instrs <- concat <$> mapM (typecheckStatement) code
 
@@ -66,7 +67,7 @@ typecheckProgram (Program [DataS dataSect :@ p1, RODataS rodataSect :@ p2, UData
   --
   -- For more information, see this: <http://dbp-consulting.com/tutorials/debugging/linuxProgramStartup.html>
 
-  pure (TProgram (TData dataSect :@ p1) (TROData [] :@ p2) (TUData [] :@ p3) (TCode instrs :@ p4))
+  pure (TProgram (TData dataSect :@ p1) (TROData [] :@ p2) (TUData [] :@ p3) (TCode instrs :@ p4) (TExternCode ecode :@ p5))
 typecheckProgram (Program _) = error "Unexpected invalid Program"
 
 -- | Brings all the labels with their corresponding types into the type environment.
@@ -80,6 +81,13 @@ registerAllLabels :: (?tcFlags :: TypecheckerFlags) => [Located Statement] -> TC
 registerAllLabels = mapM_ addLabelType
   where addLabelType (unLoc -> Label name ty _) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
         addLabelType (unLoc -> t)               = error ("Adding type of non-label '" <> show t <> "' is impossible.")
+
+-- | Brings all un-initialized and extern code labels into the type environnement.
+--
+--   This allows to jump to currently undefined labels of some type (pre-conditions).
+registerAllExternCodeLabels :: (?tcFlags :: TypecheckerFlags) => [Located ReservedSpace] -> TC ()
+registerAllExternCodeLabels = mapM_ addLabelType
+  where addLabelType (unLoc -> ReservedBind name ty) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
 
 -- | Brings all the data labels with their current types into the context.
 --
