@@ -59,7 +59,7 @@ parseFile file tokens = bimap (megaparsecBundleToDiagnostic "Parse error on inpu
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program
 parseProgram = lexeme (pure ()) *> (Program <$> MP.many section) <* parseEOF
-  where section = lexeme . located $ MP.choice [ parseInclude, MP.try parseCodeSection, parseDataSection ]
+  where section = lexeme . located $ MP.choice [ parseInclude, MP.try parseCodeSection, MP.try parseDataSection, parseExternCodeSection ]
 
 parseCodeSection :: (?parserFlags :: ParserFlags) => Parser Section
 parseCodeSection = CodeS <$> do
@@ -83,6 +83,16 @@ parseInclude = IncludeS <$> do
   where
     toText (Str s) = s
     toText t       = internalError $ "Cannot get text of non string token " <> show t
+
+parseExternCodeSection :: (?parserFlags :: ParserFlags) => Parser Section
+parseExternCodeSection = ExternCodeS <$> do
+  lexeme (parseSymbol Section)
+  lexeme (parseSymbol (Id "extern"))
+  lexeme (parseSymbol Dot)
+  lexeme (parseSymbol (Id "code"))
+  lexeme $ betweenBraces (MP.many (located binding))
+  where binding = ReservedBind <$> (lexeme parseIdentifier <* lexeme (parseSymbol Colon))
+                               <*> lexeme (parseForallType (parseRecordType True))
 
 -- | Parses the end of file. There is no guarantee that any parser will try to parse something after the end of file.
 --   This has to be dealt with on our own. No more token should be available after consuming the end of file.

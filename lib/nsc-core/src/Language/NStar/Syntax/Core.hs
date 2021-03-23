@@ -47,6 +47,9 @@ data Section where
   -- | The @include@ section
   IncludeS :: [Located Text]
            -> Section
+  -- | The @extern.code@ section
+  ExternCodeS :: [Located ReservedSpace]
+              -> Section
 
 deriving instance Show Section
 
