@@ -624,13 +624,13 @@ typecheckConstant (ArrayC csts) p  =
            () <$ foldlM2 (\ acc t1 t2 -> mappend acc <$> unify t1 t2) mempty (t1:ts)
 
          -- > Γ ⊢ᵀ [c₁, c₂, …, cₙ] : *τ
-         pure (PtrT t1 :@ p)
+         pure t1
      | otherwise       -> do
          -- > Γ ⊢ᴷ τ : Tn
          v <- freshVar "d" p
 
          -- > Γ ⊢ᵀ [] : *τ
-         pure (PtrT v :@ p)
+         pure v
   where
     foldlM2 :: (Monad m) => (b -> a -> a -> m b) -> b -> [a] -> m b
     foldlM2 f e l = foldlM (uncurry . f) e (zip l (drop 1 l))
