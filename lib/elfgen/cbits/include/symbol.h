@@ -105,7 +105,8 @@ typedef struct
         RT_X86_64_NONE = R_X86_64_NONE,   //!< No relocation
         RT_X86_64_32 = R_X86_64_32,       //!< Direct 32 bit zero extended address
         RT_X86_64_32S = R_X86_64_32S,     //!< Direct 32 bit sign extended address
-        RT_X86_64_64 = R_X86_64_64        //!< Direct 64 bit address
+        RT_X86_64_64 = R_X86_64_64,       //!< Direct 64 bit address
+        RT_X86_64_PLT32 = R_X86_64_PLT32  //!< 32-bit PLT address
     } reloc_type;  //!< The type of relocation for the symbol.
 
     uint64_t offset;  //!< The offset where to relocate data in the section of the relocation table.

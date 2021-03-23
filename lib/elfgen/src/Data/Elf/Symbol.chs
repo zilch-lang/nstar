@@ -201,7 +201,7 @@ data RelocationOrigin
   deriving (Eq, Ord, Generic)
 
 -- | Symbol relocation type
-{#enum symbol_relocation_type as RelocationType {RT_X86_64_NONE as R_x86_64_None, RT_X86_64_32 as R_x86_64_32, RT_X86_64_32S as R_x86_64_32s, RT_X86_64_64 as R_x86_64_64} deriving (Eq, Ord, Generic)#}
+{#enum symbol_relocation_type as RelocationType {RT_X86_64_NONE as R_x86_64_None, RT_X86_64_32 as R_x86_64_32, RT_X86_64_32S as R_x86_64_32s, RT_X86_64_64 as R_x86_64_64, RT_X86_64_PLT32 as R_x86_64_PLT32} deriving (Eq, Ord, Generic)#}
 
 {#enum relocation_origin_type as RelocType {ORIGIN_SECTION as OrigSection}#}
 
