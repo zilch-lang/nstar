@@ -117,6 +117,8 @@ data Type where
   StackContT :: Integer -> Type
   -- | Register continuation
   RegisterContT :: Register -> Type
+  -- | Bang type
+  BangT :: Type
 
 deriving instance Show Type
 deriving instance Eq Type
@@ -314,6 +316,8 @@ data Token where
   Arrow :: Token
   -- | Instruction separator "@;@"
   Semi :: Token
+  -- | Special bang type
+  Bang :: Token
   -- Keywords
   -- | \"@forall@\" (or "@∀@") type variable binder in type
   Forall :: Token

@@ -65,6 +65,7 @@ instance PrettyText Type where
     where output (var, kind) = prettyText var <+> colon <+> prettyText kind
   prettyText (RegisterContT r) = prettyText r
   prettyText (StackContT i) = prettyText i
+  prettyText BangT = text "!"
 
 instance PrettyText Register where
   prettyText = (text "%" <>) . text . f
@@ -105,4 +106,4 @@ instance PrettyText Expr where
 
 instance PrettyText Immediate where
   prettyText (I i) = integer i
-  prettyText (C c) = char c
+  prettyText (C c) = squotes (char c)
