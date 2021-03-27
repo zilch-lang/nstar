@@ -233,7 +233,7 @@ parseRecordType open = located do
 
   pure (RecordT (Map.fromList chi) sigma epsilon open)
   where
-    field = (,) <$> (lexeme parseRegister <* lexeme (parseSymbol Colon)) <*> parseType
+    field = (,) <$> (lexeme parseRegister <* lexeme (parseSymbol Colon)) <*> (parseBang MP.<|> parseType)
 
 -- | Parses any sort of signed integer type.
 parseSignedType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
@@ -274,6 +274,9 @@ parseContinuation = located $ MP.choice
   [ RegisterContT . unLoc <$> parseRegister
   , StackContT . unLoc <$> parseInteger
   , VarT <$> parseIdentifier ]
+
+parseBang :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseBang = located $ BangT <$ parseSymbol Bang
 
 ------------------------------------------------------------------------------------------------------------
 

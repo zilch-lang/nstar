@@ -107,6 +107,7 @@ anySymbol = located . MP.choice $ uncurry sat <$> symbols
      , (Equal, "=")
      , (Pipe, "|")
      , (Semi, ";")
+     , (Bang, "!")
      ]
 
 -- | Tries to parse an identifier. If the result appears to be a keyword, it instead returns a keyword.
