@@ -1,0 +1,25 @@
+section extern.code {
+  puts: forall(s: Ts, e: Tc).{ %r4: !, %r5: *s64 | forall().{ %r0: u64 | s -> e }::s -> 0 }
+}
+
+#include {
+#  "amd64-driver.nst"
+#}
+
+section data {
+  test_str: s64 = [ 'H' 'e' 'l' 'l' 'o' ',' ' ' 'w' 'o' 'r' 'l' 'd' '!' '\0' ]
+}
+
+section code {
+  _main: forall(s: Ts, e: Tc).{ %r5: forall().{ %r0: u64 | s -> e } | s -> %r5 }
+       = mv %r5, %r3
+       ; mv puts_ret<s, e>, %r5
+       ; salloc forall().{ %r0: !, %r4: u64, %r3: forall().{ %r0: u64 | s -> e } | s -> %r3 }
+       ; sst %r5, 0
+       ; mv test_str, %r5
+       ; mv 0, %r4
+       ; call puts<s, %r3>
+  puts_ret: forall(s: Ts, e: Tc).{ %r0: !, %r4: u64, %r3: forall().{ %r0: u64 | s -> e } | s -> %r3 }
+          = mv 0, %r0
+          ; ret
+}
