@@ -38,13 +38,13 @@ instance CompileToElf 'S64 where
 
 
 indexFromFunction :: (Text, SymbolType') -> (Text, Integer)
-indexFromFunction (n, Function i) = (n, i)
+indexFromFunction (n, Function i _) = (n, i)
 indexFromFunction _ = internalError $ "Unreachable pattern 'indexFromFunction s'"
 
 generateSymbolTableFrom :: forall (n :: Size). [(Text, SymbolType')] -> [ElfSymbol n]
 generateSymbolTableFrom = fmap \ (k, l) ->
   let symType = case l of
-        Function idx -> ST_Func idx
+        Function idx notExtern -> if notExtern then ST_Func idx else ST_NoType
         Object idx   -> ST_Object idx
   in ElfSymbol (Text.unpack k) symType SB_Global SV_Default
 

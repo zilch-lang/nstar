@@ -22,7 +22,7 @@ instance Monoid MachineInfo where
   mempty = MInfo mempty mempty mempty mempty
 
 data SymbolType'
-  = Function Integer
+  = Function Integer Bool
   | Object Integer
 
 data DataTable
