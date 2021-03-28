@@ -35,8 +35,9 @@ import Console.NStar.Flags (TypecheckerFlags(..))
 import Language.NStar.Typechecker.Subst
 import Language.NStar.Typechecker.Env (Env)
 import qualified Language.NStar.Typechecker.Env as Env
+import Control.Monad.State (evalStateT, StateT)
 
-type Kindchecker a = Except KindcheckError a
+type Kindchecker a = StateT Int (Except KindcheckError) a
 
 data KindcheckError
   = NotAStackType (Located Kind) Position
@@ -48,7 +49,7 @@ data KindcheckError
 --------------------------------------------------------------------------------------------
 
 runKindchecker :: (?tcFlags :: TypecheckerFlags) => Kindchecker a -> Either (Report String) a
-runKindchecker = first fromKindcheckError . runExcept
+runKindchecker = first fromKindcheckError . runExcept . flip evalStateT 0
 
 kindcheck :: (?tcFlags :: TypecheckerFlags) => Located Type -> Either (Report String) ()
 kindcheck = second (const ()) . runKindchecker . kindcheckType mempty
@@ -87,6 +88,10 @@ kindcheckType _ (RegisterContT _ :@ p)                                = pure (Tc
 kindcheckType _ (StackContT _ :@ p)                                   = pure (Tc :@ p)
 kindcheckType _ (RegisterT _ :@ p)                                    = pure (T8 :@ p)
      -- NOTE: just a kind placeholder. rN types never appear after parsing.
+kindcheckType _ (BangT :@ p)                                          = pure (T8 :@ p)
+  -- FIXME: bang types cannot be used as stack types or continuations, and cannot be found
+  --        in stacks; but they have to be able to be unified to any kind whatsoever.
+  --        For now, we only have T8 but we will have to give it T0 later.
 
 --------------------------------------------------------------------------------------------
 
@@ -124,10 +129,10 @@ requireStackType p k = () <$ unifyKinds (Ts :@ p) k
 --   Essentially a wrapper around 'isDataType', but in the 'Kindchecker' monad.
 requireDataType :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
 requireDataType p k = do
-  let s1 = runExcept (unifyKinds (T8 :@ p) k)
+  let s1 = runExcept $ evalStateT (unifyKinds (T8 :@ p) k) 0
   case s1 of
     Left e -> do
-      let s2 = runExcept (unifyKinds (Ta :@ p) k)
+      let s2 = runExcept $ evalStateT (unifyKinds (Ta :@ p) k) 0
       case s2 of
         Left e -> throwError e
         Right x -> pure ()

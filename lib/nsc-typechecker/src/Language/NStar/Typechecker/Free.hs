@@ -41,6 +41,7 @@ instance Free Type where
   freeVars (SignedT _)                   = mempty
   freeVars (UnsignedT _)                 = mempty
   freeVars (RegisterT _)                 = mempty
+  freeVars (BangT)                       = mempty
   -- Please refrain yourself from putting the three above cases under the same pattern "_".
   -- Those three are separated in order to keep GHC's warning about incomplete pattern matchings.
   --
