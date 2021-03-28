@@ -82,7 +82,7 @@ tc_mv (src :@ p1) (dst :@ p2) p3 = do
       -- > r, d are registers
       -- > Ξ; Γ; χ; σ; r ⊢ᴵ mv r, d ⊣ χ, d : ∀().ζ; σ; d
       setEpsilon (RegisterContT dst :@ p2)
-      extendChi (dst :@ p2) ty
+      extendChi (dst :@ p2) (ForAllT [] ty :@ p1)
 
       pure ()
     _ -> do
