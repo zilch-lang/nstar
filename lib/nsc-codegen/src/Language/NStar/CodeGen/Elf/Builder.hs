@@ -17,7 +17,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text (unpack)
 import Data.Maybe (mapMaybe)
 import Data.Functor ((<&>))
-import Internal.Error (internalError)
+import Data.Bifunctor (second)
 
 class CompileToElf (n :: Size) where
   compileToElf :: SupportedArch -> TypedProgram -> ElfObject n
@@ -25,7 +25,7 @@ class CompileToElf (n :: Size) where
 instance CompileToElf 'S64 where
   compileToElf arch prog =
     let MInfo opcodes syms (DataTable dataLabels dataSect) relocs = compile arch prog
-        relaTextSect = generateRelocationEntries (dataLabels <> fmap indexFromFunction syms) relocs
+        relaTextSect = generateRelocationEntries ((second Object <$> dataLabels) <> syms) relocs
     in ElfObject
         (ElfHeader (supportedArchToClass arch) (supportedArchToEncoding arch) OSABI_None 0x0 ET_Rel (supportedArchToArch arch) EV_Current ef_none)
         [ PLoad (section ".text") (pf_r .|. pf_x)
@@ -37,9 +37,6 @@ instance CompileToElf 'S64 where
         , SSymTab ".symtab" (generateSymbolTableFrom @'S64 syms <> generateDataSymbols @'S64 dataLabels) ]
 
 
-indexFromFunction :: (Text, SymbolType') -> (Text, Integer)
-indexFromFunction (n, Function i _) = (n, i)
-indexFromFunction _ = internalError $ "Unreachable pattern 'indexFromFunction s'"
 
 generateSymbolTableFrom :: forall (n :: Size). [(Text, SymbolType')] -> [ElfSymbol n]
 generateSymbolTableFrom = fmap \ (k, l) ->
@@ -51,12 +48,15 @@ generateSymbolTableFrom = fmap \ (k, l) ->
 generateDataSymbols :: [(Text, Integer)] -> [ElfSymbol n]
 generateDataSymbols = fmap \ (n, idx) -> ElfSymbol (Text.unpack n) (ST_Object idx) SB_Local SV_Default
 
-generateRelocationEntries :: [(Text, Integer)] -> [RelocType'] -> [RelocationSymbol n]
+generateRelocationEntries :: [(Text, SymbolType')] -> [RelocType'] -> [RelocationSymbol n]
 generateRelocationEntries labels =
   let m = Map.fromList labels
   in mapMaybe \ case
     RelocText sym sectName addend off rty ->
-      Map.lookup sym m <&> \ sectOff -> RelocationSymbol (SectionReloc (Text.unpack sectName) (sectOff + addend)) rty off
+      Map.lookup sym m <&> \ case
+        Function _ False      -> RelocationSymbol (FunctionReloc (Text.unpack sym)) rty off
+        Function sectOff True -> RelocationSymbol (SectionReloc (Text.unpack sectName) (sectOff + addend)) rty off
+        Object sectOff        -> RelocationSymbol (SectionReloc (Text.unpack sectName) (sectOff + addend)) rty off
 
 supportedArchToArch :: SupportedArch -> Arch
 supportedArchToArch X64 = EM_x86_64
