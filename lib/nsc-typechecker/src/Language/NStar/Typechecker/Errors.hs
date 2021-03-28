@@ -57,6 +57,7 @@ data TypecheckError
   | CannotCallWithAbstractContinuation Type Position
   | CannotDiscardContinuationFromStackTop Position
   | CannotStoreContinuationOntoHeap Register Position Position
+  | RegisterCannotBePropagated [Located Register] [Located Register] Position Position
 
 data TypecheckWarning
 
@@ -95,6 +96,7 @@ fromTypecheckError (CannotReturnToStackContinuation t p)        = cannotReturnTo
 fromTypecheckError (CannotCallWithAbstractContinuation t p)     = cannotCallOnAbstractContinuation t p
 fromTypecheckError (CannotDiscardContinuationFromStackTop p)    = cannotDiscardContinuationFromStack p
 fromTypecheckError (CannotStoreContinuationOntoHeap r p1 p2)    = cannotStoreContOnHeap r p1 p2
+fromTypecheckError (RegisterCannotBePropagated rs bs p1 p2)     = cannotPropagateRegister rs bs p1 p2
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -328,3 +330,11 @@ cannotStoreContOnHeap r p1 p2 =
     [ (p2, This $ "When trying to type-check this instruction")
     , (p1, Where $ "The register " <> show (prettyText r) <> " contains the current continuation") ]
     []
+
+cannotPropagateRegister :: [Located Register] -> [Located Register] -> Position -> Position -> Report String
+cannotPropagateRegister rs bs p1 p2 =
+  reportError "Cannot propagate some of the registers because they were marked as potentially overwritten."
+    [ (p2, This "When trying to call a function")
+    , (p1, Where $ "The type of this label marks " <> showCommaSep bs <> " as potentially overwriting\nbut trying to propagate registers " <> showCommaSep rs <> " to the continuation") ]
+    [ hint "Some registers may need to be caller-saved (saved somewhere, e.g. on the stack, by the caller) according to some coding conventions." ]
+  where showCommaSep regs = "{" <> intercalate "," (show . prettyText <$> regs) <> "}"
