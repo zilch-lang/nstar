@@ -362,7 +362,7 @@ tc_sld (n :@ p1) (r :@ p2) p3 = do
 tc_sst :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Integer -> Position -> Typechecker TC.TypedInstruction
 tc_sst (ex :@ p1) (n :@ p2) p3 = do
   {-
-     r is a register      n ∈ ℕ      n ≤ p        Γ ⊢ᴷ tₙ : T8        σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
+     r is a register      n ∈ ℕ      n ≤ p       tₙ ∼ ∀().ζ        σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
                       σ′ = σ[∀().ζ ∖ tₙ]       Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().ζ
   ────────────────────────────────────────────────────────────────────────────────────────────── move continuaton onto the stack
                           Ξ; Γ; χ; σ; r ⊢ᴵ sst r, n ⊣ χ; σ′; n
@@ -384,14 +384,14 @@ tc_sst (ex :@ p1) (n :@ p2) p3 = do
 
   case (e, ex) of
     (RegisterContT r :@ _, RegE (r2 :@ _)) | r == r2 -> do
-      -- > Γ ⊢ᴷ tₙ : T8
-      liftEither $ first FromReport $ runKindchecker do
-        unifyKinds (T8 :@ getPos tN) =<< kindcheckType g tN
-
       -- > Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().ζ
       (ty, _) <- typecheckExpr ex p1 False
+
       z <- freshVar "ζ" p1
       unify (ForAllT [] z :@ p1) ty
+
+      -- > tₙ ∼ ∀().ζ
+      unify ty tN
 
       -- > Ξ; Γ; χ; σ; r ⊢ᴵ sst r, n ⊣ χ; σ′; n
       s' <- setNthInStack n s ty
