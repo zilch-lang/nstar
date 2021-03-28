@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 
@@ -37,7 +37,12 @@ library
       Paths_nsc_lib
   hs-source-dirs:
       src
-  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
+  default-extensions:
+      BlockArguments
+      LambdaCase
+      BinaryLiterals
+      ImplicitParams
+      OverloadedStrings
   ghc-options: -Wall -Wextra -Wno-name-shadowing
   build-depends:
       base >=4.7 && <5
@@ -57,7 +62,12 @@ executable nsc
       Paths_nsc_lib
   hs-source-dirs:
       app
-  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
+  default-extensions:
+      BlockArguments
+      LambdaCase
+      BinaryLiterals
+      ImplicitParams
+      OverloadedStrings
   ghc-options: -Wall -Wextra -Wno-name-shadowing -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
@@ -85,7 +95,12 @@ test-suite nsc-tests
       Paths_nsc_lib
   hs-source-dirs:
       test
-  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
+  default-extensions:
+      BlockArguments
+      LambdaCase
+      BinaryLiterals
+      ImplicitParams
+      OverloadedStrings
   ghc-options: -Wall -Wextra -Wno-name-shadowing -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       Glob

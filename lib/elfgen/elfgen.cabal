@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 
@@ -40,7 +40,20 @@ library
   hs-source-dirs:
       src
       cbits
-  default-extensions: LambdaCase BinaryLiterals BlockArguments TypeApplications DataKinds FlexibleInstances MultiParamTypeClasses ScopedTypeVariables TypeFamilies FlexibleContexts UndecidableInstances StandaloneDeriving AllowAmbiguousTypes
+  default-extensions:
+      LambdaCase
+      BinaryLiterals
+      BlockArguments
+      TypeApplications
+      DataKinds
+      FlexibleInstances
+      MultiParamTypeClasses
+      ScopedTypeVariables
+      TypeFamilies
+      FlexibleContexts
+      UndecidableInstances
+      StandaloneDeriving
+      AllowAmbiguousTypes
   ghc-options: -Wall -Wextra -Wno-name-shadowing -Wno-unused-matches
   cc-options: -Wall -Wextra
   include-dirs:
