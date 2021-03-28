@@ -246,13 +246,15 @@ tc_salloc (t :@ p1) p2 = do
   s <- gets (sigma . snd)
   e :@ p3 <- gets (epsilon . snd)
 
+  let t' = close t
+
   -- > σ′ = t ∷ σ
-  let s' = ConsT (t :@ p1) s :@ p1
+  let s' = ConsT (t' :@ p1) s :@ p1
 
   -- > m ∈ ℕ
   -- > Γ ⊢ᴷ t : Tm
   m <- liftEither $ first FromReport $ runKindchecker do
-    k <- kindcheckType g (t :@ p1)
+    k <- kindcheckType g (t' :@ p1)
     requireSized p1 k
     sizeof k
 
@@ -782,3 +784,8 @@ relax (t :@ p) = relaxType t :@ p
       -- NOTE: This will probably need to be tweaked
       --       Because we don't rename the variables bound, any flexible and rigid variable can be confused.
     relaxType t                  = t
+
+close :: Type -> Type
+close (ForAllT b t)     = ForAllT b (close <$> t)
+close (RecordT x s e _) = RecordT x s e False
+close t                 = t

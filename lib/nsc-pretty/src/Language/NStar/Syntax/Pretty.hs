@@ -94,7 +94,7 @@ instance PrettyText Instruction where
 
 instance PrettyText Constant where
   prettyText (IntegerC (i :@ _))   = integer i
-  prettyText (CharacterC (c :@ _)) = char c
+  prettyText (CharacterC (c :@ _)) = squotes (char c)
   prettyText (ArrayC csts)         = lbracket <> hsep (fmap prettyText csts) <+> rbracket
 
 instance PrettyText Expr where
