@@ -73,7 +73,7 @@ parseDataSection = DataS <$> do
   lexeme (parseSymbol (Id "data"))
   lexeme $ betweenBraces (MP.many (located binding))
   where binding = Bind <$> (lexeme parseIdentifier <* lexeme (parseSymbol Colon))
-                       <*> (lexeme parseType <* lexeme (parseSymbol Equal))
+                       <*> (lexeme (parseType True) <* lexeme (parseSymbol Equal))
                        <*> (lexeme parseConstant)
 
 parseInclude :: (?parserFlags :: ParserFlags) => Parser Section
@@ -213,14 +213,14 @@ parseForallType pty = located $
          <*> (lexeme (parseSymbol Colon) *> lexeme parseKind)
 
 -- | Parses a non-stack type. To parse a stack type, see 'parseStackType'.
-parseType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseType = MP.choice
-  [ parseForallType (parseRecordType True)
+parseType :: (?parserFlags :: ParserFlags) => Bool -> Parser (Located Type)
+parseType isOpen = MP.choice
+  [ parseForallType (parseRecordType isOpen)
   , parseSignedType
   , parseUnsignedType
   , parsePointerType
   , parseVariableType
-  , betweenParens parseType
+  , betweenParens (parseType isOpen)
   ]
 
 -- | Parses a record type.
@@ -233,7 +233,7 @@ parseRecordType open = located do
 
   pure (RecordT (Map.fromList chi) sigma epsilon open)
   where
-    field = (,) <$> (lexeme parseRegister <* lexeme (parseSymbol Colon)) <*> (parseBang MP.<|> parseType)
+    field = (,) <$> (lexeme parseRegister <* lexeme (parseSymbol Colon)) <*> (parseBang MP.<|> parseType True)
 
 -- | Parses any sort of signed integer type.
 parseSignedType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
@@ -249,11 +249,11 @@ parseUnsignedType = located $ fmap UnsignedT . MP.choice $ unsigned <$> [ 64 ]
 
 -- | Parses a pointer to a type.
 parsePointerType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parsePointerType = lexeme . located $ lexeme (parseSymbol Star) *> (PtrT <$> parseType)
+parsePointerType = lexeme . located $ lexeme (parseSymbol Star) *> (PtrT <$> parseType True)
 
 -- | Parses a stack type.
 parseStackType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseStackType = foldr1 cons <$> (parseType `MP.sepBy1` MP.try (lexeme (pure ()) *> lexeme (parseSymbol DoubleColon)))
+parseStackType = foldr1 cons <$> (parseType True `MP.sepBy1` MP.try (lexeme (pure ()) *> lexeme (parseSymbol DoubleColon)))
   where
     cons stack@(_ :@ p) ty = ConsT stack ty :@ p
 
@@ -297,7 +297,7 @@ parseSpecialization = MP.choice
   , MP.try (betweenParens (lexeme parseStackType))
   , MP.try (lexeme parseContinuation)
   , MP.try (betweenParens (lexeme parseContinuation))
-  , parseType
+  , parseType False
   ]
 
 -- | Parses a base-pointer offset.
@@ -360,7 +360,7 @@ parseNop = located $ NOP <$ lexeme (parseSymbol Nop)
 
 parseSalloc :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseSalloc = located $
-  lexeme (parseSymbol Salloc) *> (SALLOC <$> parseType)
+  lexeme (parseSymbol Salloc) *> (SALLOC <$> parseType False)
 
 parseSfree :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseSfree = located $ SFREE <$ lexeme (parseSymbol Sfree)
