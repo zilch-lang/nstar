@@ -38,4 +38,17 @@ int find_section_index_by_name(elf_section_header const **sections, unsigned int
  * */
 int find_section_symbol_by_index(Elf64_Sym **symtab, unsigned int symtab_len, int section_index);
 
+/**
+ * @brief Frinds the index of a symbol knowing its name.
+ *
+ * @param symtab The symbol table (`.symtab` section)
+ *
+ * @param symtab_len The length of the symbol table
+ *
+ * @param symbol_name The name of the symbol we want the index of
+ *
+ * @return `-1` if no symbol has been found with this name, else the symbol index in the symbol table
+ * */
+int find_symbol_index_by_name(elf_symbol **symtab, unsigned int symtab_len, char const *symbol_name);
+
 #endif

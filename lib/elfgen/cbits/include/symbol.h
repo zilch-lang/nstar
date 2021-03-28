@@ -87,7 +87,8 @@ typedef struct
     {
         enum relocation_origin_type
         {
-            ORIGIN_SECTION   //!< The symbol originates form a section
+            ORIGIN_SECTION,   //!< The symbol originates form a section
+            ORIGIN_FUNCTION   //!< The symbol is a simple label
         } type;   //!< The type of origin for the symbol.
 
         union
@@ -97,6 +98,10 @@ typedef struct
                 char const *section_name;   //!< The name of the section it originates from
                 uint64_t offset;            //!< The computed offset in the section
             } origin_section;
+            struct
+            {
+                char const *symbol_name;    //!< The name of the function
+            } origin_function;
         } data;
     } *origin;  //!< The origin of the relocation symbol.
 

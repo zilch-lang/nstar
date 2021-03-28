@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <stdio.h>
 
 char const *get_section_name(elf_section_header const *section)
 {
@@ -52,6 +53,18 @@ int find_section_symbol_by_index(Elf64_Sym **symtab, unsigned int size, int sect
     for (size_t i = 0; index == -1 && i < size; ++i)
     {
         if (ELF64_ST_TYPE(symtab[i]->st_info) == STT_SECTION && symtab[i]->st_shndx == section_index) index = (int) i;
+    }
+
+    return index;
+}
+
+int find_symbol_index_by_name(elf_symbol **symtab, unsigned int size, char const *symbol_name)
+{
+    int index = -1;
+
+    for (size_t i = 0; index == -1 && i < size; ++i)
+    {
+        if (strcmp(symtab[i]->name, symbol_name) == 0) index = (int) i;
     }
 
     return index;

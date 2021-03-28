@@ -500,11 +500,29 @@ void fix_relocation_symbols_addresses(elf_object const *obj, Elf64_Object *targe
         elf_relocation_symbol const *abstract_symbol = symbols[i];
         Elf64_Rela *concrete_symbol = target->relocations[i];
 
-        int section_index = find_section_index_by_name(obj->sections, obj->sections_len, abstract_symbol->origin->data.origin_section.section_name);
-        int ssymbol_index = find_section_symbol_by_index(target->symbols, target->symbols_len, section_index);
+        switch (abstract_symbol->origin->type)
+        {
+            case ORIGIN_SECTION:
+            {
+                char const *sect_name = abstract_symbol->origin->data.origin_section.section_name;
+                int section_index = find_section_index_by_name(obj->sections, obj->sections_len, sect_name);
+                int ssymbol_index = find_section_symbol_by_index(target->symbols, target->symbols_len, section_index);
 
-        concrete_symbol->r_info = ELF64_R_INFO(ssymbol_index, ELF64_R_TYPE(concrete_symbol->r_info));
-        concrete_symbol->r_addend = abstract_symbol->origin->data.origin_section.offset;
+                concrete_symbol->r_info = ELF64_R_INFO(ssymbol_index, ELF64_R_TYPE(concrete_symbol->r_info));
+                concrete_symbol->r_addend = abstract_symbol->origin->data.origin_section.offset;
+                break;
+            }
+            case ORIGIN_FUNCTION:
+            {
+                int symtab_index = find_section_index_by_name(obj->sections, obj->sections_len, ".symtab");
+                elf_section_header const *symtab = obj->sections[symtab_index];
+                int symbol_index = find_symbol_index_by_name(symtab->data.s_symtab.symbols, symtab->data.s_symtab.symbols_len, abstract_symbol->origin->data.origin_function.symbol_name);
+
+                concrete_symbol->r_info = ELF64_R_INFO(symbol_index, ELF64_R_TYPE(concrete_symbol->r_info));
+                concrete_symbol->r_addend = -4;
+                break;
+            }
+        }
     }
 
     free(symbols);
