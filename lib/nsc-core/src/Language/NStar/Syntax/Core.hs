@@ -190,6 +190,10 @@ data Instruction where
   ST :: Located Expr
      -> Located Expr
      -> Instruction
+  -- | Gets a pointer to some data on the stack.
+  SREF :: Located Integer
+       -> Located Register
+       -> Instruction
 
   -- TODO: add more instructions
 
@@ -284,6 +288,8 @@ data Token where
   Ld :: Token
   -- | The @st@ instruction
   St :: Token
+  -- | The @sref@ instruction
+  Sref :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@

@@ -91,6 +91,7 @@ instance PrettyText Instruction where
   prettyText (SST s d)      = text "sst" <+> prettyText s <> comma <+> prettyText d
   prettyText (LD s d)       = text "ld" <+> prettyText s <> comma <+> prettyText d
   prettyText (ST s d)       = text "st" <+> prettyText s <> comma <+> prettyText d
+  prettyText (SREF n r)     = text "sref" <+> prettyText n <> comma <+> prettyText r
 
 instance PrettyText Constant where
   prettyText (IntegerC (i :@ _))   = integer i
