@@ -103,5 +103,10 @@ data TypedInstruction where
      -> Located Expr     -- ^ > o
      -> Located Expr     -- ^ > p
      -> TypedInstruction
+  -- | Retrieves a pointer to @p@ bytes long data located at @n@ bytes onto the stack in the register @r@.
+  SREF :: Located Integer   -- ^ > n
+       -> Located Integer   -- ^ > p
+       -> Located Register  -- ^ > r
+       -> TypedInstruction
 
 deriving instance Show TypedInstruction

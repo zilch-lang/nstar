@@ -58,6 +58,7 @@ data TypecheckError
   | CannotDiscardContinuationFromStackTop Position
   | CannotStoreContinuationOntoHeap Register Position Position
   | RegisterCannotBePropagated [Located Register] [Located Register] Position Position
+  | CannotTakeReferenceToFunctionPointerOnStack (Located Type) Integer Position Position
 
 data TypecheckWarning
 
@@ -66,37 +67,38 @@ fromTypecheckWarning _ = reportWarning "" [] []
 
 -- | Transforms a typechcking error into a report.
 fromTypecheckError :: TypecheckError -> Report String
-fromTypecheckError (Uncoercible (t1 :@ p1) (t2 :@ p2))          = uncoercibleTypes (t1, p1) (t2, p2)
-fromTypecheckError (InfiniteType (t :@ p1) (v :@ p2))           = infiniteType (t, p1) (v, p2)
-fromTypecheckError (NoReturnAddress p r ctx)                    = retWithoutReturnAddress p r ctx
-fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2))  = recordDomainsDoNotSubset (m1, p1) (m2, p2)
-fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))      = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
-                                                                                    --      ^^^^^^^^^^^^^^^^^^^^^^^^
-                                                                                    -- This is just to insert a newline between error
-fromTypecheckError (ToplevelReturn p)                           = returnAtTopLevel p
-fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)        = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
-fromTypecheckError (FromReport r)                               = r
-fromTypecheckError (RegisterNotFoundInContext r p ctx)          = registerNotFoundInContext r p (Set.toList ctx)
-fromTypecheckError (UnknownLabel (n :@ p))                      = unknownLabel n p
-fromTypecheckError (CannotInferSpecialization nbGot nbExpect p) = cannotInferSpecialization nbGot nbExpect p
-fromTypecheckError (TooMuchSpecialization ng ne p)              = tooMuchSpecialization ng ne p
-fromTypecheckError (CannotJumpBecauseOf p err)                  = cannotJumpAt p <> reportWarning "\n" [] [] <> fromTypecheckError err
-fromTypecheckError (MissingRegistersInContext rs p)             = missingRegistersInContext rs p
-fromTypecheckError (NonPointerTypeOnOffset t p)                 = typeIsNotAPointer t p
-fromTypecheckError (UnknownDataLabel n p)                       = unknownDataLabel n p
-fromTypecheckError (UnsafeOperationOutOfUnsafeBlock p)          = unsafeNotInUnsafeBlock p
-fromTypecheckError (NonStackPointerRegister ty p p')            = spIsNotAStackRegister ty p p'
-fromTypecheckError (CannotPopCodeAddress t p)                   = cannotPopCodespaceAddress t p
-fromTypecheckError (CannotMovToDestination s d p1 p2)           = cannotMovToDestination s d p1 p2
-fromTypecheckError (CannotPopIntoDestination t1 t2 t3 p1 p2)    = cannotPopIntoDestination t1 t2 t3 p1 p2
-fromTypecheckError (AbstractContinuationOnReturn p1 ty)         = cannotReturnToUnknownContinuation p1 ty
-fromTypecheckError (TryingToOverwriteRegisterContinuation r p)  = cannotOverwriteRegisterContinuation r p
-fromTypecheckError (StackIsNotBigEnough n t p)                  = stackIsNotBigEnough n t p
-fromTypecheckError (CannotReturnToStackContinuation t p)        = cannotReturnToStackContinuation t p
-fromTypecheckError (CannotCallWithAbstractContinuation t p)     = cannotCallOnAbstractContinuation t p
-fromTypecheckError (CannotDiscardContinuationFromStackTop p)    = cannotDiscardContinuationFromStack p
-fromTypecheckError (CannotStoreContinuationOntoHeap r p1 p2)    = cannotStoreContOnHeap r p1 p2
-fromTypecheckError (RegisterCannotBePropagated rs bs p1 p2)     = cannotPropagateRegister rs bs p1 p2
+fromTypecheckError (Uncoercible (t1 :@ p1) (t2 :@ p2))                     = uncoercibleTypes (t1, p1) (t2, p2)
+fromTypecheckError (InfiniteType (t :@ p1) (v :@ p2))                      = infiniteType (t, p1) (v, p2)
+fromTypecheckError (NoReturnAddress p r ctx)                               = retWithoutReturnAddress p r ctx
+fromTypecheckError (DomainsDoNotSubtype (m1 :@ p1) (m2 :@ p2))             = recordDomainsDoNotSubset (m1, p1) (m2, p2)
+fromTypecheckError (RecordUnify err (m1 :@ p1) (m2 :@ p2))                 = fromTypecheckError err <> reportWarning "\n" [] [] <> recordValuesDoNotUnify (m1, p1) (m2, p2)
+                                                                                               --      ^^^^^^^^^^^^^^^^^^^^^^^^
+                                                                                               -- This is just to insert a newline between error
+fromTypecheckError (ToplevelReturn p)                                      = returnAtTopLevel p
+fromTypecheckError (ContextIsMissingOnReturn p1 p2 regs)                   = contextIsMissingOnReturnAt (Set.toList regs) p1 p2
+fromTypecheckError (FromReport r)                                          = r
+fromTypecheckError (RegisterNotFoundInContext r p ctx)                     = registerNotFoundInContext r p (Set.toList ctx)
+fromTypecheckError (UnknownLabel (n :@ p))                                 = unknownLabel n p
+fromTypecheckError (CannotInferSpecialization nbGot nbExpect p)            = cannotInferSpecialization nbGot nbExpect p
+fromTypecheckError (TooMuchSpecialization ng ne p)                         = tooMuchSpecialization ng ne p
+fromTypecheckError (CannotJumpBecauseOf p err)                             = cannotJumpAt p <> reportWarning "\n" [] [] <> fromTypecheckError err
+fromTypecheckError (MissingRegistersInContext rs p)                        = missingRegistersInContext rs p
+fromTypecheckError (NonPointerTypeOnOffset t p)                            = typeIsNotAPointer t p
+fromTypecheckError (UnknownDataLabel n p)                                  = unknownDataLabel n p
+fromTypecheckError (UnsafeOperationOutOfUnsafeBlock p)                     = unsafeNotInUnsafeBlock p
+fromTypecheckError (NonStackPointerRegister ty p p')                       = spIsNotAStackRegister ty p p'
+fromTypecheckError (CannotPopCodeAddress t p)                              = cannotPopCodespaceAddress t p
+fromTypecheckError (CannotMovToDestination s d p1 p2)                      = cannotMovToDestination s d p1 p2
+fromTypecheckError (CannotPopIntoDestination t1 t2 t3 p1 p2)               = cannotPopIntoDestination t1 t2 t3 p1 p2
+fromTypecheckError (AbstractContinuationOnReturn p1 ty)                    = cannotReturnToUnknownContinuation p1 ty
+fromTypecheckError (TryingToOverwriteRegisterContinuation r p)             = cannotOverwriteRegisterContinuation r p
+fromTypecheckError (StackIsNotBigEnough n t p)                             = stackIsNotBigEnough n t p
+fromTypecheckError (CannotReturnToStackContinuation t p)                   = cannotReturnToStackContinuation t p
+fromTypecheckError (CannotCallWithAbstractContinuation t p)                = cannotCallOnAbstractContinuation t p
+fromTypecheckError (CannotDiscardContinuationFromStackTop p)               = cannotDiscardContinuationFromStack p
+fromTypecheckError (CannotStoreContinuationOntoHeap r p1 p2)               = cannotStoreContOnHeap r p1 p2
+fromTypecheckError (RegisterCannotBePropagated rs bs p1 p2)                = cannotPropagateRegister rs bs p1 p2
+fromTypecheckError (CannotTakeReferenceToFunctionPointerOnStack s n p1 p2) = cannotReferenceFunctionPointerOnStack s n p1 p2
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -338,3 +340,10 @@ cannotPropagateRegister rs bs p1 p2 =
     , (p1, Where $ "The type of this label marks " <> showCommaSep bs <> " as potentially overwriting\nbut trying to propagate registers " <> showCommaSep rs <> " to the continuation") ]
     [ hint "Some registers may need to be caller-saved (saved somewhere, e.g. on the stack, by the caller) according to some coding conventions." ]
   where showCommaSep regs = "{" <> intercalate "," (show . prettyText <$> regs) <> "}"
+
+cannotReferenceFunctionPointerOnStack :: Located Type -> Integer -> Position -> Position -> Report String
+cannotReferenceFunctionPointerOnStack s n p1 p2 =
+  reportError "Trying to reference a function pointer is disallowed for safety reasons."
+    [ (p1, This $ "Taking a reference to the stack cell #" <> show n <> " which is a function pointer")
+    , (p2, Where $ "The current stack was inferred to " <> show (prettyText s)) ]
+    [ hint "This specific feature has been completely disallowed in N* because of how raw pointers can be used in the language. Moreover, functions are implicitly boxed so this operation should never be necessary to perform (if it weren't forbidden)." ]

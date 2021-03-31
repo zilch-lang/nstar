@@ -481,6 +481,39 @@ tc_st (src :@ p1) (ptr :@ p2) unsafe p3 = do
     ByteOffsetE offset pointer :@ _ -> pure (TC.ST (src :@ p1) offset pointer)
     _ -> internalError $ "Invalid 'st' destination " <> show ptrOffset
 
+tc_sref :: (?tcFlags :: TypecheckerFlags) => Located Integer -> Located Register -> Position -> Typechecker TC.TypedInstruction
+tc_sref (n :@ p1) (r :@ p2) p3 = do
+  {-
+      r is a register          n ∈ ℕ         n ≤ p         σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
+                         tₙ ≁ !        tₙ ≁ ∀().ζ          ε ≠ n
+  ──────────────────────────────────────────────────────────────────────────────────────
+                   Ξ; Γ; χ; σ; ε ⊢ᴵ sref n, r ⊣ χ, r : *tₙ; σ; ε
+  -}
+
+  g <- gets (gamma .snd)
+  s <- gets (sigma . snd)
+
+  -- > n ∈ ℕ
+  -- > n ≤ p
+  -- > σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
+  (offset, tN) <- getNthFromStack n s
+  sizeofTy <- liftEither $ first FromReport $ runKindchecker do
+    k <- kindcheckType g tN
+    -- > tₙ ≁ !
+    requireSized (getPos tN) k
+    sizeof k
+
+  -- > tₙ ≁ ∀().ζ
+  -- > ε ≠ n
+  case tN of
+    ForAllT _ _ :@ _ -> throwError (CannotTakeReferenceToFunctionPointerOnStack s n p1 p3)
+    _ -> pure ()
+
+  extendChi (r :@ p2) (PtrT tN :@ getPos tN)
+
+  pure (TC.SREF (offset :@ p3) (sizeofTy :@ p3) (r :@ p3))
+
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
