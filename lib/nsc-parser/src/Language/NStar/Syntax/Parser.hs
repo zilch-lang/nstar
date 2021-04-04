@@ -265,10 +265,10 @@ parseVariableType = located $ VarT <$> parseIdentifier
 -- | Parses a type kind.
 parseKind :: (?parserFlags :: ParserFlags) => Parser (Located Kind)
 parseKind = located $ MP.choice
-  [ T8 <$ parseSymbol (Id "T8")
-  , Ts <$ parseSymbol (Id "Ts")
-  , Ta <$ parseSymbol (Id "Ta")
-  , Tc <$ parseSymbol (Id "Tc") ]
+  [ T 8 <$ parseSymbol (TnK 8)
+  , Ts <$ parseSymbol TsK
+  , Ta <$ parseSymbol TaK
+  , Tc <$ parseSymbol TcK ]
 
 parseContinuation :: (?parserFlags :: ParserFlags) => Parser (Located Type)
 parseContinuation = located $ MP.choice

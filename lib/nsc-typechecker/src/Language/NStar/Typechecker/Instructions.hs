@@ -94,7 +94,7 @@ tc_mv (src :@ p1) (dst :@ p2) p3 = do
       -- > Ξ; Γ; σ; ε ⊢ᵀ e : t
       (t, _) <- typecheckExpr src p1 False
       -- > Γ ⊢ᴷ t : T8
-      liftEither (first FromReport . runKindchecker $ unifyKinds (T8 :@ p1) =<< kindcheckType g t)
+      liftEither (first FromReport . runKindchecker $ unifyKinds (T 8 :@ p1) =<< kindcheckType g t)
 
       -- > t ≠ !
       case (t, src) of

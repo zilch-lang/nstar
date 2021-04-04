@@ -39,7 +39,7 @@ instance PrettyText Statement where
           pprint (i, unsafe) = (if unsafe then text "unsafe " else empty) <> prettyText i
 
 instance PrettyText Kind where
-  prettyText T8 = text "T8"
+  prettyText (T n) = text "T" <> integer n
   prettyText Ta = text "Ta"
   prettyText Ts = text "Ts"
   prettyText Tc = text "Tc"

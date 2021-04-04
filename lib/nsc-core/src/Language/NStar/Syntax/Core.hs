@@ -124,8 +124,8 @@ deriving instance Show Type
 deriving instance Eq Type
 
 data Kind where
-  -- | Kind of 8-bytes big types
-  T8 :: Kind
+  -- | Kind of N-bytes big types
+  T :: Integer -> Kind
   -- | Kind of stack types
   Ts :: Kind
   -- | Kind of unsized types
@@ -333,6 +333,14 @@ data Token where
   Section :: Token
   -- \ \"@include@\" block
   Include :: Token
+  -- | The @Ta@ kind
+  TaK :: Token
+  -- | The @Ts@ kind
+  TsK :: Token
+  -- | The @Tc@ kind
+  TcK :: Token
+  -- | The @T<n>@ kind
+  TnK :: Integer -> Token
   -- Comments
   -- | A comment starting with "@#@" and spanning until the end of the current line
   InlineComment :: Text        -- ^ The content of the comment
