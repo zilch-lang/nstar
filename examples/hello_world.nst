@@ -19,7 +19,7 @@ section code {
        ; sst %r5, 0
        ; mv test_str, %r5
        ; call puts<s, %r3>
-  puts_ret: forall(s: Ts, e: Tc).{ %r0: !, %r3: forall().{ %r0: u64 | s -> e } | s -> %r3 }
+  puts_ret: forall(s: Ts, e: Tc).{ %r3: forall().{ %r0: u64 | s -> e } | s -> %r3 }
           = mv 0, %r0
           ; ret
 }
