@@ -1,3 +1,5 @@
+# -*- nstar -*-
+
 section extern.code {
   puts: forall(s: Ts, e: Tc).{ %r4: !, %r5: *s64 | forall().{ %r0: u64 | s -> e }::s -> 0 }
 }

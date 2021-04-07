@@ -1,3 +1,5 @@
+# -*- nstar -*-
+
 section code {
   fact: forall(s: Ts, e: Tc).{ %r5: forall().{ %r0: u64 | s -> e }, %r1: u64 | s -> %r5 }
       = jz %r1, fact_0<s, e>, fact_N<s, e>
