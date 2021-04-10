@@ -73,7 +73,7 @@ kindcheckType _ (FVarT v :@ _)                                        = throwErr
 kindcheckType ctx (PtrT t :@ p)                                       = (T 8 :@ p) <$ kindcheckType ctx t
 --kindcheckType ctx (SPtr t@(_ :@ p1) :@ p)                = (T8 :@ p) <$ (requireStackType p1 =<< kindcheckType ctx t)
 kindcheckType ctx (ConsT t1@(_ :@ p1) t2@(_ :@ p2) :@ p)              = do
-  liftA2 (*>) (requireDataType p1) (requireSized p1) =<< kindcheckType ctx t1
+  requireSized p1 =<< kindcheckType ctx t1
   requireStackType p2 =<< kindcheckType ctx t2
   pure (Ts :@ p)
 kindcheckType ctx (RecordT mappings st@(_ :@ p2) e@(_ :@ p3) _ :@ p)  = do
@@ -92,6 +92,9 @@ kindcheckType _ (BangT :@ p)                                          = pure (T 
   -- FIXME: bang types cannot be used as stack types or continuations, and cannot be found
   --        in stacks; but they have to be able to be unified to any kind whatsoever.
   --        For now, we only have T8 but we will have to give it T0 later.
+kindcheckType g (PackedStructT ts :@ p)                               = do
+  sizes <- mapM ((sizeof =<<) . kindcheckType g) ts
+  pure (T (sum sizes) :@ p)
 
 --------------------------------------------------------------------------------------------
 
@@ -139,7 +142,8 @@ requireDataType p k = do
 --
 --   Essentially a wrapper around 'isSized', but in the 'Kindchecker' monad.
 requireSized :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
-requireSized p k = () <$ unifyKinds (T 8 :@ p) k
+requireSized p (T n :@ _) = pure ()
+requireSized p (k :@ p1)  = throwError (NotSized (k :@ p1) p)
 
 requireCont :: (?tcFlags :: TypecheckerFlags) => Position -> Located Kind -> Kindchecker ()
 requireCont p k = () <$ unifyKinds (Tc :@ p) k

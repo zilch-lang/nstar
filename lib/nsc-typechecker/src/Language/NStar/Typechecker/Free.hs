@@ -35,6 +35,7 @@ instance Free Type where
   freeVars (PtrT t1)                     = freeVars t1
   freeVars (ForAllT binds ty)            = freeVars ty Set.\\ freeVars (fst <$> binds)
   freeVars (RecordT fields stack cont _) = Map.foldr ((<>) . freeVars) mempty fields <> freeVars stack <> freeVars cont
+  freeVars (PackedStructT ts)            = foldMap freeVars ts
   freeVars (StackContT _)                = mempty
   freeVars (RegisterContT _)             = mempty
   freeVars (VarT _)                      = mempty
