@@ -31,6 +31,7 @@ import Data.Functor ((<&>))
 import Control.Applicative ((<|>))
 import Data.Map (Map)
 import Text.Diagnose
+import Debug.Trace (traceShow)
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker TC.TypedInstruction
 tc_ret p = do
@@ -658,26 +659,50 @@ typecheckExpr (BaseOffsetE ptr off) p unsafe = do
       Ξ; Γ; χ; σ; ε ⊢ᵀ p : *τ       Ξ; Γ; χ; σ; ε ⊢ᵀ o : s64
   ─────────────────────────────────────────────────────────────── pointer base-offset
                 Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
+
+
+     Γ ⊢ᴷ t₀ : Tn₀, t₁ : Tn₁, …, tₘ : Tnₘ      n₀, n₁, …, nₘ ∈ ℕ
+                Ξ; Γ; χ; σ; ε ⊢ᵀ p : *(t₀, t₁, …, tₘ)
+  ────────────────────────────────────────────────────────────────── structure pointer offset
+                  Ξ; Γ; χ; σ; ε ⊢ᵀ p[nᵢ] : *tᵢ
   -}
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ o : s64
   (ty1, _) <- typecheckExpr (unLoc off) (getPos off) unsafe
   unify ty1 (SignedT 64 :@ p)
 
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p : *τ
+  -- ──────────────────────────
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p : *(t₀, t₁, …, tₘ)
   (ty2, _) <- typecheckExpr (unLoc ptr) (getPos ptr) unsafe
   t <- freshVar "τ" (getPos ptr)
   sub <- unify (PtrT t :@ getPos ptr) ty2
 
-  off2 <- case unLoc off of
-    RegE r -> do
-      when (not unsafe) do
-        throwError (UnsafeOperationOutOfUnsafeBlock p)
-      pure (RegE r)
-    ImmE (I o :@ _) -> do
+  (ty2, off2) <- case (unLoc off, apply sub t) of
+    (ImmE (I o :@ _), PackedStructT ts :@ _) -> do
+      g <- gets (gamma . snd)
+
+      memberSizes <- liftEither $ first FromReport $ runKindchecker do
+        mapM ((sizeof =<<) . kindcheckType g) ts
+
+      let s = fromIntegral $ length memberSizes
+      when (o > s - 1) do
+        throwError (OutOfBoundsStructureAccess o s p)
+
+      let ty = ts !! fromIntegral o
+          offset = sum $ take (fromIntegral o) memberSizes
+
+      pure (PtrT ty :@ p, ImmE (I offset :@ p))
+    (o, PackedStructT ts :@ p1) -> do
+      throwError (StructureOffsetMustBeKnown p (getPos ptr) (getPos off))
+    (ImmE (I o :@ _), _) -> do
       g <- gets (gamma . snd)
       m <- liftEither $ first FromReport $ runKindchecker do
         sizeof =<< kindcheckType g (apply sub t)
-      pure (ImmE (I (o * m) :@ p))
+      pure (ty2, ImmE (I (o * m) :@ p))
+    (RegE r, _) -> do
+      when (not unsafe) do
+        throwError (UnsafeOperationOutOfUnsafeBlock p)
+      pure (ty2, RegE r)
     o -> internalError $ "Invalid pointer offset " <> show o
 
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ

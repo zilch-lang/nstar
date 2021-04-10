@@ -27,6 +27,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Language.NStar.Syntax.Core (Register)
 import Text.PrettyPrint.ANSI.Leijen ((<+>), encloseSep, lbrace, rbrace, comma, colon)
+import Language.NStar.Typechecker.Core (Expr)
 
 data TypecheckError
   = Uncoercible (Located Type) (Located Type)
@@ -59,6 +60,8 @@ data TypecheckError
   | CannotStoreContinuationOntoHeap Register Position Position
   | RegisterCannotBePropagated [Located Register] [Located Register] Position Position
   | CannotTakeReferenceToFunctionPointerOnStack (Located Type) Integer Position Position
+  | StructureOffsetMustBeKnown Position Position Position
+  | OutOfBoundsStructureAccess Integer Integer Position
 
 data TypecheckWarning
 
@@ -99,6 +102,8 @@ fromTypecheckError (CannotDiscardContinuationFromStackTop p)               = can
 fromTypecheckError (CannotStoreContinuationOntoHeap r p1 p2)               = cannotStoreContOnHeap r p1 p2
 fromTypecheckError (RegisterCannotBePropagated rs bs p1 p2)                = cannotPropagateRegister rs bs p1 p2
 fromTypecheckError (CannotTakeReferenceToFunctionPointerOnStack s n p1 p2) = cannotReferenceFunctionPointerOnStack s n p1 p2
+fromTypecheckError (StructureOffsetMustBeKnown p1 p2 p3)                   = structureOffsetMustBeACompileTimeConstant p1 p2 p3
+fromTypecheckError (OutOfBoundsStructureAccess o s p)                      = outOfBoundsStructureAccess o s p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -347,3 +352,26 @@ cannotReferenceFunctionPointerOnStack s n p1 p2 =
     [ (p1, This $ "Taking a reference to the stack cell #" <> show n <> " which is a function pointer")
     , (p2, Where $ "The current stack was inferred to " <> show (prettyText s)) ]
     [ hint "This specific feature has been completely disallowed in N* because of how raw pointers can be used in the language. Moreover, functions are implicitly boxed so this operation should never be necessary to perform (if it weren't forbidden)." ]
+
+structureOffsetMustBeACompileTimeConstant :: Position -> Position -> Position -> Report String
+structureOffsetMustBeACompileTimeConstant p1 p2 p3 =
+  reportError "Trying to access a structure field with an unknown index."
+    [ (p2, This $ "This was found to be a structure pointer")
+    , (p3, This $ "But offsetting a structure pointer requires a compile-time known integral constant") ]
+    [ hint $ "What would it mean to have variable access to structure members anyway?" ]
+
+outOfBoundsStructureAccess :: Integer -> Integer -> Position -> Report String
+outOfBoundsStructureAccess n s p =
+  reportError "Out of bounds member access in structure."
+    [ (p, This $ "Trying to access the " <> show (n + 1) <> ordinalSuffix (n + 1) <> " member in a structure which only contains " <> show s <> " members") ]
+    []
+  where
+    ordinalSuffix i =
+      let i' = abs i `mod` 100
+      in if i' > 10 && i' < 20
+         then "th"
+         else case i' `mod` 10 of
+                1 -> "st"
+                2 -> "nd"
+                3 -> "rd"
+                _ -> "th"
