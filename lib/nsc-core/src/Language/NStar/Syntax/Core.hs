@@ -119,6 +119,9 @@ data Type where
   RegisterContT :: Register -> Type
   -- | Bang type
   BangT :: Type
+  -- | Packed structure type
+  PackedStructT :: [Located Type]
+                -> Type
 
 deriving instance Show Type
 deriving instance Eq Type

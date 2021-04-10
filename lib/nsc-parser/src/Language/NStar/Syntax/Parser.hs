@@ -221,7 +221,7 @@ parseType = MP.choice
   , parseUnsignedType
   , parsePointerType
   , parseVariableType
-  , betweenParens parseType
+  , parseStructType
   ]
 
 -- | Parses a record type.
@@ -261,6 +261,10 @@ parseStackType = foldr1 cons <$> (parseType `MP.sepBy1` MP.try (lexeme (pure ())
 -- | Parses a type variable.
 parseVariableType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
 parseVariableType = located $ VarT <$> parseIdentifier
+
+-- | Parses a structure type.
+parseStructType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseStructType = located $ PackedStructT <$> betweenParens ((lexeme parseType `MP.sepBy` lexeme (parseSymbol Comma)) MP.<|> pure [])
 
 -- | Parses a type kind.
 parseKind :: (?parserFlags :: ParserFlags) => Parser (Located Kind)

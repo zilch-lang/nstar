@@ -66,6 +66,7 @@ instance PrettyText Type where
   prettyText (RegisterContT r) = prettyText r
   prettyText (StackContT i) = prettyText i
   prettyText BangT = text "!"
+  prettyText (PackedStructT ts) = encloseSep lparen rparen comma $ fmap prettyText ts
 
 instance PrettyText Register where
   prettyText = (text "%" <>) . text . f
