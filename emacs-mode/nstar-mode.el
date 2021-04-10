@@ -26,7 +26,7 @@
     ("%r[0-5]" .
      font-lock-variable-name-face)
     ;; registers
-    ("\\b\\(mv\\|st\\|ld\\|salloc\\|sld\\|sst\\|call\\|ret\\|jmp\\|jz\\|dec\\|inc\\|sfree\\|mul\\)\\b"
+    ("\\b\\(mv\\|st\\|ld\\|salloc\\|sld\\|sst\\|call\\|ret\\|jmp\\|jz\\|dec\\|inc\\|sfree\\|mul\\|nop\\|sref\\)\\b"
      1 font-lock-builtin-face)
     ;; instructions
     ("\\b\\(T\\(a\\|c\\|s\\|[0-9]+\\)\\|s\\(8\\|16\\|32\\|64\\)\\|u\\(8\\|16\\|32\\|64\\)\\)\\b"
