@@ -12,14 +12,14 @@
 module Language.NStar.Typechecker.Core
 (
   TypedProgram(..)
-, TypedDataSection(..), TypedRODataSection(..), TypedUDataSection(..), TypedCodeSection(..)
+, TypedDataSection(..), TypedRODataSection(..), TypedUDataSection(..), TypedCodeSection(..), TypedExternCodeSection(..)
 , TypedStatement(..)
 , TypedInstruction(..)
 ,  -- * Re-exports
   module Language.NStar.Syntax.Core
 ) where
 
-import Language.NStar.Syntax.Core (Expr(..), Type(..), Kind(..), Register(..), Binding(..))
+import Language.NStar.Syntax.Core (Expr(..), Type(..), Kind(..), Register(..), Binding(..), ReservedSpace(..))
 import Data.Located (Located)
 import Data.Text (Text)
 import Data.Map (Map)
@@ -30,6 +30,7 @@ data TypedProgram =
     (Located TypedRODataSection)
     (Located TypedUDataSection)
     (Located TypedCodeSection)
+    (Located TypedExternCodeSection)
 
 data TypedDataSection where
   TData :: [Located Binding]
@@ -46,6 +47,10 @@ data TypedUDataSection where
 data TypedCodeSection where
   TCode :: [Located TypedStatement]
         -> TypedCodeSection
+
+data TypedExternCodeSection where
+  TExternCode :: [Located ReservedSpace]
+              -> TypedExternCodeSection
 
 data TypedStatement where
   -- | A label stripped off its context.
@@ -98,5 +103,10 @@ data TypedInstruction where
      -> Located Expr     -- ^ > o
      -> Located Expr     -- ^ > p
      -> TypedInstruction
+  -- | Retrieves a pointer to @p@ bytes long data located at @n@ bytes onto the stack in the register @r@.
+  SREF :: Located Integer   -- ^ > n
+       -> Located Integer   -- ^ > p
+       -> Located Register  -- ^ > r
+       -> TypedInstruction
 
 deriving instance Show TypedInstruction

@@ -1,3 +1,5 @@
+# -*- nstar -*-
+
 ### x86-amd64 code driver
 
 section code {

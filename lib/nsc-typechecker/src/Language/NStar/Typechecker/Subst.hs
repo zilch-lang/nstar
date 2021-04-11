@@ -60,6 +60,8 @@ instance Substitutable Type where
   apply (Subst s) t@(FVarT v)        = fromMaybe t (unLoc <$> Map.lookup v s)
   apply s (RecordT rts st ct o)      = RecordT (apply s <$> rts) (apply s st) (apply s ct) o
   apply s (PtrT t)                   = PtrT (apply s t)
+  apply _ t@BangT                    = t
+  apply s (PackedStructT ts)         = PackedStructT (apply s <$> ts)
   apply (Subst s) (ForAllT binds ty) = ForAllT binds (apply newS ty)
     where newS = Subst (Map.withoutKeys s (Set.fromList (keys binds)))
 

@@ -19,11 +19,12 @@ instance PrettyText Program where
   prettyText (Program stts) = vsep (fmap prettyText stts)
 
 instance PrettyText Section where
-  prettyText (CodeS sect)   = text "section code {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
-  prettyText (DataS sect)   = text "section data {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
-  prettyText (RODataS sect) = text "section rodata {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
-  prettyText (UDataS sect)  = text "section udata {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
-  prettyText (IncludeS sec) = text "include {" <$> indent 4 (vsep (fmap prettyText sec)) <$> text "}"
+  prettyText (CodeS sect)    = text "section code {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
+  prettyText (DataS sect)    = text "section data {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
+  prettyText (RODataS sect)  = text "section rodata {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
+  prettyText (UDataS sect)   = text "section udata {" <$> indent 4 (vsep (fmap prettyText sect)) <$> text "}"
+  prettyText (IncludeS sec)  = text "include {" <$> indent 4 (vsep (fmap prettyText sec)) <$> text "}"
+  prettyText (ExternCodeS s) = text "section extern.code {" <$> indent 4 (vsep (fmap prettyText s)) <$> text "}"
 
 instance PrettyText Binding where
   prettyText (Bind name ty cst) = prettyText name <> colon <+> prettyText ty <+> equals <+> prettyText cst
@@ -38,7 +39,7 @@ instance PrettyText Statement where
           pprint (i, unsafe) = (if unsafe then text "unsafe " else empty) <> prettyText i
 
 instance PrettyText Kind where
-  prettyText T8 = text "T8"
+  prettyText (T n) = text "T" <> integer n
   prettyText Ta = text "Ta"
   prettyText Ts = text "Ts"
   prettyText Tc = text "Tc"
@@ -64,6 +65,8 @@ instance PrettyText Type where
     where output (var, kind) = prettyText var <+> colon <+> prettyText kind
   prettyText (RegisterContT r) = prettyText r
   prettyText (StackContT i) = prettyText i
+  prettyText BangT = text "!"
+  prettyText (PackedStructT ts) = encloseSep lparen rparen comma $ fmap prettyText ts
 
 instance PrettyText Register where
   prettyText = (text "%" <>) . text . f
@@ -89,11 +92,13 @@ instance PrettyText Instruction where
   prettyText (SST s d)      = text "sst" <+> prettyText s <> comma <+> prettyText d
   prettyText (LD s d)       = text "ld" <+> prettyText s <> comma <+> prettyText d
   prettyText (ST s d)       = text "st" <+> prettyText s <> comma <+> prettyText d
+  prettyText (SREF n r)     = text "sref" <+> prettyText n <> comma <+> prettyText r
 
 instance PrettyText Constant where
   prettyText (IntegerC (i :@ _))   = integer i
-  prettyText (CharacterC (c :@ _)) = char c
+  prettyText (CharacterC (c :@ _)) = squotes (char c)
   prettyText (ArrayC csts)         = lbracket <> hsep (fmap prettyText csts) <+> rbracket
+  prettyText (StructC cs)          = tupled (fmap prettyText cs)
 
 instance PrettyText Expr where
   prettyText (ImmE i) = prettyText i
@@ -104,4 +109,4 @@ instance PrettyText Expr where
 
 instance PrettyText Immediate where
   prettyText (I i) = integer i
-  prettyText (C c) = char c
+  prettyText (C c) = squotes (char c)

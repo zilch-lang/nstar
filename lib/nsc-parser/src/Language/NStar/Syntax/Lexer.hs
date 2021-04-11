@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
@@ -31,6 +32,8 @@ import Console.NStar.Flags (LexerFlags(..))
 import Control.Monad.Writer (WriterT, runWriterT)
 import Data.Foldable (foldl')
 import Language.NStar.Syntax.Errors
+import qualified Data.Text as T
+import Text.Read (readMaybe)
 
 type Lexer a = WriterT [LexicalWarning] (MP.Parsec LexicalError Text) a
 
@@ -107,6 +110,7 @@ anySymbol = located . MP.choice $ uncurry sat <$> symbols
      , (Equal, "=")
      , (Pipe, "|")
      , (Semi, ";")
+     , (Bang, "!")
      ]
 
 -- | Tries to parse an identifier. If the result appears to be a keyword, it instead returns a keyword.
@@ -130,6 +134,7 @@ identifierOrKeyword = located do
       "sst"     -> Sst
       "ld"      -> Ld
       "st"      -> St
+      "sref"    -> Sref
       -- Registers
       "r0"      -> R0'
       "r1"      -> R1'
@@ -143,8 +148,14 @@ identifierOrKeyword = located do
       "unsafe"  -> UnSafe
       "section" -> Section
       "include" -> Include
-      -- Identifier
-      _         -> Id w
+      "ta"      -> TaK
+      "tc"      -> TcK
+      "ts"      -> TsK
+      i         ->
+        if | Just ('t', ds) <- T.uncons i -> case readMaybe @Integer $ T.unpack ds of
+               Nothing -> Id w
+               Just n  -> TnK n
+           | otherwise                    -> Id w
 
 -- | Parses a literal value (integer or character).
 literal :: (?lexerFlags :: LexerFlags) => Lexer LToken

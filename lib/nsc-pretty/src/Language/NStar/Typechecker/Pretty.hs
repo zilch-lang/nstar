@@ -17,17 +17,21 @@ import qualified Data.Map as Map
 import Data.List (intersperse)
 
 instance PrettyText TypedProgram where
-  prettyText (TProgram (dataSect :@ _) (rodataSect :@ _) (udataSect :@ _) (codeSect :@ _)) =
-    prettyText dataSect <> line <>
+  prettyText (TProgram (dataSect :@ _) (rodataSect :@ _) (udataSect :@ _) (codeSect :@ _) (ecodeSect :@ _)) =
+    prettyText dataSect <> hardline <>
     -- prettyText rodataSect <> line <>
     -- prettyText udataSect <> line <>
-    prettyText codeSect
+    prettyText codeSect <> hardline <>
+    prettyText ecodeSect
 
 instance PrettyText TypedDataSection where
   prettyText (TData d) = text "section data {" <> line <> indent 4 (vsep (fmap prettyText d)) <> line <> text "}"
 
 instance PrettyText TypedCodeSection where
   prettyText (TCode is) = text "section code {" <> line <> indent 4 (vsep (fmap prettyText is)) <> line <> text "}"
+
+instance PrettyText TypedExternCodeSection where
+  prettyText (TExternCode bs) = text "section extern.code {" <> line <> indent 4 (vsep (fmap prettyText bs)) <> line <> text "}"
 
 instance PrettyText TypedStatement where
   prettyText (TLabel l is)            = text (Text.unpack (unLoc l)) <> colon <> line <> indent 4 (vsep (fmap prettyText is))
@@ -39,12 +43,13 @@ instance PrettyText TypedStatement where
           toBind (r, t) = prettyText r <+> colon <+> prettyText t
 
 instance PrettyText TypedInstruction where
-  prettyText (MV s d)   = text "mv" <+> prettyText s <> comma <+> prettyText d
-  prettyText (JMP l)    = text "jmp" <+> prettyText l
-  prettyText (NOP)      = text "nop"
-  prettyText (SALLOC n) = text "salloc" <+> prettyText n
-  prettyText (SFREE n)  = text "sfree" <+> prettyText n
-  prettyText (SLD n r)  = text "sld" <+> prettyText n <> comma <+> int 8 <> comma <+> prettyText r
-  prettyText (SST v n)  = text "sst" <+> prettyText v <> comma <+> prettyText n
-  prettyText (LD o p r) = text "ld" <+> prettyText o <> comma <+> prettyText p <> comma <+> int 8 <> comma <+> prettyText r
-  prettyText (ST r o p) = text "st" <+> prettyText r <> comma <+> prettyText o <> comma <+> prettyText p
+  prettyText (MV s d)     = text "mv" <+> prettyText s <> comma <+> prettyText d
+  prettyText (JMP l)      = text "jmp" <+> prettyText l
+  prettyText (NOP)        = text "nop"
+  prettyText (SALLOC n)   = text "salloc" <+> prettyText n
+  prettyText (SFREE n)    = text "sfree" <+> prettyText n
+  prettyText (SLD n r)    = text "sld" <+> prettyText n <> comma <+> int 8 <> comma <+> prettyText r
+  prettyText (SST v n)    = text "sst" <+> prettyText v <> comma <+> prettyText n
+  prettyText (LD o p r)   = text "ld" <+> prettyText o <> comma <+> prettyText p <> comma <+> int 8 <> comma <+> prettyText r
+  prettyText (ST r o p)   = text "st" <+> prettyText r <> comma <+> prettyText o <> comma <+> prettyText p
+  prettyText (SREF n p r) = text "sref" <+> prettyText n <> comma <+> prettyText p <> comma <+> prettyText r

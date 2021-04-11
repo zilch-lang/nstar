@@ -198,17 +198,21 @@ data RelocationOrigin
   = SectionReloc
       String        -- ^ Section name
       Integer       -- ^ Offset from beginning of section
+  | FunctionReloc
+      String        -- ^ Symbol name
   deriving (Eq, Ord, Generic)
 
 -- | Symbol relocation type
-{#enum symbol_relocation_type as RelocationType {RT_X86_64_NONE as R_x86_64_None, RT_X86_64_32 as R_x86_64_32, RT_X86_64_32S as R_x86_64_32s, RT_X86_64_64 as R_x86_64_64} deriving (Eq, Ord, Generic)#}
+{#enum symbol_relocation_type as RelocationType {RT_X86_64_NONE as R_x86_64_None, RT_X86_64_32 as R_x86_64_32, RT_X86_64_32S as R_x86_64_32s, RT_X86_64_64 as R_x86_64_64, RT_X86_64_PLT32 as R_x86_64_PLT32} deriving (Eq, Ord, Generic)#}
 
-{#enum relocation_origin_type as RelocType {ORIGIN_SECTION as OrigSection}#}
+{#enum relocation_origin_type as RelocType {ORIGIN_SECTION as OrigSection, ORIGIN_FUNCTION as OrigFunction}#}
 
 data C_RelocationOrigin
   = OriginSection
       CString
       Word64
+  | OriginFunction
+      CString
 
 instance Storable C_RelocationOrigin where
   sizeOf _ = {#sizeof relocation_origin#}
@@ -216,10 +220,14 @@ instance Storable C_RelocationOrigin where
   peek ptr = (toEnum . fromIntegral <$> {#get struct relocation_origin->type#} ptr) >>= \ case
     OrigSection -> OriginSection <$> {#get struct relocation_origin->data.origin_section.section_name#} ptr
                                  <*> (fromIntegral <$> {#get struct relocation_origin->data.origin_section.offset#} ptr)
+    OrigFunction -> OriginFunction <$> {#get struct relocation_origin->data.origin_function.symbol_name#} ptr
   poke ptr (OriginSection n o) = do
     {#set struct relocation_origin->type#} ptr (fromIntegral $ fromEnum OrigSection)
     {#set struct relocation_origin->data.origin_section.section_name#} ptr n
     {#set struct relocation_origin->data.origin_section.offset#} ptr (fromIntegral o)
+  poke ptr (OriginFunction s)  = do
+    {#set struct relocation_origin->type#} ptr (fromIntegral $ fromEnum OrigFunction)
+    {#set struct relocation_origin->data.origin_function.symbol_name#} ptr s
 
 newRelocationOrigin :: RelocationOrigin -> IO (Ptr C_RelocationOrigin)
 newRelocationOrigin rel = do
@@ -228,6 +236,9 @@ newRelocationOrigin rel = do
     SectionReloc name offset -> do
       str <- newCString name
       poke ptr $ OriginSection str (fromIntegral offset)
+    FunctionReloc sym        -> do
+      str <- newCString sym
+      poke ptr $ OriginFunction str
   pure ptr
 
 peekRelocationOrigin :: Ptr C_RelocationOrigin -> IO RelocationOrigin
@@ -235,11 +246,13 @@ peekRelocationOrigin ptr = do
   peek ptr >>= \ case
     OriginSection n o -> SectionReloc <$> peekCString n
                                       <*> pure (fromIntegral o)
+    OriginFunction n  -> FunctionReloc <$> peekCString n
 
 freeRelocationOrigin :: Ptr C_RelocationOrigin -> IO ()
 freeRelocationOrigin ptr = do
   peek ptr >>= \ case
     OriginSection n o -> free n
+    OriginFunction n  -> free n
   free ptr
 
 data C_RelocationSymbol (n :: Size)

@@ -11,6 +11,8 @@ import Data.Located (unLoc, Located(..))
 import Internal.Error (internalError)
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Control.Monad.Writer (tell)
 import Data.Text (Text)
 import Data.Bifunctor (second)
@@ -27,15 +29,17 @@ import Control.Applicative
 import Data.Maybe (fromJust)
 import Language.NStar.CodeGen.Machine.X64.Ld (compileLd)
 import Language.NStar.CodeGen.Machine.X64.St (compileSt)
+import Language.NStar.CodeGen.Machine.X64.Sref (compileSref)
 
 compileX64 :: TypedProgram -> Compiler ()
-compileX64 prog@(TProgram (TData dataSect :@ _) _ _ _) = do
+compileX64 prog@(TProgram (TData dataSect :@ _) _ _ _ (TExternCode ext :@ _)) = do
   intermediateOpcodes <- compileInterX64 prog
   generateDataX64 dataSect
-  fixupAddressesX64 intermediateOpcodes
+  externs <- generateExternsX64 ext
+  fixupAddressesX64 externs intermediateOpcodes
 
 compileInterX64 :: TypedProgram -> Compiler [InterOpcode]
-compileInterX64 (TProgram (TData _ :@ _) (TROData _ :@ _) (TUData _ :@ _) (TCode stmts :@ _)) =
+compileInterX64 (TProgram (TData _ :@ _) (TROData _ :@ _) (TUData _ :@ _) (TCode stmts :@ _) (TExternCode _ :@ _)) =
   mconcat <$> mapM (compileStmtInterX64 . unLoc) stmts
 
 compileStmtInterX64 :: TypedStatement -> Compiler [InterOpcode]
@@ -52,30 +56,33 @@ compileInstrInterX64 (SLD n r)          = compileSld (unLoc n) (unLoc r)
 compileInstrInterX64 (SST v n)          = compileSst (unLoc v) (unLoc n)
 compileInstrInterX64 (LD o p r)         = compileLd (unLoc o) (unLoc p) (unLoc r)
 compileInstrInterX64 (ST r o p)         = compileSt (unLoc r) (unLoc o) (unLoc p)
+compileInstrInterX64 (SREF n p r)       = compileSref (unLoc n) (unLoc p) (unLoc r)
 compileInstrInterX64 i                  = internalError $ "not yet supported: compileInterInstrX64 " <> show i
 
 ---------------------------------------------------------------------------------------------------------------------
 
-fixupAddressesX64 :: [InterOpcode] -> Compiler ()
-fixupAddressesX64 os = fixupAddressesX64Internal (findLabelsAddresses os) os 0
+fixupAddressesX64 :: Set Text -> [InterOpcode] -> Compiler ()
+fixupAddressesX64 externs os = fixupAddressesX64Internal (findLabelsAddresses os) os 0
  where
    fixupAddressesX64Internal :: Map Text Integer -> [InterOpcode] -> Integer -> Compiler ()
-   fixupAddressesX64Internal labelsAddresses [] n             = tell (MInfo mempty (second Function <$> Map.assocs labelsAddresses) mempty mempty)
+   fixupAddressesX64Internal labelsAddresses [] n             = tell (MInfo mempty (second (flip Function True) <$> Map.assocs labelsAddresses) mempty mempty)
    fixupAddressesX64Internal labelsAddresses (Byte b:os) i    = tell (MInfo [b] mempty mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 1)
    fixupAddressesX64Internal labelsAddresses (Label n:os) i   = fixupAddressesX64Internal labelsAddresses os i
    fixupAddressesX64Internal labelsAddresses (Jump n:os) i    = do
-     let addr = maybe (internalError $ "Label " <> show n <> " not found during codegen.") (int32 . (subtract (i + 4))) (Map.lookup n labelsAddresses)
-     tell (MInfo addr mempty mempty mempty) *> fixupAddressesX64Internal labelsAddresses os (i + 4)
+     case Map.lookup n labelsAddresses of
+       Just addr -> tell (MInfo (int32 $ addr - (i + 4)) mempty mempty mempty)
+       Nothing   -> tell (MInfo (int32 0x0) mempty mempty [RelocText n "" 0 i R_x86_64_PLT32]) -- extern function ??
+     fixupAddressesX64Internal labelsAddresses os (i + 4)
    fixupAddressesX64Internal labelsAddresses (Symbol32 s o:os) i  = do
      tell (MInfo (int32 0x0) mempty mempty [RelocText s originSection o i R_x86_64_32s])
      fixupAddressesX64Internal labelsAddresses os (i + 4)
      where
-        originSection = fromJust $ (".text" <$ Map.lookup s labelsAddresses) <|> pure ".data"
+        originSection = fromJust $ (".text" <$ Map.lookup s labelsAddresses) <|> (if Set.member s externs then Just "" else Nothing) <|> pure ".data"
    fixupAddressesX64Internal labelsAddresses (Symbol64 s:os) i = do
      tell (MInfo (int64 0x0) mempty mempty [RelocText s originSection 0 i R_x86_64_64])
      fixupAddressesX64Internal labelsAddresses os (i + 8)
      where
-       originSection = fromJust $ (".text" <$ Map.lookup s labelsAddresses) <|> pure ".data"
+       originSection = fromJust $ (".text" <$ Map.lookup s labelsAddresses) <|> (if Set.member s externs then Just "" else Nothing) <|> pure ".data"
 
 findLabelsAddresses :: [InterOpcode] -> Map Text Integer
 findLabelsAddresses = findLabelsAddressesInternal 0
@@ -99,3 +106,11 @@ generateDataX64 = generateDataX64Internal 0
       let cst = compileConstantX64 val
       tell (MInfo mempty mempty (DataTable [(name, off)] cst) mempty)
       generateDataX64Internal (off + fromIntegral (length cst)) bs
+
+-------------------------------------------------------------------------------------------------------------------
+
+generateExternsX64 :: [Located ReservedSpace] -> Compiler (Set Text)
+generateExternsX64 exts =
+  let syms = getName <$> exts
+  in Set.fromList syms <$ tell (MInfo mempty ((, Function 0 False) <$> syms) mempty mempty)
+  where getName (ReservedBind n _ :@ _) = unLoc n

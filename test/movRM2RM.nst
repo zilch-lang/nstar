@@ -1,5 +1,5 @@
 section data {
-    x: u64 = 9
+    x: *u64 = 9
 }
 
 section code {

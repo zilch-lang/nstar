@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3135b3c6222b201b7eaaa531276fe6a713b127f7b1d9306ee0999cb9e8838b33
+-- hash: 58aebcfdfda0f7d2451f70ca04715dd704a2d58275dc68661a8600e2c5f00d2e
 
 name:           nsc-parser
 version:        2.0.0
@@ -19,12 +19,18 @@ library
       Language.NStar.Syntax.Lexer
       Language.NStar.Syntax.Parser
       Language.NStar.Syntax.PostProcess.ConcatenateSections
+      Language.NStar.Syntax.PostProcess.TopLevelConstants
       Language.NStar.Syntax.PostProcessor
   other-modules:
       Paths_nsc_parser
   hs-source-dirs:
       src
-  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
+  default-extensions:
+      BlockArguments
+      LambdaCase
+      BinaryLiterals
+      ImplicitParams
+      OverloadedStrings
   ghc-options: -Wall -Wextra -g3 -Wno-unused-matches -Wno-name-shadowing
   build-depends:
       algebraic-graphs

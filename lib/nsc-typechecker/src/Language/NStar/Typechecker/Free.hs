@@ -35,12 +35,14 @@ instance Free Type where
   freeVars (PtrT t1)                     = freeVars t1
   freeVars (ForAllT binds ty)            = freeVars ty Set.\\ freeVars (fst <$> binds)
   freeVars (RecordT fields stack cont _) = Map.foldr ((<>) . freeVars) mempty fields <> freeVars stack <> freeVars cont
+  freeVars (PackedStructT ts)            = foldMap freeVars ts
   freeVars (StackContT _)                = mempty
   freeVars (RegisterContT _)             = mempty
   freeVars (VarT _)                      = mempty
   freeVars (SignedT _)                   = mempty
   freeVars (UnsignedT _)                 = mempty
   freeVars (RegisterT _)                 = mempty
+  freeVars (BangT)                       = mempty
   -- Please refrain yourself from putting the three above cases under the same pattern "_".
   -- Those three are separated in order to keep GHC's warning about incomplete pattern matchings.
   --

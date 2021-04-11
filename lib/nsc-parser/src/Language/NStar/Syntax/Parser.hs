@@ -59,7 +59,7 @@ parseFile file tokens = bimap (megaparsecBundleToDiagnostic "Parse error on inpu
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program
 parseProgram = lexeme (pure ()) *> (Program <$> MP.many section) <* parseEOF
-  where section = lexeme . located $ MP.choice [ parseInclude, MP.try parseCodeSection, parseDataSection ]
+  where section = lexeme . located $ MP.choice [ parseInclude, MP.try parseCodeSection, MP.try parseDataSection, parseExternCodeSection ]
 
 parseCodeSection :: (?parserFlags :: ParserFlags) => Parser Section
 parseCodeSection = CodeS <$> do
@@ -83,6 +83,16 @@ parseInclude = IncludeS <$> do
   where
     toText (Str s) = s
     toText t       = internalError $ "Cannot get text of non string token " <> show t
+
+parseExternCodeSection :: (?parserFlags :: ParserFlags) => Parser Section
+parseExternCodeSection = ExternCodeS <$> do
+  lexeme (parseSymbol Section)
+  lexeme (parseSymbol (Id "extern"))
+  lexeme (parseSymbol Dot)
+  lexeme (parseSymbol (Id "code"))
+  lexeme $ betweenBraces (MP.many (located binding))
+  where binding = ReservedBind <$> (lexeme parseIdentifier <* lexeme (parseSymbol Colon))
+                               <*> lexeme (parseForallType (parseRecordType True))
 
 -- | Parses the end of file. There is no guarantee that any parser will try to parse something after the end of file.
 --   This has to be dealt with on our own. No more token should be available after consuming the end of file.
@@ -187,6 +197,7 @@ parseInstruction = do
       , parseSst
       , parseLd
       , parseSt
+      , parseSref
       ]
     )
 
@@ -210,7 +221,7 @@ parseType = MP.choice
   , parseUnsignedType
   , parsePointerType
   , parseVariableType
-  , betweenParens parseType
+  , parseStructType
   ]
 
 -- | Parses a record type.
@@ -223,17 +234,17 @@ parseRecordType open = located do
 
   pure (RecordT (Map.fromList chi) sigma epsilon open)
   where
-    field = (,) <$> (lexeme parseRegister <* lexeme (parseSymbol Colon)) <*> parseType
+    field = (,) <$> (lexeme parseRegister <* lexeme (parseSymbol Colon)) <*> (parseBang MP.<|> parseType)
 
 -- | Parses any sort of signed integer type.
 parseSignedType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseSignedType = located $ fmap SignedT . MP.choice $ signed <$> [ 64 ]
+parseSignedType = located $ fmap SignedT . MP.choice $ signed <$> [ 8, 16, 32, 64 ]
  where
    signed n = fromIntegral n <$ parseSymbol (Id ("s" <> Text.pack (show n)))
 
 -- | Parses any sort of unsigned integer type.
 parseUnsignedType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseUnsignedType = located $ fmap UnsignedT . MP.choice $ unsigned <$> [ 64 ]
+parseUnsignedType = located $ fmap UnsignedT . MP.choice $ unsigned <$> [ 8, 16, 32, 64 ]
  where
    unsigned n = fromIntegral n <$ parseSymbol (Id ("u" <> Text.pack (show n)))
 
@@ -251,19 +262,26 @@ parseStackType = foldr1 cons <$> (parseType `MP.sepBy1` MP.try (lexeme (pure ())
 parseVariableType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
 parseVariableType = located $ VarT <$> parseIdentifier
 
+-- | Parses a structure type.
+parseStructType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseStructType = located $ PackedStructT <$> betweenParens ((lexeme parseType `MP.sepBy` lexeme (parseSymbol Comma)) MP.<|> pure [])
+
 -- | Parses a type kind.
 parseKind :: (?parserFlags :: ParserFlags) => Parser (Located Kind)
 parseKind = located $ MP.choice
-  [ T8 <$ parseSymbol (Id "T8")
-  , Ts <$ parseSymbol (Id "Ts")
-  , Ta <$ parseSymbol (Id "Ta")
-  , Tc <$ parseSymbol (Id "Tc") ]
+  [ T 8 <$ parseSymbol (TnK 8)
+  , Ts <$ parseSymbol TsK
+  , Ta <$ parseSymbol TaK
+  , Tc <$ parseSymbol TcK ]
 
 parseContinuation :: (?parserFlags :: ParserFlags) => Parser (Located Type)
 parseContinuation = located $ MP.choice
   [ RegisterContT . unLoc <$> parseRegister
   , StackContT . unLoc <$> parseInteger
   , VarT <$> parseIdentifier ]
+
+parseBang :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseBang = located $ BangT <$ parseSymbol Bang
 
 ------------------------------------------------------------------------------------------------------------
 
@@ -309,7 +327,7 @@ parseSignedInteger = MP.label "an integer" $ (*) <$> sign <*> (unLoc <$> parseIn
 ----------------------------------------------------------------------------------------------------------------
 
 parseConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
-parseConstant = parseIntegerConstant MP.<|> parseCharacterConstant MP.<|> parseArrayConstant
+parseConstant = parseIntegerConstant MP.<|> parseCharacterConstant MP.<|> parseStringConstant MP.<|> parseArrayConstant MP.<|> parseStructConstant
 
 parseIntegerConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
 parseIntegerConstant = located $ MP.label "an integer constant" $ IntegerC <$> located parseSignedInteger
@@ -319,6 +337,15 @@ parseCharacterConstant = located $ MP.label "a character constant" $ CharacterC 
 
 parseArrayConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
 parseArrayConstant = located $ MP.label "an array constant" $ ArrayC <$> betweenBrackets (MP.many (lexeme parseConstant))
+
+parseStringConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
+parseStringConstant = located $ MP.label "a string constant" $ toArrayConstant <$> parseString
+  where toArrayConstant (Str chars :@ p) = ArrayC $ ((:@ p) . CharacterC . (:@ p) <$> Text.unpack chars) <> [ CharacterC ('\0' :@ p) :@ p ]
+        toArrayConstant l = internalError $ "Invalid string token " <> show (unLoc l)
+
+parseStructConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
+parseStructConstant = located $ MP.label "a structure constant" $ StructC <$> betweenParens (MP.option [] (lexeme parseField `MP.sepBy` lexeme (parseSymbol Comma)))
+  where parseField = parseIntegerConstant MP.<|> parseCharacterConstant MP.<|> parseStructConstant
 
 ----------------------------------------------------------------------------------------------------------------
 
@@ -374,3 +401,9 @@ parseSt = located $
   lexeme (parseSymbol St) *>
     (ST <$> MP.choice [ located (RegE <$> parseRegister), located (ImmE <$> parseImmediate) ]
         <*> (lexeme (parseSymbol Comma) *> MP.choice [ MP.try parseBytePtrOffset, parseBasePtrOffset ]))
+
+parseSref :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseSref = located $
+  lexeme (parseSymbol Sref) *>
+    (SREF <$> parseInteger
+          <*> (lexeme (parseSymbol Comma) *> parseRegister))

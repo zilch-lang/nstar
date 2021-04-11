@@ -47,6 +47,9 @@ data Section where
   -- | The @include@ section
   IncludeS :: [Located Text]
            -> Section
+  -- | The @extern.code@ section
+  ExternCodeS :: [Located ReservedSpace]
+              -> Section
 
 deriving instance Show Section
 
@@ -114,13 +117,18 @@ data Type where
   StackContT :: Integer -> Type
   -- | Register continuation
   RegisterContT :: Register -> Type
+  -- | Bang type
+  BangT :: Type
+  -- | Packed structure type
+  PackedStructT :: [Located Type]
+                -> Type
 
 deriving instance Show Type
 deriving instance Eq Type
 
 data Kind where
-  -- | Kind of 8-bytes big types
-  T8 :: Kind
+  -- | Kind of N-bytes big types
+  T :: Integer -> Kind
   -- | Kind of stack types
   Ts :: Kind
   -- | Kind of unsized types
@@ -185,6 +193,10 @@ data Instruction where
   ST :: Located Expr
      -> Located Expr
      -> Instruction
+  -- | Gets a pointer to some data on the stack.
+  SREF :: Located Integer
+       -> Located Register
+       -> Instruction
 
   -- TODO: add more instructions
 
@@ -200,6 +212,9 @@ data Constant where
   -- | An array of constants
   ArrayC :: [Located Constant]
          -> Constant
+  -- | A structure constant
+  StructC :: [Located Constant]
+          -> Constant
 
 deriving instance Show Constant
 
@@ -279,6 +294,8 @@ data Token where
   Ld :: Token
   -- | The @st@ instruction
   St :: Token
+  -- | The @sref@ instruction
+  Sref :: Token
   -- TODO: add more instructions
   -- Symbols
   -- | Opening symbols @(@, @[@, @{@ and @\<@
@@ -311,6 +328,8 @@ data Token where
   Arrow :: Token
   -- | Instruction separator "@;@"
   Semi :: Token
+  -- | Special bang type
+  Bang :: Token
   -- Keywords
   -- | \"@forall@\" (or "@∀@") type variable binder in type
   Forall :: Token
@@ -320,6 +339,14 @@ data Token where
   Section :: Token
   -- \ \"@include@\" block
   Include :: Token
+  -- | The @Ta@ kind
+  TaK :: Token
+  -- | The @Ts@ kind
+  TsK :: Token
+  -- | The @Tc@ kind
+  TcK :: Token
+  -- | The @T<n>@ kind
+  TnK :: Integer -> Token
   -- Comments
   -- | A comment starting with "@#@" and spanning until the end of the current line
   InlineComment :: Text        -- ^ The content of the comment

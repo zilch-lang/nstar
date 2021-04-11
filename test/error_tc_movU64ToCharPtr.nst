@@ -1,5 +1,5 @@
 section data {
-    x: **u64 = [ [ '\0' ] ]
+    x: **s8 = [ [ '\0' ] ]
 }
 
 section code {

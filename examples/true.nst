@@ -1,3 +1,5 @@
+# -*- nstar -*-
+
 include {
     "amd64-driver.nst"
 }

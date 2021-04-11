@@ -35,3 +35,4 @@ compileConstantX64 :: Constant -> [Word8]
 compileConstantX64 (IntegerC (i :@ _))   = int64 i
 compileConstantX64 (CharacterC (c :@ _)) = char8 c
 compileConstantX64 (ArrayC csts)         = mconcat (compileConstantX64 . unLoc <$> csts)
+compileConstantX64 (StructC csts)        = mconcat (compileConstantX64 . unLoc <$> csts)

@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 
@@ -30,6 +30,7 @@ library
       Language.NStar.CodeGen.Machine.X64.Salloc
       Language.NStar.CodeGen.Machine.X64.Sfree
       Language.NStar.CodeGen.Machine.X64.Sld
+      Language.NStar.CodeGen.Machine.X64.Sref
       Language.NStar.CodeGen.Machine.X64.Sst
       Language.NStar.CodeGen.Machine.X64.St
       Language.NStar.CodeGen.PreProcessor
@@ -38,7 +39,12 @@ library
       Paths_nsc_codegen
   hs-source-dirs:
       src
-  default-extensions: BlockArguments LambdaCase BinaryLiterals ImplicitParams OverloadedStrings
+  default-extensions:
+      BlockArguments
+      LambdaCase
+      BinaryLiterals
+      ImplicitParams
+      OverloadedStrings
   ghc-options: -Wall -Wextra -Wno-name-shadowing -Wno-unused-matches -Wno-overlapping-patterns
   build-depends:
       base >=4.7 && <5

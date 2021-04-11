@@ -1,0 +1,7 @@
+section code {
+  f: forall(s: Ts, e: Tc).{ %r5: forall().{ %r0: *u64 | u64::s -> e } | s -> %r5 }
+   = salloc u64
+   ; sref 0, %r0
+   ; st 5, (%r0)
+   ; ret
+}

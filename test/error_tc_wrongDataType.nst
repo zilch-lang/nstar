@@ -1,3 +1,0 @@
-section data {
-    x: u64 = [ 0 ]
-}

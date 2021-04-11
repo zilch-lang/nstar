@@ -1,0 +1,5 @@
+section code {
+  test_fun_ptr: forall(s: Ts, e: Tc, e_: Tc).{ %r5: forall().{| forall().{| s -> e_ }::s -> e } | forall().{| s -> e_ }::s -> %r5 }
+              = sref 0, %r0
+              ; ret
+}

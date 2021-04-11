@@ -12,7 +12,7 @@ import Language.NStar.Typechecker.Subst
 import Language.NStar.Typechecker.Core
 import Language.NStar.Syntax.Core (Immediate(..), Constant(..))
 import qualified Language.NStar.Typechecker.Core as TC (TypedInstruction(..))
-import Data.Located (Located(..), unLoc, getPos, Position)
+import Data.Located (Located(..), unLoc, getPos)
 import qualified Data.Map as Map
 import Control.Monad.State (gets)
 import Control.Monad.Except (liftEither, throwError)
@@ -29,6 +29,9 @@ import Language.NStar.Typechecker.Kinds (sizeof, unifyKinds, kindcheckType, runK
 import Control.Monad (forM_, when)
 import Data.Functor ((<&>))
 import Control.Applicative ((<|>))
+import Data.Map (Map)
+import Text.Diagnose
+import Debug.Trace (traceShow)
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker TC.TypedInstruction
 tc_ret p = do
@@ -66,6 +69,7 @@ tc_mv (src :@ p1) (dst :@ p2) p3 = do
       Ξ; Γ; χ; σ; r ⊢ᴵ mv r, d ⊣ χ, d : ∀().ζ; σ; d
 
      r is a register     Γ ⊢ᴷ t : T8     Ξ; Γ; σ; ε ⊢ᵀ e : t
+             t ≠ !
   ───────────────────────────────────────────────────────────── move value
            Ξ; Γ; χ; σ; ε ⊢ᴵ mv e, r ⊣ χ, r : t; σ; ε
   -}
@@ -82,7 +86,7 @@ tc_mv (src :@ p1) (dst :@ p2) p3 = do
       -- > r, d are registers
       -- > Ξ; Γ; χ; σ; r ⊢ᴵ mv r, d ⊣ χ, d : ∀().ζ; σ; d
       setEpsilon (RegisterContT dst :@ p2)
-      extendChi (dst :@ p2) ty
+      extendChi (dst :@ p2) (ForAllT [] ty :@ p1)
 
       pure ()
     _ -> do
@@ -91,7 +95,12 @@ tc_mv (src :@ p1) (dst :@ p2) p3 = do
       -- > Ξ; Γ; σ; ε ⊢ᵀ e : t
       (t, _) <- typecheckExpr src p1 False
       -- > Γ ⊢ᴷ t : T8
-      liftEither (first FromReport . runKindchecker $ unifyKinds (T8 :@ p1) =<< kindcheckType g t)
+      liftEither (first FromReport . runKindchecker $ unifyKinds (T 8 :@ p1) =<< kindcheckType g t)
+
+      -- > t ≠ !
+      case (t, src) of
+        (BangT :@ _, RegE r) -> throwError (RegisterNotFoundInContext (unLoc r) p1 (Map.keysSet $ Map.filter (/= (BangT :@ p1)) x))
+        _ -> pure ()
 
       -- > r is a register
       e <- gets (epsilon . snd)
@@ -126,15 +135,20 @@ tc_jmp (e :@ p1) p2 = do
 tc_call :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Position -> Typechecker TC.TypedInstruction
 tc_call (ex :@ p1) p2 = do
   {-
-     r is a register      Ξ; Γ; χ; σ; r ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → r }
-         Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ′′ | σ′ → ε′ }      χ ∼ χ′
-  ────────────────────────────────────────────────────────────────────────
-                 Ξ; Γ; χ; σ; ε ⊢ᴵ call l<v⃗> ⊣ χ; σ; ε
+            r is a register           ρ = χ′′ ∖ χ′′′
+     Ξ; Γ; χ; σ; r ⊢ᵀ l<v⃗> : ∀().{ χ′, r : ∀().{ χ′′′ | σ′ → ε′ } | σ → r }
+         Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ′′ | σ′ → ε′ }      χ ∼ χ′ ∪ ρ
+                         ⋀(r ∉ ρ | r ∈ bang(χ′))
+  ──────────────────────────────────────────────────────────────────────────────
+                 Ξ; Γ; χ; σ; r ⊢ᴵ call l<v⃗> ⊣ χ; σ; r
 
-       n ∈ ℕ     n ≤ p       Ξ; Γ; χ; σ; n ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → n }
-      tₙ ∼ ∀().{ χ′′ | σ′ → ε′ }      χ ∼ χ′      σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
+
+       n ∈ ℕ     n ≤ p       Ξ; Γ; χ; σ; n ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ^ → n }
+         σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s         σ^ = t₀′ ∷ t₁′ ∷ … ∷ tₚ′ ∷ s
+        tₙ ∼ ∀().{ χ′′ | σ′ → ε′ }        tₙ′ ∼ ∀().{ χ′′′ | σ′ → ε′ }
+         ρ = χ′′ ∖ χ′′′     χ ∼ χ′ ∪ ρ        ⋀(r ∉ ρ | r ∈ bang(χ′))
   ─────────────────────────────────────────────────────────────────────────────
-                    Ξ; Γ; σ; ε ⊢ᴵ call l<v⃗> ⊣ χ; σ; ε
+                    Ξ; Γ; σ; n ⊢ᴵ call l<v⃗> ⊣ χ; σ; n
   -}
 
   e <- gets (epsilon . snd)
@@ -142,21 +156,31 @@ tc_call (ex :@ p1) p2 = do
   s <- gets (sigma . snd)
 
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ → ε }
-  -- > χ ∼ χ′
   ep <- freshVar "ε" p1
   (ty, _) <- typecheckExpr ex p1 False
-  sub <- unify (ForAllT [] (RecordT x s ep False :@ p1) :@ p1) ty
+  sub <- unify (ForAllT [] (RecordT mempty s ep True :@ p1) :@ p1) ty
+  let ForAllT [] (RecordT x' ŝ _ _ :@ _) :@ _ = ty
 
-  case apply sub ep of
+  (x'', x''') <- case apply sub ep of
     -- > r is a register
     RegisterContT r :@ _ -> do
-      -- > Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ′′ | σ′ → ε′ }
-      (ty, _) <- typecheckExpr (RegE (r :@ p2)) p2 False
+      -- > r : ∀().{ χ′′′ | σ′ → ε′ } ∈ χ′
+
+      contTy <- maybe (throwError $ RegisterNotFoundInContext r p1 (Map.keysSet x')) pure $ Map.lookup (r :@ p1) x'
+
       s' <- freshVar "σ" p1
       e' <- freshVar "ε" p1
-      unify (ForAllT [] (RecordT mempty s' e' True :@ p2) :@ p2) ty
+      sub1 <- unify (ForAllT [] (RecordT mempty s' e' True :@ p1) :@ p1) contTy
 
-      pure ()
+      let ForAllT [] (RecordT x''' _ _ _ :@ _) :@ _ = contTy
+
+      -- > Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().{ χ′′ | σ′ → ε′ }
+      (ty2, _) <- typecheckExpr (RegE (r :@ p2)) p2 False
+      unify (ForAllT [] (RecordT mempty (apply sub1 s') (apply sub1 e') True :@ p2) :@ p2) ty2
+
+      let ForAllT [] (RecordT x'' _ _ _ :@ _) :@ _ = ty2
+
+      pure (x'', x''')
     -- > n ∈ ℕ
     StackContT n :@ _ -> do
       -- > σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
@@ -165,11 +189,35 @@ tc_call (ex :@ p1) p2 = do
       (_, ty) <- getNthFromStack n s
       s' <- freshVar "σ" p1
       e' <- freshVar "ε" p1
-      unify (ForAllT [] (RecordT mempty s' e' True :@ p2) :@ p2) ty
+      sub1 <- unify (ForAllT [] (RecordT mempty s' e' True :@ p2) :@ p2) ty
 
-      pure ()
+      let ForAllT [] (RecordT x'' _ _ _ :@ _) :@ _ = ty
+
+      -- > σ^ = t₀′ ∷ t₁′ ∷ … ∷ tₚ′ ∷ s
+      -- > n ≤ p
+      -- > tₙ′ ∼ ∀().{ χ′′′ | σ′ → ε′ }
+      (_, ty2) <- getNthFromStack n ŝ
+      unify (ForAllT [] (RecordT mempty (apply sub1 s') (apply sub1 e') True :@ p2) :@ p2) ty2
+
+      let ForAllT [] (RecordT x''' _ _ _ :@ _) :@ _ = ty2
+
+      pure (x'', x''')
     VarT _ :@ _ -> throwError (CannotCallWithAbstractContinuation (unLoc ep) p2)
     _ -> internalError $ "Unknown return continuation " <> show e
+
+    -- > ρ = χ′′ ∖ χ′′′
+  let p = Map.difference x'' x'''
+
+  -- > χ ∼ χ′ ∪ ρ
+  s' <- freshVar "σ" p1
+  e' <- freshVar "ε" p1
+  unify (RecordT x s' e' False :@ p1) (RecordT (Map.union x' p) s' e' False :@ p1)
+
+  -- > ⋀(r ∉ ρ | r ∈ bang(χ′))
+  let bangs = Map.keys $ Map.filter (== (BangT :@ p1)) x'
+      conj = any (`Map.member` p) bangs
+  when conj do
+    throwError (RegisterCannotBePropagated (Map.keys p) bangs p1 p2)
 
   pure (TC.JMP (ex :@ p1))
 
@@ -199,13 +247,15 @@ tc_salloc (t :@ p1) p2 = do
   s <- gets (sigma . snd)
   e :@ p3 <- gets (epsilon . snd)
 
+  let t' = close t
+
   -- > σ′ = t ∷ σ
-  let s' = ConsT (t :@ p1) s :@ p1
+  let s' = ConsT (t' :@ p1) s :@ p1
 
   -- > m ∈ ℕ
   -- > Γ ⊢ᴷ t : Tm
   m <- liftEither $ first FromReport $ runKindchecker do
-    k <- kindcheckType g (t :@ p1)
+    k <- kindcheckType g (t' :@ p1)
     requireSized p1 k
     sizeof k
 
@@ -315,12 +365,13 @@ tc_sld (n :@ p1) (r :@ p2) p3 = do
 tc_sst :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Integer -> Position -> Typechecker TC.TypedInstruction
 tc_sst (ex :@ p1) (n :@ p2) p3 = do
   {-
-     r is a register      n ∈ ℕ      n ≤ p        Γ ⊢ᴷ tₙ : T8        σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
+     r is a register      n ∈ ℕ      n ≤ p       tₙ ∼ ∀().ζ        σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
                       σ′ = σ[∀().ζ ∖ tₙ]       Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().ζ
   ────────────────────────────────────────────────────────────────────────────────────────────── move continuaton onto the stack
                           Ξ; Γ; χ; σ; r ⊢ᴵ sst r, n ⊣ χ; σ′; n
 
      n ∈ ℕ       n ≤ p       σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s       Ξ; Γ; χ; σ; ε ⊢ᵀ e : tₙ
+                              e ≠ !
   ──────────────────────────────────────────────────────────────────────────────────── store value onto the stack
                        Ξ; Γ; χ; σ; ε ⊢ᴵ sst e, n ⊣ χ; σ; ε
   -}
@@ -336,14 +387,14 @@ tc_sst (ex :@ p1) (n :@ p2) p3 = do
 
   case (e, ex) of
     (RegisterContT r :@ _, RegE (r2 :@ _)) | r == r2 -> do
-      -- > Γ ⊢ᴷ tₙ : T8
-      liftEither $ first FromReport $ runKindchecker do
-        unifyKinds (T8 :@ getPos tN) =<< kindcheckType g tN
-
       -- > Ξ; Γ; χ; σ; r ⊢ᵀ r : ∀().ζ
       (ty, _) <- typecheckExpr ex p1 False
+
       z <- freshVar "ζ" p1
       unify (ForAllT [] z :@ p1) ty
+
+      -- > tₙ ∼ ∀().ζ
+      unify ty tN
 
       -- > Ξ; Γ; χ; σ; r ⊢ᴵ sst r, n ⊣ χ; σ′; n
       s' <- setNthInStack n s ty
@@ -355,6 +406,13 @@ tc_sst (ex :@ p1) (n :@ p2) p3 = do
       -- > Ξ; Γ; χ; σ; ε ⊢ᵀ e : tₙ
       (ty, _) <- typecheckExpr ex p1 False
       unify ty tN
+
+      x <- gets (chi . snd)
+
+      case (tN, ex) of
+        (BangT :@ _, RegE r) -> throwError (RegisterNotFoundInContext (unLoc r) p1 (Map.keysSet $ Map.filter (/= (BangT :@ p1)) x))
+        _ -> pure ()
+
       -- > Ξ; Γ; χ; σ; ε ⊢ᴵ sst e, n ⊣ χ; σ; ε
       pure ()
 
@@ -423,6 +481,39 @@ tc_st (src :@ p1) (ptr :@ p2) unsafe p3 = do
   case ptrOffset of
     ByteOffsetE offset pointer :@ _ -> pure (TC.ST (src :@ p1) offset pointer)
     _ -> internalError $ "Invalid 'st' destination " <> show ptrOffset
+
+tc_sref :: (?tcFlags :: TypecheckerFlags) => Located Integer -> Located Register -> Position -> Typechecker TC.TypedInstruction
+tc_sref (n :@ p1) (r :@ p2) p3 = do
+  {-
+      r is a register          n ∈ ℕ         n ≤ p         σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
+                         tₙ ≁ !        tₙ ≁ ∀().ζ          ε ≠ n
+  ──────────────────────────────────────────────────────────────────────────────────────
+                   Ξ; Γ; χ; σ; ε ⊢ᴵ sref n, r ⊣ χ, r : *tₙ; σ; ε
+  -}
+
+  g <- gets (gamma .snd)
+  s <- gets (sigma . snd)
+
+  -- > n ∈ ℕ
+  -- > n ≤ p
+  -- > σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
+  (offset, tN) <- getNthFromStack n s
+  sizeofTy <- liftEither $ first FromReport $ runKindchecker do
+    k <- kindcheckType g tN
+    -- > tₙ ≁ !
+    requireSized (getPos tN) k
+    sizeof k
+
+  -- > tₙ ≁ ∀().ζ
+  -- > ε ≠ n
+  case tN of
+    ForAllT _ _ :@ _ -> throwError (CannotTakeReferenceToFunctionPointerOnStack s n p1 p3)
+    _ -> pure ()
+
+  extendChi (r :@ p2) (PtrT tN :@ getPos tN)
+
+  pure (TC.SREF (offset :@ p3) (sizeofTy :@ p3) (r :@ p3))
+
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
@@ -568,26 +659,50 @@ typecheckExpr (BaseOffsetE ptr off) p unsafe = do
       Ξ; Γ; χ; σ; ε ⊢ᵀ p : *τ       Ξ; Γ; χ; σ; ε ⊢ᵀ o : s64
   ─────────────────────────────────────────────────────────────── pointer base-offset
                 Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
+
+
+     Γ ⊢ᴷ t₀ : Tn₀, t₁ : Tn₁, …, tₘ : Tnₘ      n₀, n₁, …, nₘ ∈ ℕ
+                Ξ; Γ; χ; σ; ε ⊢ᵀ p : *(t₀, t₁, …, tₘ)
+  ────────────────────────────────────────────────────────────────── structure pointer offset
+                  Ξ; Γ; χ; σ; ε ⊢ᵀ p[nᵢ] : *tᵢ
   -}
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ o : s64
   (ty1, _) <- typecheckExpr (unLoc off) (getPos off) unsafe
   unify ty1 (SignedT 64 :@ p)
 
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p : *τ
+  -- ──────────────────────────
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p : *(t₀, t₁, …, tₘ)
   (ty2, _) <- typecheckExpr (unLoc ptr) (getPos ptr) unsafe
   t <- freshVar "τ" (getPos ptr)
   sub <- unify (PtrT t :@ getPos ptr) ty2
 
-  off2 <- case unLoc off of
-    RegE r -> do
-      when (not unsafe) do
-        throwError (UnsafeOperationOutOfUnsafeBlock p)
-      pure (RegE r)
-    ImmE (I o :@ _) -> do
+  (ty2, off2) <- case (unLoc off, apply sub t) of
+    (ImmE (I o :@ _), PackedStructT ts :@ _) -> do
+      g <- gets (gamma . snd)
+
+      memberSizes <- liftEither $ first FromReport $ runKindchecker do
+        mapM ((sizeof =<<) . kindcheckType g) ts
+
+      let s = fromIntegral $ length memberSizes
+      when (o > s - 1) do
+        throwError (OutOfBoundsStructureAccess o s p)
+
+      let ty = ts !! fromIntegral o
+          offset = sum $ take (fromIntegral o) memberSizes
+
+      pure (PtrT ty :@ p, ImmE (I offset :@ p))
+    (o, PackedStructT ts :@ p1) -> do
+      throwError (StructureOffsetMustBeKnown p (getPos ptr) (getPos off))
+    (ImmE (I o :@ _), _) -> do
       g <- gets (gamma . snd)
       m <- liftEither $ first FromReport $ runKindchecker do
         sizeof =<< kindcheckType g (apply sub t)
-      pure (ImmE (I (o * m) :@ p))
+      pure (ty2, ImmE (I (o * m) :@ p))
+    (RegE r, _) -> do
+      when (not unsafe) do
+        throwError (UnsafeOperationOutOfUnsafeBlock p)
+      pure (ty2, RegE r)
     o -> internalError $ "Invalid pointer offset " <> show o
 
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
@@ -624,16 +739,23 @@ typecheckConstant (ArrayC csts) p  =
            () <$ foldlM2 (\ acc t1 t2 -> mappend acc <$> unify t1 t2) mempty (t1:ts)
 
          -- > Γ ⊢ᵀ [c₁, c₂, …, cₙ] : *τ
-         pure (PtrT t1 :@ p)
+         pure t1
      | otherwise       -> do
          -- > Γ ⊢ᴷ τ : Tn
          v <- freshVar "d" p
 
          -- > Γ ⊢ᵀ [] : *τ
-         pure (PtrT v :@ p)
+         pure v
   where
     foldlM2 :: (Monad m) => (b -> a -> a -> m b) -> b -> [a] -> m b
     foldlM2 f e l = foldlM (uncurry . f) e (zip l (drop 1 l))
+typecheckConstant (StructC csts) p =
+  {-
+         Γ ⊢ᵀ c₁ : τ₁, c₂ : τ₂, …, cₚ : τₚ
+  ──────────────────────────────────────────────
+      Γ ⊢ᵀ (c₁, c₂, …, cₚ) : (τ₁, τ₂, …, τₚ)
+  -}
+  (:@ p) . PackedStructT <$> mapM (\ (c :@ p) -> typecheckConstant c p) csts
 
 --------------------------------------------------------------------------------
 
@@ -662,22 +784,25 @@ unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
   (t, FVarT v) -> bind (v, p2) (t, p1)
   -- Contexts are coercible if the intersection of their registers are all coercible.
   (RecordT m1 s1 c1 o1, RecordT m2 s2 c2 o2) -> do
-    let k1 = Map.keysSet m1
-        k2 = Map.keysSet m2
+    let k1 = Map.keysSet (Map.filter (/= (BangT :@ p1)) m1)
+        k2 = Map.keysSet (Map.filter (/= (BangT :@ p2)) m2)
     let common = k1 `Set.intersection` k2
         other1 = k1 Set.\\ common
         other2 = k2 Set.\\ common
 
-    let computeExtension :: Bool -> [Located Register] -> Position -> Typechecker (Subst (Located Type))
-        computeExtension _ [] _     = pure mempty
-        computeExtension False fs p = throwError (MissingRegistersInContext (unLoc <$> fs) p)
-        computeExtension _ fs p     = do
-          let newFields = Map.fromList (fs <&> \ k -> (k, m1 Map.! k))
-          pure mempty
+    let notBang p m r = maybe True ((/= (BangT :@ p))) (Map.lookup r m)
+
+        computeExtension :: Bool -> [Located Register] -> Map (Located Register) (Located Type) -> Position -> Typechecker (Subst (Located Type), Map (Located Register) (Located Type))
+        computeExtension _ [] _ _            = pure mempty
+        computeExtension False fs m p
+          | not (null (filter (notBang p m) fs)) = throwError (MissingRegistersInContext (unLoc <$> fs) p)
+        computeExtension _ fs m p            = do
+          let newFields = Map.fromList (fs <&> \ k -> (k, m Map.! k))
+          pure (mempty, newFields)
 
     subs <- fold <$> forM (Set.toList common) \ k -> unify (m1 Map.! k) (m2 Map.! k)
-    sub1 <- computeExtension o2 (Set.toList other1) p2
-    sub2 <- computeExtension o1 (Set.toList other2) p1
+    (sub1, _) <- computeExtension o2 (Set.toList other1) m2 p2
+    (sub2, _) <- computeExtension o1 (Set.toList other2) m1 p1
 
     sub3 <- unify s1 s2
     sub4 <- unify c1 c2
@@ -687,6 +812,8 @@ unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
   -- both stack head and stack tail of each stack can be unified.
   (ConsT t1 t3, ConsT t2 t4) -> unifyMany [t1, t3] [t2, t4]
   (ForAllT [] r1, ForAllT [] r2) -> unify r1 r2
+  (BangT, _) -> pure mempty
+  (_, BangT) -> pure mempty
   -- Any other combination is not possible
   _ -> throwError (Uncoercible (t1 :@ p1) (t2 :@ p2))
 
@@ -722,3 +849,8 @@ relax (t :@ p) = relaxType t :@ p
       -- NOTE: This will probably need to be tweaked
       --       Because we don't rename the variables bound, any flexible and rigid variable can be confused.
     relaxType t                  = t
+
+close :: Type -> Type
+close (ForAllT b t)     = ForAllT b (close <$> t)
+close (RecordT x s e _) = RecordT x s e False
+close t                 = t
