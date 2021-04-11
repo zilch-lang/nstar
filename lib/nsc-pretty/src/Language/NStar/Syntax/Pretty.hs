@@ -98,6 +98,7 @@ instance PrettyText Constant where
   prettyText (IntegerC (i :@ _))   = integer i
   prettyText (CharacterC (c :@ _)) = squotes (char c)
   prettyText (ArrayC csts)         = lbracket <> hsep (fmap prettyText csts) <+> rbracket
+  prettyText (StructC cs)          = tupled (fmap prettyText cs)
 
 instance PrettyText Expr where
   prettyText (ImmE i) = prettyText i

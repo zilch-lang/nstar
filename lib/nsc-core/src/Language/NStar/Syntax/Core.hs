@@ -212,6 +212,9 @@ data Constant where
   -- | An array of constants
   ArrayC :: [Located Constant]
          -> Constant
+  -- | A structure constant
+  StructC :: [Located Constant]
+          -> Constant
 
 deriving instance Show Constant
 

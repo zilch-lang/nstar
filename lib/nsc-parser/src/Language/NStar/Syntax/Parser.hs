@@ -327,7 +327,7 @@ parseSignedInteger = MP.label "an integer" $ (*) <$> sign <*> (unLoc <$> parseIn
 ----------------------------------------------------------------------------------------------------------------
 
 parseConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
-parseConstant = parseIntegerConstant MP.<|> parseCharacterConstant MP.<|> parseStringConstant MP.<|> parseArrayConstant
+parseConstant = parseIntegerConstant MP.<|> parseCharacterConstant MP.<|> parseStringConstant MP.<|> parseArrayConstant MP.<|> parseStructConstant
 
 parseIntegerConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
 parseIntegerConstant = located $ MP.label "an integer constant" $ IntegerC <$> located parseSignedInteger
@@ -342,6 +342,10 @@ parseStringConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant
 parseStringConstant = located $ MP.label "a string constant" $ toArrayConstant <$> parseString
   where toArrayConstant (Str chars :@ p) = ArrayC $ ((:@ p) . CharacterC . (:@ p) <$> Text.unpack chars) <> [ CharacterC ('\0' :@ p) :@ p ]
         toArrayConstant l = internalError $ "Invalid string token " <> show (unLoc l)
+
+parseStructConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
+parseStructConstant = located $ MP.label "a structure constant" $ StructC <$> betweenParens (MP.option [] (lexeme parseField `MP.sepBy` lexeme (parseSymbol Comma)))
+  where parseField = parseIntegerConstant MP.<|> parseCharacterConstant MP.<|> parseStructConstant
 
 ----------------------------------------------------------------------------------------------------------------
 
