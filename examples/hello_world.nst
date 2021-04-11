@@ -9,8 +9,8 @@ include {
 }
 
 section data {
-  test_str: s64 = # [ 'H' 'e' 'l' 'l' 'o' ',' ' ' 'w' 'o' 'r' 'l' 'd' '!' '\0' ]
-                  "Hello, world!"
+  test_str: *s64 = # [ 'H' 'e' 'l' 'l' 'o' ',' ' ' 'w' 'o' 'r' 'l' 'd' '!' '\0' ]
+                   "Hello, world!"
 }
 
 section code {
