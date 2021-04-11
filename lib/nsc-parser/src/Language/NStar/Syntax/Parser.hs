@@ -238,13 +238,13 @@ parseRecordType open = located do
 
 -- | Parses any sort of signed integer type.
 parseSignedType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseSignedType = located $ fmap SignedT . MP.choice $ signed <$> [ 64 ]
+parseSignedType = located $ fmap SignedT . MP.choice $ signed <$> [ 8, 16, 32, 64 ]
  where
    signed n = fromIntegral n <$ parseSymbol (Id ("s" <> Text.pack (show n)))
 
 -- | Parses any sort of unsigned integer type.
 parseUnsignedType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
-parseUnsignedType = located $ fmap UnsignedT . MP.choice $ unsigned <$> [ 64 ]
+parseUnsignedType = located $ fmap UnsignedT . MP.choice $ unsigned <$> [ 8, 16, 32, 64 ]
  where
    unsigned n = fromIntegral n <$ parseSymbol (Id ("u" <> Text.pack (show n)))
 
