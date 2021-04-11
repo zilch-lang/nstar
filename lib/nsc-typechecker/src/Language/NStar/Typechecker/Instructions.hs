@@ -749,6 +749,13 @@ typecheckConstant (ArrayC csts) p  =
   where
     foldlM2 :: (Monad m) => (b -> a -> a -> m b) -> b -> [a] -> m b
     foldlM2 f e l = foldlM (uncurry . f) e (zip l (drop 1 l))
+typecheckConstant (StructC csts) p =
+  {-
+         Γ ⊢ᵀ c₁ : τ₁, c₂ : τ₂, …, cₚ : τₚ
+  ──────────────────────────────────────────────
+      Γ ⊢ᵀ (c₁, c₂, …, cₚ) : (τ₁, τ₂, …, τₚ)
+  -}
+  (:@ p) . PackedStructT <$> mapM (\ (c :@ p) -> typecheckConstant c p) csts
 
 --------------------------------------------------------------------------------
 

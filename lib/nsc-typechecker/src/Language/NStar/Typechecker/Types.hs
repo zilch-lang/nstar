@@ -101,8 +101,8 @@ registerAllDataLabels = mapM_ addBinding
           __unusedEpsilon = VarT ("@__e" :@ p) :@ p
 
       liftEither (first FromReport $ kindcheck ty)
-      lift $ evalStateT (unify ty =<< typecheckConstant val p) (0, Ctx xiC xiD mempty mempty __unusedSigma __unusedEpsilon)
-      addDataLabel name (PtrT ty :@ p)
+      lift $ evalStateT (unify ty . ((:@ p) . PtrT) =<< typecheckConstant val p) (0, Ctx xiC xiD mempty mempty __unusedSigma __unusedEpsilon)
+      addDataLabel name (ty)
 
 -- | Typechecks a statement.
 --
