@@ -12,8 +12,7 @@ packages:
 
 extra-deps:
 - git: https://github.com/mesabloo/diagnose.git
-  commit: c6223edb04c952eda4794ce9fc99817f1bfc66c6
 
 
 nix:
-    shell-file: stack-shell.nix
+    shell-file: stack.nix

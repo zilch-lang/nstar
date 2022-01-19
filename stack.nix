@@ -1,5 +1,5 @@
 {
-  pkgs ? import <nixpkgs> {}
+  pkgs ? import ./nix/nixpkgs-pinned.nix
 , ghc ? pkgs.ghc
 }:
 
