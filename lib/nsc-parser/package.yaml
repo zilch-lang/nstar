@@ -12,7 +12,7 @@ dependencies:
 - text >=1.2 && <1.4
 - containers >=0.6
 - nsc-core
-- megaparsec >=8.0
+- megaparsec ==9.0.*
 - nsc-flags
 - mtl
 - algebraic-graphs
@@ -26,3 +26,4 @@ ghc-options:
 - -g3
 - -Wno-unused-matches
 - -Wno-name-shadowing
+

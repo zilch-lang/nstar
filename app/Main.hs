@@ -16,7 +16,7 @@ import Language.NStar.CodeGen (SupportedArch(..), compileToElf)
 -- ! Experimental; remove once tested
 import Data.Elf as Elf (compile, Size(..), Endianness(..), writeFile)
 -- ! end
-import Text.Diagnose (printDiagnostic, (<~<), prettyText)
+import Error.Diagnose (printDiagnostic, addFile)
 import System.IO (stderr)
 import Console.NStar.Flags
 import Control.Monad (when)
@@ -28,6 +28,7 @@ import System.FilePath.Posix (joinPath)
 import Data.IORef
 import Data.Located
 import qualified Data.Text as Text
+import Prettyprinter (pretty)
 
 main :: IO ()
 main = do
@@ -63,21 +64,21 @@ tryCompile flags files = do
 
         when dumpAST do
           liftIO $ createDirectoryIfMissing True (joinPath [".nsc", "dump"])
-          liftIO $ Prelude.writeFile (joinPath [".nsc", "dump", "ast.debug"]) (show $ prettyText ast)
+          liftIO $ Prelude.writeFile (joinPath [".nsc", "dump", "ast.debug"]) (show $ pretty ast)
 
         (tast, tcWarnings)    <- liftEither $ typecheck ast
-        liftIO (printDiagnostic withColor stderr (foldl (<~<) tcWarnings files))
+        liftIO (printDiagnostic stderr True withColor (foldl (uncurry . addFile) tcWarnings files))
 
         when dumpTypedAST do
           liftIO $ createDirectoryIfMissing True (joinPath [".nsc", "dump"])
-          liftIO $ Prelude.writeFile (joinPath [".nsc", "dump", "typed-ast.debug"]) (show $ prettyText tast)
+          liftIO $ Prelude.writeFile (joinPath [".nsc", "dump", "typed-ast.debug"]) (show $ pretty tast)
 
         pure tast
   case result of
     Left diag    -> do
       files <- readIORef allFiles
 
-      printDiagnostic withColor stderr (foldl (<~<) diag files)
+      printDiagnostic stderr True withColor (foldl (uncurry . addFile) diag files)
       exitFailure
     Right p     -> do
       -- ! Experimental codegen

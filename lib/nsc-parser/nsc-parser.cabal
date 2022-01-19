@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.5.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 58aebcfdfda0f7d2451f70ca04715dd704a2d58275dc68661a8600e2c5f00d2e
+-- hash: 31d5326d7ad82d0a8cb5d5f43748186e2b194fa28ba9467b60f8761371f4af07
 
 name:           nsc-parser
 version:        2.0.0
@@ -14,7 +14,6 @@ library
   exposed-modules:
       Language.NStar.Syntax.Errors
       Language.NStar.Syntax.File
-      Language.NStar.Syntax.Hints
       Language.NStar.Syntax.Internal
       Language.NStar.Syntax.Lexer
       Language.NStar.Syntax.Parser
@@ -40,7 +39,7 @@ library
     , diagnose
     , directory
     , filepath
-    , megaparsec >=8.0
+    , megaparsec ==9.0.*
     , mtl
     , nsc-core
     , nsc-flags

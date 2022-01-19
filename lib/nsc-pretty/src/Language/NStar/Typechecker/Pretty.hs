@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications #-}
+
 {-|
   Module: Language.NStar.Typechecker.Pretty
   Copyright: (c) Mesabloo, 2020
@@ -7,49 +9,47 @@
 
 module Language.NStar.Typechecker.Pretty where
 
-import Text.Diagnose (PrettyText(..))
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
+import Prettyprinter
 import Language.NStar.Typechecker.Core
 import Data.Located (unLoc, Located((:@)))
-import qualified Data.Text as Text
 import Language.NStar.Syntax.Pretty()
 import qualified Data.Map as Map
 import Data.List (intersperse)
 
-instance PrettyText TypedProgram where
-  prettyText (TProgram (dataSect :@ _) (rodataSect :@ _) (udataSect :@ _) (codeSect :@ _) (ecodeSect :@ _)) =
-    prettyText dataSect <> hardline <>
-    -- prettyText rodataSect <> line <>
-    -- prettyText udataSect <> line <>
-    prettyText codeSect <> hardline <>
-    prettyText ecodeSect
+instance Pretty TypedProgram where
+  pretty (TProgram (dataSect :@ _) (rodataSect :@ _) (udataSect :@ _) (codeSect :@ _) (ecodeSect :@ _)) =
+    pretty dataSect <> hardline <>
+    -- pretty rodataSect <> line <>
+    -- pretty udataSect <> line <>
+    pretty codeSect <> hardline <>
+    pretty ecodeSect
 
-instance PrettyText TypedDataSection where
-  prettyText (TData d) = text "section data {" <> line <> indent 4 (vsep (fmap prettyText d)) <> line <> text "}"
+instance Pretty TypedDataSection where
+  pretty (TData d) = "section data {" <> line <> indent 4 (vsep (fmap pretty d)) <> line <> "}"
 
-instance PrettyText TypedCodeSection where
-  prettyText (TCode is) = text "section code {" <> line <> indent 4 (vsep (fmap prettyText is)) <> line <> text "}"
+instance Pretty TypedCodeSection where
+  pretty (TCode is) = "section code {" <> line <> indent 4 (vsep (fmap pretty is)) <> line <> "}"
 
-instance PrettyText TypedExternCodeSection where
-  prettyText (TExternCode bs) = text "section extern.code {" <> line <> indent 4 (vsep (fmap prettyText bs)) <> line <> text "}"
+instance Pretty TypedExternCodeSection where
+  pretty (TExternCode bs) = "section extern.code {" <> line <> indent 4 (vsep (fmap pretty bs)) <> line <> "}"
 
-instance PrettyText TypedStatement where
-  prettyText (TLabel l is)            = text (Text.unpack (unLoc l)) <> colon <> line <> indent 4 (vsep (fmap prettyText is))
-  prettyText (TInstr i chi sigma eps) = pprint chi <> semi <+> prettyText sigma <> semi <+> prettyText eps <+> text "⊢" <+> prettyText i
+instance Pretty TypedStatement where
+  pretty (TLabel l is)            = pretty (unLoc l) <> colon <> line <> indent 4 (vsep (fmap pretty is))
+  pretty (TInstr i chi sigma eps) = pprint chi <> semi <+> pretty sigma <> semi <+> pretty eps <+> "⊢" <+> pretty i
     where pprint c =
             if null c
-            then text "·"
+            then "·"
             else mconcat . intersperse comma . fmap toBind $ Map.toList c
-          toBind (r, t) = prettyText r <+> colon <+> prettyText t
+          toBind (r, t) = pretty r <+> colon <+> pretty t
 
-instance PrettyText TypedInstruction where
-  prettyText (MV s d)     = text "mv" <+> prettyText s <> comma <+> prettyText d
-  prettyText (JMP l)      = text "jmp" <+> prettyText l
-  prettyText (NOP)        = text "nop"
-  prettyText (SALLOC n)   = text "salloc" <+> prettyText n
-  prettyText (SFREE n)    = text "sfree" <+> prettyText n
-  prettyText (SLD n r)    = text "sld" <+> prettyText n <> comma <+> int 8 <> comma <+> prettyText r
-  prettyText (SST v n)    = text "sst" <+> prettyText v <> comma <+> prettyText n
-  prettyText (LD o p r)   = text "ld" <+> prettyText o <> comma <+> prettyText p <> comma <+> int 8 <> comma <+> prettyText r
-  prettyText (ST r o p)   = text "st" <+> prettyText r <> comma <+> prettyText o <> comma <+> prettyText p
-  prettyText (SREF n p r) = text "sref" <+> prettyText n <> comma <+> prettyText p <> comma <+> prettyText r
+instance Pretty TypedInstruction where
+  pretty (MV s d)     = "mv" <+> pretty s <> comma <+> pretty d
+  pretty (JMP l)      = "jmp" <+> pretty l
+  pretty (NOP)        = "nop"
+  pretty (SALLOC n)   = "salloc" <+> pretty n
+  pretty (SFREE n)    = "sfree" <+> pretty n
+  pretty (SLD n r)    = "sld" <+> pretty n <> comma <+> pretty @Integer 8 <> comma <+> pretty r
+  pretty (SST v n)    = "sst" <+> pretty v <> comma <+> pretty n
+  pretty (LD o p r)   = "ld" <+> pretty o <> comma <+> pretty p <> comma <+> pretty @Integer 8 <> comma <+> pretty r
+  pretty (ST r o p)   = "st" <+> pretty r <> comma <+> pretty o <> comma <+> pretty p
+  pretty (SREF n p r) = "sref" <+> pretty n <> comma <+> pretty p <> comma <+> pretty r

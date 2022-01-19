@@ -6,18 +6,18 @@
 packages:
 - completed:
     name: diagnose
-    version: 1.0.0
+    version: 1.5.0
     git: https://github.com/mesabloo/diagnose.git
     pantry-tree:
-      size: 818
-      sha256: 377bde6c89fb4f7e49033fbbf6452fd0b6b054b67bae8facacda9e8b2527f21b
-    commit: c6223edb04c952eda4794ce9fc99817f1bfc66c6
+      size: 1607
+      sha256: f4ae9a0b15fbd4605d8bacfaba633899590a27feed106d16f7ced265bb45121b
+    commit: 26f5639dc567d21e1cfc9d1c9f6f6b3915e6a88a
   original:
     git: https://github.com/mesabloo/diagnose.git
-    commit: c6223edb04c952eda4794ce9fc99817f1bfc66c6
+    commit: 26f5639dc567d21e1cfc9d1c9f6f6b3915e6a88a
 snapshots:
 - completed:
-    size: 532383
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/10.yaml
-    sha256: 469d781ab6d2a4eceed6b31b6e4ec842dcd3cd1d11577972e86902603dce24df
-  original: lts-16.10
+    size: 587113
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/6.yaml
+    sha256: f74c482d7c93739ecf3abfbc0f2dea1c20a2dfb2462c689846ed55a9653b66f7
+  original: lts-18.6

@@ -6,8 +6,8 @@
 module Language.NStar.Syntax.Errors where
 
 import qualified Text.Megaparsec as MP
-import Language.NStar.Syntax.Hints
-import Text.Diagnose (reportWarning, Report, hint)
+import Error.Diagnose (warn, Report)
+import Error.Diagnose.Compat.Megaparsec (HasHints(..))
 import Data.Data (Data)
 import Data.Typeable (Typeable)
 import Language.NStar.Syntax.Core (Token)
@@ -21,7 +21,7 @@ data LexicalError
 data LexicalWarning
 
 fromLexicalWarning :: LexicalWarning -> Report String
-fromLexicalWarning _ = reportWarning "" [] []
+fromLexicalWarning _ = warn "" [] []
 
 instance Show LexicalError where
   show UnrecognizedEscapeSequence = "unrecognized character escape sequence"
@@ -29,9 +29,9 @@ instance Show LexicalError where
 instance MP.ShowErrorComponent LexicalError where
   showErrorComponent = show
 
-instance Hintable LexicalError String where
+instance HasHints LexicalError String where
   hints UnrecognizedEscapeSequence =
-    [hint "Valid escape sequences are all documented at <https://github.com/nihil-lang/nsc/blob/develop/docs/escape-sequences.md>."]
+    ["Valid escape sequences are all documented at <https://github.com/nihil-lang/nsc/blob/develop/docs/escape-sequences.md>."]
 
 data SemanticError
   = NoSuchRegister Token
@@ -40,7 +40,7 @@ data SemanticError
 data ParseWarning
 
 fromParseWarning :: ParseWarning -> Report String
-fromParseWarning _ = reportWarning "" [] []
+fromParseWarning _ = warn "" [] []
 
 instance Show SemanticError where
   show (NoSuchRegister t) = "unrecognized register " <> showToken t
@@ -48,7 +48,7 @@ instance Show SemanticError where
 instance MP.ShowErrorComponent SemanticError where
   showErrorComponent = show
 
-instance Hintable SemanticError String where
+instance HasHints SemanticError String where
   hints (NoSuchRegister _) =
-    [ hint "Registers are fixed depending on the target architecture."
-    , hint "Registers available in different architectures are documented here: <https://github.com/nihil-lang/nsc/blob/develop/docs/registers.md>." ]
+    [ "Registers are fixed depending on the target architecture."
+    , "Registers available in different architectures are documented here: <https://github.com/nihil-lang/nsc/blob/develop/docs/registers.md>." ]

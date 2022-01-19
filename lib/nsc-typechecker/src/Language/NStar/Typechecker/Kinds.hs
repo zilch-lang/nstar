@@ -25,7 +25,7 @@ module Language.NStar.Typechecker.Kinds (kindcheck, runKindchecker, unifyKinds, 
 import Control.Monad.Except
 import Data.Located
 import Language.NStar.Typechecker.Core
-import Text.Diagnose (Report)
+import Error.Diagnose (Report)
 import Data.Bifunctor (first, second)
 import Data.Text (Text)
 import qualified Data.Map as Map

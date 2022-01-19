@@ -30,7 +30,7 @@ import Control.Monad (forM_, when)
 import Data.Functor ((<&>))
 import Control.Applicative ((<|>))
 import Data.Map (Map)
-import Text.Diagnose
+import Error.Diagnose
 import Debug.Trace (traceShow)
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker TC.TypedInstruction
