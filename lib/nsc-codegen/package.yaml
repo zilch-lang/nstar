@@ -16,9 +16,9 @@ dependencies:
 - base >=4.7 && <5
 - diagnose
 - bytestring >=0.10
-- mtl
+- mtl ==2.2.2
 - nsc-core
-- text
-- containers
+- text ==1.2.4.*
+- containers ==0.6.5.*
 - elfgen
-- binary
+- binary ==0.8.8.*

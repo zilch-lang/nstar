@@ -1,10 +1,10 @@
 module Data.Located
-( module Text.Diagnose.Position
+( module Error.Diagnose.Position
 , Located(..)
 , unLoc, getPos
 ) where
 
-import Text.Diagnose.Position
+import Error.Diagnose.Position
 
 -- | A simple data type to hold some location to keep track off.
 data Located a

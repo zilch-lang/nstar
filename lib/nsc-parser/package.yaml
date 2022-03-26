@@ -12,13 +12,13 @@ dependencies:
 - text >=1.2 && <1.4
 - containers >=0.6
 - nsc-core
-- megaparsec >=8.0
+- megaparsec ==9.0.*
 - nsc-flags
-- mtl
-- algebraic-graphs
-- directory
-- bytestring
-- filepath
+- mtl ==2.2.2
+- algebraic-graphs ==0.5.*
+- directory >=1.3.6
+- bytestring >=0.10
+- filepath >=1.4.2
 
 ghc-options:
 - -Wall
@@ -26,3 +26,4 @@ ghc-options:
 - -g3
 - -Wno-unused-matches
 - -Wno-name-shadowing
+

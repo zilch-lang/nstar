@@ -9,7 +9,7 @@ import Language.NStar.Syntax.PostProcessor
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Text.Encoding (decodeUtf8)
-import Text.Diagnose (Diagnostic, reportError, diagnostic, (<++>), printDiagnostic, (<~<))
+import Error.Diagnose (Diagnostic, def, addReport, printDiagnostic, addFile, err, Marker(This))
 import Language.NStar.Syntax.Core (Program(..), Section(..))
 import qualified Algebra.Graph.AdjacencyMap as G
 import Control.Monad.Except (ExceptT, runExceptT, throwError, liftEither)
@@ -24,13 +24,12 @@ import System.IO (stderr)
 import Data.IORef
 import System.FilePath.Posix (equalFilePath, normalise, (</>), isValid, takeFileName)
 import Data.List (intercalate, groupBy)
-import Text.Diagnose.Report (Marker(This))
 import Internal.Error (internalError)
 
-type CompUnit = ExceptT (Diagnostic [] String Char) IO
+type CompUnit = ExceptT (Diagnostic String) IO
 
 parseFile :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
-          => FilePath -> IO ([(FilePath, [String])], Either (Diagnostic [] String Char) Program)
+          => FilePath -> IO ([(FilePath, String)], Either (Diagnostic String) Program)
 parseFile file = do
   let f = file :@ Position (0, 0) (0, 0) "command-line"
 
@@ -46,7 +45,7 @@ parseFile file = do
   pure (files, res)
 
 parseAST :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
-         => Located FilePath -> Program -> IO ([(FilePath, [String])], Either (Diagnostic [] String Char) Program)
+         => Located FilePath -> Program -> IO ([(FilePath, String)], Either (Diagnostic String) Program)
 parseAST f prog = do
   files <- newIORef []
 
@@ -62,7 +61,7 @@ parseAST f prog = do
 
 parseUnit :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
           => G.AdjacencyMap (Located FilePath)
-          -> IORef [(FilePath, [String])]
+          -> IORef [(FilePath, String)]
           -> Located FilePath
           -> CompUnit Program
 parseUnit includeGraph includeFiles path@(filePath :@ p) = do
@@ -77,20 +76,20 @@ parseUnit includeGraph includeFiles path@(filePath :@ p) = do
     fs  -> throwError (multipleFilesFound fs)
 
   fileContent <- liftIO $ readFileUtf8 filePath
-  let content = (filePath, lines $ Text.unpack fileContent)
+  let content = (filePath, Text.unpack fileContent)
 
   liftIO $ modifyIORef' includeFiles (content :)
 
   (tokens, warns) <- liftEither $ lexFile filePath fileContent
-  liftIO $ printDiagnostic True stderr (warns <~< content)
+  liftIO $ printDiagnostic stderr True True (uncurry (addFile warns) content)
   (ast, warns) <- liftEither $ P.parseFile filePath tokens
-  liftIO $ printDiagnostic True stderr (warns <~< content)
+  liftIO $ printDiagnostic stderr True True  (uncurry (addFile warns) content)
 
   processUnitAST includeGraph includeFiles path ast
 
 processUnitAST :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
                => G.AdjacencyMap (Located FilePath)
-               -> IORef [(FilePath, [String])]
+               -> IORef [(FilePath, String)]
                -> Located FilePath
                -> Program
                -> CompUnit Program
@@ -132,22 +131,22 @@ queryIncludePath (p:ps) f = do
 readFileUtf8 :: FilePath -> IO Text
 readFileUtf8 = fmap decodeUtf8 . Data.ByteString.readFile
 
-unknownFile :: [FilePath] -> Located FilePath -> Diagnostic [] String Char
+unknownFile :: [FilePath] -> Located FilePath -> Diagnostic String
 unknownFile ip (f :@ p) =
   let includePath =
         if null ip
         then ""
         else "\nCurrent include path:\n- " <> intercalate "\n- " (normalise <$> ip)
-  in diagnostic <++> reportError ("File '" <> f <> "' not found" <> includePath) [ (p, This "") ] []
+  in addReport def $ err ("File '" <> f <> "' not found" <> includePath) [ (p, This "") ] []
 
-invalidFilePath :: Located FilePath -> Diagnostic [] String Char
-invalidFilePath (f :@ p) = diagnostic <++> reportError ("Invalid file path '" <> f <> "'") [ (p, This "") ] []
+invalidFilePath :: Located FilePath -> Diagnostic String
+invalidFilePath (f :@ p) = addReport def $ err ("Invalid file path '" <> f <> "'") [ (p, This "") ] []
 
-multipleFilesFound :: [FilePath] -> Diagnostic [] String Char
+multipleFilesFound :: [FilePath] -> Diagnostic String
 multipleFilesFound [] = internalError "Unreachable case 'multipleFilesFound []'"
 multipleFilesFound fs@(f:_) =
   let paths = mappend "- " <$> fs
-  in diagnostic <++> reportError ("Cannot include file '" <> takeFileName f <> "' because more than one has been found in the include path:\n" <> intercalate "\n" paths) [] []
+  in addReport def $ err ("Cannot include file '" <> takeFileName f <> "' because more than one has been found in the include path:\n" <> intercalate "\n" paths) [] []
 
 checkCycles :: (G.AdjacencyMap (Located FilePath), Located FilePath) -> CompUnit ()
 checkCycles (g, root) = dfs [root] g root
@@ -159,7 +158,7 @@ dfs stack g root =
       throwError (cyclicInclude $ dropWhile (/= p) $ reverse $ p:stack)
     dfs (p:stack) g p
 
-cyclicInclude :: [Located FilePath] -> Diagnostic [] String Char
+cyclicInclude :: [Located FilePath] -> Diagnostic String
 cyclicInclude cycle =
   let positions = flip map cycle \ (f :@ p) -> ("- '" <> f <> "' is included by '" <> file p <> "'")
-  in diagnostic <++> reportError ("Cyclic includes detected:\n" <> intercalate "\n" positions) [] []
+  in addReport def $ err ("Cyclic includes detected:\n" <> intercalate "\n" positions) [] []

@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.34.6.
 --
 -- see: https://github.com/sol/hpack
 
@@ -66,13 +66,13 @@ library
       cbits/strings.c
   build-depends:
       base >=4.7 && <5
-    , binary
-    , bytestring
-    , containers
-    , insert-ordered-containers
-    , mtl
-    , some
-    , text
+    , binary ==0.8.8.*
+    , bytestring >=0.10
+    , containers ==0.6.5.*
+    , insert-ordered-containers ==0.2.5.*
+    , mtl ==2.2.2
+    , some ==1.0.2
+    , text ==1.2.4.*
   if flag(debug)
     ghc-options: -g3
     cc-options: -g3

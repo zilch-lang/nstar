@@ -8,12 +8,13 @@ dependencies:
 - base >=4.7 && <5
 - diagnose
 - nsc-core
-- containers
-- mtl
-- text
+- containers ==0.6.5.*
+- mtl ==2.2.2
+- text ==1.2.4.*
 - ansi-wl-pprint
 - nsc-pretty
 - nsc-flags
+- prettyprinter
 
 default-extensions: !include "../../default-extensions.yaml"
 

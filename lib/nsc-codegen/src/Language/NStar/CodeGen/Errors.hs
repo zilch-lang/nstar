@@ -1,6 +1,6 @@
 module Language.NStar.CodeGen.Errors where
 
-import Text.Diagnose (Report)
+import Error.Diagnose (Report)
 
 data CodegenError
 

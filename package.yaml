@@ -63,6 +63,7 @@ executables:
     - mtl
     - directory
     - filepath
+    - prettyprinter
 
 tests:
   nsc-tests:

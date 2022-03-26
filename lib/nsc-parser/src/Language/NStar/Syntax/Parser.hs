@@ -20,7 +20,8 @@ import qualified Text.Megaparsec as MP
 import qualified Text.Megaparsec.Char.Lexer as MPL
 import Language.NStar.Syntax.Core
 import Language.NStar.Syntax.Internal
-import Text.Diagnose (Diagnostic, diagnostic, (<++>))
+import Error.Diagnose (Diagnostic, def, addReport)
+import Error.Diagnose.Compat.Megaparsec
 import Data.Bifunctor (bimap, second)
 import Data.Text (Text)
 import qualified Data.Text as Text
@@ -52,9 +53,9 @@ lexeme = MPL.lexeme (MPL.space whiteSpace inlineComment multilineComment)
 -------------------------------------------------------------------------------------------------
 
 -- | Turns a list of tokens into an AST, as long as tokens are well ordered. Else, it throws an error.
-parseFile :: (?parserFlags :: ParserFlags) => FilePath -> [LToken] -> Either (Diagnostic [] String Char) (Program, Diagnostic [] String Char)
-parseFile file tokens = bimap (megaparsecBundleToDiagnostic "Parse error on input") (second toDiagnostic) $ MP.runParser (runWriterT parseProgram) file tokens
-  where toDiagnostic = foldl' (<++>) diagnostic . fmap fromParseWarning
+parseFile :: (?parserFlags :: ParserFlags) => FilePath -> [LToken] -> Either (Diagnostic String) (Program, Diagnostic String)
+parseFile file tokens = bimap (errorDiagnosticFromBundle "Parse error on input" Nothing) (second toDiagnostic) $ MP.runParser (runWriterT parseProgram) file tokens
+  where toDiagnostic = foldl' addReport def . fmap fromParseWarning
 
 -- | Parses a sequence of either typed labels or instruction calls.
 parseProgram :: (?parserFlags :: ParserFlags) => Parser Program

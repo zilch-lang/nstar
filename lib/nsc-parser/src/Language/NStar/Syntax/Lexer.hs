@@ -17,7 +17,7 @@ module Language.NStar.Syntax.Lexer
 ( lexFile ) where
 
 import Language.NStar.Syntax.Core (Token(..), LToken)
-import Language.NStar.Syntax.Internal (located, megaparsecBundleToDiagnostic)
+import Language.NStar.Syntax.Internal (located)
 import qualified Text.Megaparsec as MP
 import qualified Text.Megaparsec.Char as MPC
 import qualified Text.Megaparsec.Char.Lexer as MPL
@@ -25,7 +25,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text (pack, toLower)
 import Data.Char (isSpace)
 import Data.Function ((&))
-import Text.Diagnose (Diagnostic, diagnostic, (<++>))
+import Error.Diagnose (Diagnostic, addReport, def)
 import Data.Bifunctor (second, bimap)
 import Control.Applicative (liftA2)
 import Console.NStar.Flags (LexerFlags(..))
@@ -34,6 +34,7 @@ import Data.Foldable (foldl')
 import Language.NStar.Syntax.Errors
 import qualified Data.Text as T
 import Text.Read (readMaybe)
+import Error.Diagnose.Compat.Megaparsec
 
 type Lexer a = WriterT [LexicalWarning] (MP.Parsec LexicalError Text) a
 
@@ -56,11 +57,11 @@ symbol = MPL.symbol space
 lexFile :: (?lexerFlags :: LexerFlags)
         => FilePath                                     -- ^ File name
         -> Text                                         -- ^ File content
-        -> Either (Diagnostic [] String Char) ([LToken], Diagnostic [] String Char)
+        -> Either (Diagnostic String) ([LToken], Diagnostic String)
 lexFile file input =
-  bimap (megaparsecBundleToDiagnostic "Lexical error on input") (second toDiagnostic) $ MP.runParser (runWriterT lexProgram) file input
+  bimap (errorDiagnosticFromBundle "Lexical error on input" Nothing) (second toDiagnostic) $ MP.runParser (runWriterT lexProgram) file input
   where
-    toDiagnostic warns = foldl' (<++>) diagnostic (fromLexicalWarning <$> warns)
+    toDiagnostic warns = foldl' addReport def (fromLexicalWarning <$> warns)
 
 
 -- | Transforms a source code into a non-empty list of tokens (accounting for 'EOF').
