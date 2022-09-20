@@ -31,3 +31,8 @@ nix:
 flags:
   diagnose:
     megaparsec-compat: true
+
+  lens:
+    test-hunit: false
+    test-properties: false
+    test-templates: false

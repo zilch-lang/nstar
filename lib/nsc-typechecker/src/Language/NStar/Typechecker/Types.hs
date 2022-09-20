@@ -1,41 +1,39 @@
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
 
-{-|
-  Module: Language.NStar.Typechecker.Types
-  Copyright: (c) Mesabloo, 2020
-  License: BSD3
-  Stability: experimental
--}
+-- |
+--  Module: Language.NStar.Typechecker.Types
+--  Copyright: (c) Mesabloo, 2020
+--  License: BSD3
+--  Stability: experimental
+module Language.NStar.Typechecker.Types (typecheck) where
 
-module Language.NStar.Typechecker.Types
-( typecheck ) where
-
-import Control.Monad.State
-import Language.NStar.Typechecker.Core
-import Language.NStar.Syntax.Core hiding (Token(..), Instruction(..))
-import qualified Language.NStar.Syntax.Core as SC (Instruction(..))
-import Data.Located
-import Data.Bifunctor (first, second, bimap)
+import Console.NStar.Flags (TypecheckerFlags (..))
 import Control.Monad.Except
-import Error.Diagnose (Diagnostic, addReport, def)
-import Language.NStar.Typechecker.Errors
+import Control.Monad.State
 import Control.Monad.Writer
-import Language.NStar.Typechecker.Kinds (kindcheck)
-import Language.NStar.Typechecker.Instructions
-import Language.NStar.Typechecker.TC
-import Console.NStar.Flags (TypecheckerFlags(..))
+import Data.Bifunctor (bimap, first, second)
 import Data.Foldable (foldl')
+import Data.Located
+import Error.Diagnose (Diagnostic, addReport, def)
+import Language.NStar.Syntax.Core hiding (Instruction (..), Token (..))
+import qualified Language.NStar.Syntax.Core as SC (Instruction (..))
+import Language.NStar.Typechecker.Core
 import qualified Language.NStar.Typechecker.Env as Env
+import Language.NStar.Typechecker.Errors
+import Language.NStar.Typechecker.Instructions
+import Language.NStar.Typechecker.Kinds (kindcheck)
+import Language.NStar.Typechecker.TC
 
 -- | Runs the typechecker on a given program, returning either an error or a well-formed program.
 typecheck :: (?tcFlags :: TypecheckerFlags) => Program -> Either (Diagnostic String) (TypedProgram, Diagnostic String)
 typecheck p = bimap toDiagnostic (second toDiagnostic') $ runExcept (runWriterT (evalStateT (typecheckProgram p) mempty))
-  where toDiagnostic = addReport def . fromTypecheckError
-        toDiagnostic' = foldl' addReport def . fmap fromTypecheckWarning
+  where
+    toDiagnostic = addReport def . fromTypecheckError
+    toDiagnostic' = foldl' addReport def . fmap fromTypecheckWarning
 
 --------------------------------------------------------
 
@@ -79,15 +77,17 @@ typecheckProgram (Program _) = error "Unexpected invalid Program"
 --   worsening the overall complexity of the typechecking.
 registerAllLabels :: (?tcFlags :: TypecheckerFlags) => [Located Statement] -> TC ()
 registerAllLabels = mapM_ addLabelType
-  where addLabelType (unLoc -> Label name ty _) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
-        addLabelType (unLoc -> t)               = error ("Adding type of non-label '" <> show t <> "' is impossible.")
+  where
+    addLabelType (unLoc -> Label name ty _) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
+    addLabelType (unLoc -> t) = error ("Adding type of non-label '" <> show t <> "' is impossible.")
 
 -- | Brings all un-initialized and extern code labels into the type environnement.
 --
 --   This allows to jump to currently undefined labels of some type (pre-conditions).
 registerAllExternCodeLabels :: (?tcFlags :: TypecheckerFlags) => [Located ReservedSpace] -> TC ()
 registerAllExternCodeLabels = mapM_ addLabelType
-  where addLabelType (unLoc -> ReservedBind name ty) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
+  where
+    addLabelType (unLoc -> ReservedBind name ty) = liftEither (first FromReport $ kindcheck ty) *> addType name ty
 
 -- | Brings all the data labels with their current types into the context.
 --
@@ -116,35 +116,37 @@ typecheckStatement (Label name ty is :@ p) = do
   let (binders, RecordT chi sigma epsilon _ :@ _) = removeForallQuantifierIfAny ty
   let gamma = Env.fromList (first toVarName <$> binders)
 
-  typed <- lift $ flip evalStateT (0, Ctx xiC xiD gamma chi sigma epsilon) $
-             forM is \ (i :@ p1, isUnsafe) -> do
-               typecheckInstruction i p1 isUnsafe
+  typed <- lift $
+    flip evalStateT (0, Ctx xiC xiD gamma chi sigma epsilon) $
+      forM is \(i :@ p1, isUnsafe) -> do
+        typecheckInstruction i p1 isUnsafe
 
   pure [TLabel name typed :@ p]
- where
-   removeForallQuantifierIfAny (unLoc -> ForAllT b ty) = (b, ty)
-   removeForallQuantifierIfAny ty                     = (mempty, ty)
+  where
+    removeForallQuantifierIfAny (unLoc -> ForAllT b ty) = (b, ty)
+    removeForallQuantifierIfAny ty = (mempty, ty)
 
-   toVarName (VarT v :@ _) = v
-   toVarName (t :@ _)     = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
+    toVarName (VarT v :@ _) = v
+    toVarName (t :@ _) = error $ "Cannot get name of non-type variable type '" <> show t <> "'."
 
 typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => SC.Instruction -> Position -> Bool -> Typechecker TypedStatement
 typecheckInstruction i p unsafe = do
   Ctx _ _ _ chi sigma epsilon <- gets snd
 
   ti <- case i of
-    SC.NOP        -> tc_nop p
+    SC.NOP -> tc_nop p
     SC.MV src dst -> tc_mv src dst p
-    SC.RET        -> tc_ret p
-    SC.JMP l      -> tc_jmp l p
-    SC.CALL l     -> tc_call l p
-    SC.SALLOC t   -> tc_salloc t p
-    SC.SFREE      -> tc_sfree p
-    SC.SLD n r    -> tc_sld n r p
-    SC.SST v n    -> tc_sst v n p
-    SC.LD ptr r   -> tc_ld ptr r unsafe p
-    SC.ST e ptr   -> tc_st e ptr unsafe p
-    SC.SREF n r   -> tc_sref n r p
-    _   -> error $ "Unrecognized instruction '" <> show i <> "'."
+    SC.RET -> tc_ret p
+    SC.JMP l -> tc_jmp l p
+    SC.CALL l -> tc_call l p
+    SC.SALLOC t -> tc_salloc t p
+    SC.SFREE -> tc_sfree p
+    SC.SLD n r -> tc_sld n r p
+    SC.SST v n -> tc_sst v n p
+    SC.LD ptr r -> tc_ld ptr r unsafe p
+    SC.ST e ptr -> tc_st e ptr unsafe p
+    SC.SREF n r -> tc_sref n r p
+    SC.AND x y r -> tc_and x y r p
+    _ -> error $ "Unrecognized instruction '" <> show i <> "'."
 
   pure (TInstr (ti :@ p) chi sigma epsilon)

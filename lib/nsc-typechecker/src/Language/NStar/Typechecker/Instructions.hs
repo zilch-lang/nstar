@@ -1,37 +1,36 @@
+{-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE MultiWayIf #-}
 
 module Language.NStar.Typechecker.Instructions where
 
-import Language.NStar.Typechecker.Errors
-import Language.NStar.Typechecker.TC
-import Language.NStar.Typechecker.Free
-import Language.NStar.Typechecker.Subst
-import Language.NStar.Typechecker.Core
-import Language.NStar.Syntax.Core (Immediate(..), Constant(..))
-import qualified Language.NStar.Typechecker.Core as TC (TypedInstruction(..))
-import Data.Located (Located(..), unLoc, getPos)
-import qualified Data.Map as Map
-import Control.Monad.State (gets)
+import Console.NStar.Flags (TypecheckerFlags (..))
+import Control.Applicative ((<|>))
+import Control.Monad (forM, forM_, when)
 import Control.Monad.Except (liftEither, throwError)
+import Control.Monad.State (gets)
+import Data.Bifunctor (first)
+import Data.Foldable (fold, foldlM)
+import Data.Functor ((<&>))
+import Data.Located (Located (..), getPos, unLoc)
+import Data.Map (Map)
+import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Data.Foldable (fold, foldlM)
-import Console.NStar.Flags (TypecheckerFlags(..))
-import Internal.Error (internalError)
-import qualified Language.NStar.Typechecker.Env as Env (lookup)
-import Control.Monad (forM)
-import Data.Bifunctor (first)
-import Language.NStar.Typechecker.Kinds (sizeof, unifyKinds, kindcheckType, runKindchecker, requireSized)
-import Control.Monad (forM_, when)
-import Data.Functor ((<&>))
-import Control.Applicative ((<|>))
-import Data.Map (Map)
-import Error.Diagnose
 import Debug.Trace (traceShow)
+import Error.Diagnose
+import Internal.Error (internalError)
+import Language.NStar.Syntax.Core (Constant (..), Immediate (..))
+import Language.NStar.Typechecker.Core
+import qualified Language.NStar.Typechecker.Core as TC (TypedInstruction (..))
+import qualified Language.NStar.Typechecker.Env as Env (lookup)
+import Language.NStar.Typechecker.Errors
+import Language.NStar.Typechecker.Free
+import Language.NStar.Typechecker.Kinds (kindcheckType, requireSized, runKindchecker, sizeof, unifyKinds)
+import Language.NStar.Typechecker.Subst
+import Language.NStar.Typechecker.TC
 
 tc_ret :: (?tcFlags :: TypecheckerFlags) => Position -> Typechecker TC.TypedInstruction
 tc_ret p = do
@@ -142,7 +141,6 @@ tc_call (ex :@ p1) p2 = do
   ──────────────────────────────────────────────────────────────────────────────
                  Ξ; Γ; χ; σ; r ⊢ᴵ call l<v⃗> ⊣ χ; σ; r
 
-
        n ∈ ℕ     n ≤ p       Ξ; Γ; χ; σ; n ⊢ᵀ l<v⃗> : ∀().{ χ′ | σ^ → n }
          σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s         σ^ = t₀′ ∷ t₁′ ∷ … ∷ tₚ′ ∷ s
         tₙ ∼ ∀().{ χ′′ | σ′ → ε′ }        tₙ′ ∼ ∀().{ χ′′′ | σ′ → ε′ }
@@ -205,7 +203,7 @@ tc_call (ex :@ p1) p2 = do
     VarT _ :@ _ -> throwError (CannotCallWithAbstractContinuation (unLoc ep) p2)
     _ -> internalError $ "Unknown return continuation " <> show e
 
-    -- > ρ = χ′′ ∖ χ′′′
+  -- > ρ = χ′′ ∖ χ′′′
   let p = Map.difference x'' x'''
 
   -- > χ ∼ χ′ ∪ ρ
@@ -254,10 +252,11 @@ tc_salloc (t :@ p1) p2 = do
 
   -- > m ∈ ℕ
   -- > Γ ⊢ᴷ t : Tm
-  m <- liftEither $ first FromReport $ runKindchecker do
-    k <- kindcheckType g (t' :@ p1)
-    requireSized p1 k
-    sizeof k
+  m <- liftEither $
+    first FromReport $ runKindchecker do
+      k <- kindcheckType g (t' :@ p1)
+      requireSized p1 k
+      sizeof k
 
   case e of
     -- > n ∈ ℕ
@@ -295,10 +294,11 @@ tc_sfree p = do
   -- > σ′ = t1 ∷ … ∷ tₚ ∷ s
   let ConsT t s' :@ _ = apply sub ty
 
-  m <- liftEither $ first FromReport $ runKindchecker do
-    k <- kindcheckType g t
-    requireSized p k
-    sizeof k
+  m <- liftEither $
+    first FromReport $ runKindchecker do
+      k <- kindcheckType g t
+      requireSized p k
+      sizeof k
 
   case e' of
     -- > n ≥ 1
@@ -353,8 +353,9 @@ tc_sld (n :@ p1) (r :@ p2) p3 = do
     _ -> do
       -- > Γ ⊢ᴷ tₙ : T8
       -- > r ≠ ε
-      liftEither $ first FromReport $ runKindchecker do
-        requireSized p3 =<< kindcheckType g ty
+      liftEither $
+        first FromReport $ runKindchecker do
+          requireSized p3 =<< kindcheckType g ty
 
       -- > Ξ; Γ; χ; σ; ε ⊢ᴵ sld n, r ⊣ χ, r : tₙ; σ, ε
       extendChi (r :@ p2) ty
@@ -425,7 +426,6 @@ tc_ld (ptr :@ p1) (RegE r :@ p2) unsafe p3 = do
   ──────────────────────────────────────────────────────────────────
            Ξ; Γ; χ; σ; ε ⊢ᴵ ld o(p), r ⊣ χ, r : τ; σ; ε
 
-
       r is a register     r ≠ ε      Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
   ──────────────────────────────────────────────────────────────────
            Ξ; Γ; χ; σ; ε ⊢ᴵ ld p[o], r ⊣ χ, r : τ; σ; ε
@@ -457,7 +457,6 @@ tc_st (src :@ p1) (ptr :@ p2) unsafe p3 = do
   ───────────────────────────────────────────────────────────────────────────
                  Ξ; Γ; χ; σ; ε ⊢ᵀ st e, o(p) ⊣ χ; σ; ε
 
-
       Ξ; Γ; χ; σ; ε ⊢ᵀ e : τ       e ≠ ε      Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
   ───────────────────────────────────────────────────────────────────────────
                  Ξ; Γ; χ; σ; ε ⊢ᵀ st e, p[o] ⊣ χ; σ; ε
@@ -470,8 +469,9 @@ tc_st (src :@ p1) (ptr :@ p2) unsafe p3 = do
 
   case (src, e) of
     -- > e ≠ ε
-    (RegE r1, RegisterContT r2) | unLoc r1 == r2 ->
-      throwError (CannotStoreContinuationOntoHeap r2 p1 p3)
+    (RegE r1, RegisterContT r2)
+      | unLoc r1 == r2 ->
+        throwError (CannotStoreContinuationOntoHeap r2 p1 p3)
     _ -> pure ()
 
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ o(p) : *τ
@@ -491,18 +491,19 @@ tc_sref (n :@ p1) (r :@ p2) p3 = do
                    Ξ; Γ; χ; σ; ε ⊢ᴵ sref n, r ⊣ χ, r : *tₙ; σ; ε
   -}
 
-  g <- gets (gamma .snd)
+  g <- gets (gamma . snd)
   s <- gets (sigma . snd)
 
   -- > n ∈ ℕ
   -- > n ≤ p
   -- > σ = t₀ ∷ t₁ ∷ … ∷ tₚ ∷ s
   (offset, tN) <- getNthFromStack n s
-  sizeofTy <- liftEither $ first FromReport $ runKindchecker do
-    k <- kindcheckType g tN
-    -- > tₙ ≁ !
-    requireSized (getPos tN) k
-    sizeof k
+  sizeofTy <- liftEither $
+    first FromReport $ runKindchecker do
+      k <- kindcheckType g tN
+      -- > tₙ ≁ !
+      requireSized (getPos tN) k
+      sizeof k
 
   -- > tₙ ≁ ∀().ζ
   -- > ε ≠ n
@@ -514,6 +515,40 @@ tc_sref (n :@ p1) (r :@ p2) p3 = do
 
   pure (TC.SREF (offset :@ p3) (sizeofTy :@ p3) (r :@ p3))
 
+tc_and :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Located Register -> Position -> Typechecker TC.TypedInstruction
+tc_and (x :@ p1) (y :@ p2) (r :@ p3) p4 = do
+  {-
+     Ξ; Γ; χ; σ; ε ⊢ᵀ x : uN                Ξ; Γ; χ; σ; ε ⊢ᵀ y : uN
+               r is a register              r ≠ ε
+  ──────────────────────────────────────────────────────────────────────
+           Ξ; Γ; χ; σ; ε ⊢ᴵ and x, y, r ⊣ χ, r : uN; σ; ε
+
+     Ξ; Γ; χ; σ; ε ⊢ᵀ x : sN                Ξ; Γ; χ; σ; ε ⊢ᵀ y : sN
+               r is a register              r ≠ ε
+  ──────────────────────────────────────────────────────────────────────
+           Ξ; Γ; χ; σ; ε ⊢ᴵ and x, y, r ⊣ χ, r : sN; σ; ε
+  -}
+  g <- gets (gamma . snd)
+  e :@ p4 <- gets (epsilon . snd)
+
+  case e of
+    -- r ≠ ε
+    RegisterContT r2 | r == r2 -> throwError (TryingToOverwriteRegisterContinuation (r :@ p3) p3)
+    _ -> pure ()
+
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ x : uN or Ξ; Γ; χ; σ; ε ⊢ᵀ x : sN
+  (τx, x) <- typecheckExpr x p1 False
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ y : uN or Ξ; Γ; χ; σ; ε ⊢ᵀ y : sN
+  (τy, y) <- typecheckExpr y p2 False
+
+  case τx of
+    UnsignedT _ :@ _ -> unify τx τy
+    SignedT _ :@ _ -> unify τx τy
+    t :@ p5 -> throwError (ExpectedIntegralType t p5)
+
+  extendChi (r :@ p3) τx
+
+  pure (TC.AND x y (r :@ p3))
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
@@ -528,18 +563,19 @@ getNthFromStack n s = do
   (_, size, tN) <- foldlM addSizeAndGetType (0, 0, Nothing) st
   case tN of
     Nothing -> internalError $ "Unfolding the stack until nth index must always yield some type"
-    Just t  -> pure (size, t)
+    Just t -> pure (size, t)
   where
     unCons (ConsT t1 t2 :@ _) = t1 : unCons t2
-    unCons t                  = [t]
+    unCons t = [t]
 
     addSizeAndGetType (p, s, r@(Just _)) t = pure (p + 1, s, r)
-    addSizeAndGetType (p, s, r) t          = do
+    addSizeAndGetType (p, s, r) t = do
       g <- gets (gamma . snd)
-      m <- liftEither $ first FromReport $ runKindchecker do
-        k <- kindcheckType g t
-        requireSized (getPos t) k
-        sizeof k
+      m <- liftEither $
+        first FromReport $ runKindchecker do
+          k <- kindcheckType g t
+          requireSized (getPos t) k
+          sizeof k
 
       pure if p == n then (p + 1, s, Just t) else (p + 1, s + m, Nothing)
 
@@ -553,40 +589,39 @@ setNthInStack n s t@(_ :@ p) = do
   pure (foldr1 cons st)
   where
     unCons (ConsT t1 t2 :@ _) = t1 : unCons t2
-    unCons t                  = [t]
+    unCons t = [t]
 
-    replaceNth n e = foldl (\ (i, l) e' -> (i + 1, (if i == n then e else e'):l)) (0, [])
+    replaceNth n e = foldl (\(i, l) e' -> (i + 1, (if i == n then e else e') : l)) (0, [])
     cons t1 ts = ConsT t1 ts :@ p
 
 typecheckExpr :: (?tcFlags :: TypecheckerFlags) => Expr -> Position -> Bool -> Typechecker (Located Type, Located Expr)
-typecheckExpr e@(ImmE (I _ :@ _)) p _  =
+typecheckExpr e@(ImmE (I _ :@ _)) p _ =
   {-
       i is an integer immediate
   ────────────────────────────────
       Ξ; Γ; χ; σ; ε ⊢ᵀ i : u64
   -}
   pure (UnsignedT 64 :@ p, e :@ p)
-typecheckExpr e@(ImmE (C _ :@ _)) p _  =
+typecheckExpr e@(ImmE (C _ :@ _)) p _ =
   {-
      c is a character immediate
   ─────────────────────────────────
       Ξ; Γ; χ; σ; ε ⊢ᵀ c : s8
   -}
   pure (SignedT 8 :@ p, e :@ p)
-typecheckExpr e@(RegE r) p _           = do
+typecheckExpr e@(RegE r) p _ = do
   {-
 
   ────────────────────────────────────
      Ξ; Γ; χ, r : τ; σ; ε ⊢ᵀ r : τ
   -}
   ctx <- gets (chi . snd)
-  maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) (pure . (, e :@ p)) (Map.lookup r ctx)
+  maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) (pure . (,e :@ p)) (Map.lookup r ctx)
 typecheckExpr e@(NameE n@(name :@ _) ts) p _ = do
   {-
            l : τ ∈ ΞD
   ────────────────────────────── data label
      Ξ; Γ; χ; σ; ε ⊢ᵀ l : *τ
-
 
      l : ∀(v).ζ ∈ ΞC      Γ ⊢ᴷ s₁ : k₁, s₂ : k₂, … sₚ : kₚ     s = { s₁ : k₁, s₂ : k₂, …, sₚ : kₚ }     s ∼ v
   ─────────────────────────────────────────────────────────────────────────────────────────────────────────────── code label
@@ -611,10 +646,10 @@ typecheckExpr e@(NameE n@(name :@ _) ts) p _ = do
         EQ -> pure ()
 
       g <- gets (gamma . snd)
-      specKinds <- forM ts \ t -> do
+      specKinds <- forM ts \t -> do
         liftEither $ first FromReport (runKindchecker (kindcheckType g t))
       let kindsToUnify = zip (snd <$> binds) specKinds
-      forM_ kindsToUnify \ (k1, k2) -> do
+      forM_ kindsToUnify \(k1, k2) -> do
         liftEither $ first FromReport (runKindchecker (unifyKinds k1 k2))
 
       let sub = Subst (Map.fromList (zip (fromVar . fst <$> binds) ts))
@@ -630,7 +665,7 @@ typecheckExpr e@(NameE n@(name :@ _) ts) p _ = do
       pure (ty, e :@ p)
   where
     fromVar (VarT n :@ _) = n
-    fromVar t             = internalError $ "Cannot get name of non type-variable " <> show t
+    fromVar t = internalError $ "Cannot get name of non type-variable " <> show t
 typecheckExpr e@(ByteOffsetE off ptr) p unsafe = do
   {-
       Ξ; Γ; χ; σ; ε ⊢ᵀ p : *τ       Ξ; Γ; χ; σ; ε ⊢ᵀ o : s64
@@ -660,7 +695,6 @@ typecheckExpr (BaseOffsetE ptr off) p unsafe = do
   ─────────────────────────────────────────────────────────────── pointer base-offset
                 Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
 
-
      Γ ⊢ᴷ t₀ : Tn₀, t₁ : Tn₁, …, tₘ : Tnₘ      n₀, n₁, …, nₘ ∈ ℕ
                 Ξ; Γ; χ; σ; ε ⊢ᵀ p : *(t₀, t₁, …, tₘ)
   ────────────────────────────────────────────────────────────────── structure pointer offset
@@ -681,8 +715,9 @@ typecheckExpr (BaseOffsetE ptr off) p unsafe = do
     (ImmE (I o :@ _), PackedStructT ts :@ _) -> do
       g <- gets (gamma . snd)
 
-      memberSizes <- liftEither $ first FromReport $ runKindchecker do
-        mapM ((sizeof =<<) . kindcheckType g) ts
+      memberSizes <- liftEither $
+        first FromReport $ runKindchecker do
+          mapM ((sizeof =<<) . kindcheckType g) ts
 
       let s = fromIntegral $ length memberSizes
       when (o > s - 1) do
@@ -696,8 +731,9 @@ typecheckExpr (BaseOffsetE ptr off) p unsafe = do
       throwError (StructureOffsetMustBeKnown p (getPos ptr) (getPos off))
     (ImmE (I o :@ _), _) -> do
       g <- gets (gamma . snd)
-      m <- liftEither $ first FromReport $ runKindchecker do
-        sizeof =<< kindcheckType g (apply sub t)
+      m <- liftEither $
+        first FromReport $ runKindchecker do
+          sizeof =<< kindcheckType g (apply sub t)
       pure (ty2, ImmE (I (o * m) :@ p))
     (RegE r, _) -> do
       when (not unsafe) do
@@ -707,10 +743,10 @@ typecheckExpr (BaseOffsetE ptr off) p unsafe = do
 
   -- > Ξ; Γ; χ; σ; ε ⊢ᵀ p[o] : *τ
   pure (ty2, ByteOffsetE (off2 :@ getPos off) ptr :@ p)
-typecheckExpr e p _                 = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
+typecheckExpr e p _ = error $ "Unimplemented `typecheckExpr` for '" <> show e <> "'."
 
 typecheckConstant :: (?tcFlags :: TypecheckerFlags) => Constant -> Position -> Typechecker (Located Type)
-typecheckConstant (IntegerC _) p   =
+typecheckConstant (IntegerC _) p =
   {-
       i is an integer immediate
   ────────────────────────────────
@@ -724,28 +760,29 @@ typecheckConstant (CharacterC _) p =
       Ξ; Γ; χ; σ; ε ⊢ᵀ c : s8
   -}
   pure (SignedT 8 :@ p)
-typecheckConstant (ArrayC csts) p  =
+typecheckConstant (ArrayC csts) p =
   {-
       n ∈ ℕ       Γ ⊢ᴷ τ : Tn       Γ ⊢ᵀ c₁, c₂, …, cₙ : τ
   ────────────────────────────────────────────────────────────
                   Γ ⊢ᵀ [c₁, c₂, …, cₙ] : *τ
   -}
-  if | (c1:cs) <- csts -> do
-         -- > Γ ⊢ᴷ τ : Tn
-         -- > Γ ⊢ᵀ c₁, c₂, …, cₙ : τ
-         types <- forM csts \ (c :@ p) -> typecheckConstant c p
-         let (t1:ts) = types
-         when (not (null ts)) do
-           () <$ foldlM2 (\ acc t1 t2 -> mappend acc <$> unify t1 t2) mempty (t1:ts)
+  if
+      | (c1 : cs) <- csts -> do
+        -- > Γ ⊢ᴷ τ : Tn
+        -- > Γ ⊢ᵀ c₁, c₂, …, cₙ : τ
+        types <- forM csts \(c :@ p) -> typecheckConstant c p
+        let (t1 : ts) = types
+        when (not (null ts)) do
+          () <$ foldlM2 (\acc t1 t2 -> mappend acc <$> unify t1 t2) mempty (t1 : ts)
 
-         -- > Γ ⊢ᵀ [c₁, c₂, …, cₙ] : *τ
-         pure t1
-     | otherwise       -> do
-         -- > Γ ⊢ᴷ τ : Tn
-         v <- freshVar "d" p
+        -- > Γ ⊢ᵀ [c₁, c₂, …, cₙ] : *τ
+        pure t1
+      | otherwise -> do
+        -- > Γ ⊢ᴷ τ : Tn
+        v <- freshVar "d" p
 
-         -- > Γ ⊢ᵀ [] : *τ
-         pure v
+        -- > Γ ⊢ᵀ [] : *τ
+        pure v
   where
     foldlM2 :: (Monad m) => (b -> a -> a -> m b) -> b -> [a] -> m b
     foldlM2 f e l = foldlM (uncurry . f) e (zip l (drop 1 l))
@@ -755,7 +792,7 @@ typecheckConstant (StructC csts) p =
   ──────────────────────────────────────────────
       Γ ⊢ᵀ (c₁, c₂, …, cₚ) : (τ₁, τ₂, …, τₚ)
   -}
-  (:@ p) . PackedStructT <$> mapM (\ (c :@ p) -> typecheckConstant c p) csts
+  (:@ p) . PackedStructT <$> mapM (\(c :@ p) -> typecheckConstant c p) csts
 
 --------------------------------------------------------------------------------
 
@@ -793,14 +830,14 @@ unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
     let notBang p m r = maybe True ((/= (BangT :@ p))) (Map.lookup r m)
 
         computeExtension :: Bool -> [Located Register] -> Map (Located Register) (Located Type) -> Position -> Typechecker (Subst (Located Type), Map (Located Register) (Located Type))
-        computeExtension _ [] _ _            = pure mempty
+        computeExtension _ [] _ _ = pure mempty
         computeExtension False fs m p
           | not (null (filter (notBang p m) fs)) = throwError (MissingRegistersInContext (unLoc <$> fs) p)
-        computeExtension _ fs m p            = do
-          let newFields = Map.fromList (fs <&> \ k -> (k, m Map.! k))
+        computeExtension _ fs m p = do
+          let newFields = Map.fromList (fs <&> \k -> (k, m Map.! k))
           pure (mempty, newFields)
 
-    subs <- fold <$> forM (Set.toList common) \ k -> unify (m1 Map.! k) (m2 Map.! k)
+    subs <- fold <$> forM (Set.toList common) \k -> unify (m1 Map.! k) (m2 Map.! k)
     (sub1, _) <- computeExtension o2 (Set.toList other1) m2 p2
     (sub2, _) <- computeExtension o1 (Set.toList other2) m1 p1
 
@@ -819,38 +856,38 @@ unify (t1 :@ p1) (t2 :@ p2) = case (t1, t2) of
 
 -- | Unifies many types, yielding the composition of all the substitutions created.
 unifyMany :: (?tcFlags :: TypecheckerFlags) => (t ~ Located Type) => [t] -> [t] -> Typechecker (Subst t)
-unifyMany [] []         = pure mempty
-unifyMany (x:xs) (y:ys) = do
+unifyMany [] [] = pure mempty
+unifyMany (x : xs) (y : ys) = do
   sub1 <- unify x y
   sub2 <- unifyMany (apply sub1 xs) (apply sub1 ys)
   pure (sub1 <> sub2)
-unifyMany l r           =
+unifyMany l r =
   error ("Could not unify " <> show l <> " and " <> show r <> " because they aren't of the same size.")
 
 -- | Tries to bind a free type variable to a type, yielding a substitution from the variable to the type if
 --   it succeeded.
 bind :: (?tcFlags :: TypecheckerFlags) => (Located Text, Position) -> (Type, Position) -> Typechecker (Subst (Located Type))
 bind (var, p1) (FVarT v, p2)
-  | var == v              = pure mempty
+  | var == v = pure mempty
 bind (var, p1) (ty, p2)
-  | occursCheck var ty    = throwError (InfiniteType (ty :@ p2) var)
-  | otherwise             = pure (Subst (Map.singleton var (ty :@ p2)))
- where
-   occursCheck v t = v `Set.member` freeVars t
+  | occursCheck var ty = throwError (InfiniteType (ty :@ p2) var)
+  | otherwise = pure (Subst (Map.singleton var (ty :@ p2)))
+  where
+    occursCheck v t = v `Set.member` freeVars t
 
 relax :: Located Type -> Located Type
 relax (t :@ p) = relaxType t :@ p
   where
-    relaxType (ConsT t1 t2)      = ConsT (relax t1) (relax t2)
-    relaxType (VarT n)           = FVarT n
+    relaxType (ConsT t1 t2) = ConsT (relax t1) (relax t2)
+    relaxType (VarT n) = FVarT n
     relaxType (RecordT ms s c o) = RecordT (relax <$> ms) (relax s) (relax c) o
-    relaxType (PtrT t)           = PtrT (relax t)
-    relaxType (ForAllT b t)      = ForAllT b (relax t)
-      -- NOTE: This will probably need to be tweaked
-      --       Because we don't rename the variables bound, any flexible and rigid variable can be confused.
-    relaxType t                  = t
+    relaxType (PtrT t) = PtrT (relax t)
+    relaxType (ForAllT b t) = ForAllT b (relax t)
+    -- NOTE: This will probably need to be tweaked
+    --       Because we don't rename the variables bound, any flexible and rigid variable can be confused.
+    relaxType t = t
 
 close :: Type -> Type
-close (ForAllT b t)     = ForAllT b (close <$> t)
+close (ForAllT b t) = ForAllT b (close <$> t)
 close (RecordT x s e _) = RecordT x s e False
-close t                 = t
+close t = t
