@@ -264,6 +264,15 @@ data Instruction where
     -- | The destination of the computation
     Located Register ->
     Instruction
+  -- | Performs a bitwise XOR on the first parameters and store the result in the third.
+  XOR ::
+    -- | The first operand
+    Located Expr ->
+    -- | The second operand
+    Located Expr ->
+    -- | The destination of the computation
+    Located Register ->
+    Instruction
 
 -- TODO: add more instructions
 
@@ -383,6 +392,8 @@ data Token where
   And :: Token
   -- | The @or@ instruction
   Or :: Token
+  -- | The @xor@ instruction
+  Xor :: Token
   -- TODO: add more instructions
   -- Symbols
 

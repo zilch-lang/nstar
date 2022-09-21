@@ -166,5 +166,14 @@ data TypedInstruction where
     -- | > s
     Located Register ->
     TypedInstruction
+  -- | Performs bitwise XOR on @x@ and @y@ and store result in register @s@.
+  XOR ::
+    -- | > x
+    Located Expr ->
+    -- | > y
+    Located Expr ->
+    -- | > s
+    Located Register ->
+    TypedInstruction
 
 deriving instance Show TypedInstruction

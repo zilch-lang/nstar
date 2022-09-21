@@ -30,6 +30,7 @@ import Language.NStar.CodeGen.Machine.X64.Sld (compileSld)
 import Language.NStar.CodeGen.Machine.X64.Sref (compileSref)
 import Language.NStar.CodeGen.Machine.X64.Sst (compileSst)
 import Language.NStar.CodeGen.Machine.X64.St (compileSt)
+import Language.NStar.CodeGen.Machine.X64.Xor (compileXor)
 import Language.NStar.Syntax.Core hiding (Instruction (..), Label)
 import Language.NStar.Typechecker.Core
 
@@ -61,6 +62,7 @@ compileInstrInterX64 (ST r o p) = compileSt (unLoc r) (unLoc o) (unLoc p)
 compileInstrInterX64 (SREF n p r) = compileSref (unLoc n) (unLoc p) (unLoc r)
 compileInstrInterX64 (AND x y r) = compileAnd (unLoc x) (unLoc y) (unLoc r)
 compileInstrInterX64 (OR x y r) = compileOr (unLoc x) (unLoc y) (unLoc r)
+compileInstrInterX64 (XOR x y r) = compileXor (unLoc x) (unLoc y) (unLoc r)
 compileInstrInterX64 i = internalError $ "not yet supported: compileInterInstrX64 " <> show i
 
 ---------------------------------------------------------------------------------------------------------------------

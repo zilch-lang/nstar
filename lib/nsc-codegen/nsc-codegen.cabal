@@ -35,6 +35,7 @@ library
       Language.NStar.CodeGen.Machine.X64.Sref
       Language.NStar.CodeGen.Machine.X64.Sst
       Language.NStar.CodeGen.Machine.X64.St
+      Language.NStar.CodeGen.Machine.X64.Xor
       Language.NStar.CodeGen.PreProcessor
       Language.NStar.CodeGen.PreProcessor.X64
   other-modules:
