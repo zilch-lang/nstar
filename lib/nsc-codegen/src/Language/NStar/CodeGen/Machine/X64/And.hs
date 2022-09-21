@@ -14,7 +14,6 @@ import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode (Byte))
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
 import Language.NStar.CodeGen.Machine.Internal.X64.REX (rexW)
 import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
-import Language.NStar.CodeGen.Machine.Internal.X64.SIB (sib)
 import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64)
 import Language.NStar.CodeGen.Machine.X64.Mv (compileMv)
 import Language.NStar.Typechecker.Core (Expr (..), Register)
@@ -100,10 +99,8 @@ compileAnd x@(RegE r1) y@(ImmE _) r2
   -- we actually don't need to move anything
   | otherwise = compileMv x r2 >>= \mv -> (mv <>) <$> bytes
   where
-    bytes = ([rexW, Byte 0x21, modRM 0b00 (registerNumber r2) 0x4, sib 0b00 0x4 0x5] <>) <$> compileExprX64 32 y
--- strangely enough, GAS uses the `REX.W + 21 /r` call with a SIB byte instead of the `REX.W + 83 /4 ib`
--- I don't quite know why but the `REX.W + 81 /4 ib` does not seem to work for me...
-
+    bytes = ([Byte 0x81, modRM 0b11 0x4 (registerNumber r2)] <>) <$> compileExprX64 32 y
 -- we only allow 32-bits immediate values on x64
 -- if you want 64-bits immediate values, you'll need to move them inside registers
+-- TODO: perhaps throw a warning/error?
 compileAnd _ _ _ = undefined

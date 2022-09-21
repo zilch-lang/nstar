@@ -40,7 +40,7 @@ compileOr x@(RegE r1) y@(ImmE _) r2
   -- we actually don't need to move anything
   | otherwise = compileMv x r2 >>= \mv -> (mv <>) <$> bytes
   where
-    bytes = ([rexW, Byte 0x81, modRM 0b11 0x1 (registerNumber r2)] <>) <$> compileExprX64 32 y
+    bytes = ([Byte 0x81, modRM 0b11 0x1 (registerNumber r2)] <>) <$> compileExprX64 32 y
 -- we only allow 32-bits immediate values on x64
 -- if you want 64-bits immediate values, you'll need to move them inside registers
 -- TODO: perhaps throw a warning or error for this case
