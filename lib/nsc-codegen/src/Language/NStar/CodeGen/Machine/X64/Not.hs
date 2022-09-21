@@ -7,6 +7,7 @@ module Language.NStar.CodeGen.Machine.X64.Not
   )
 where
 
+import Data.Functor ((<&>))
 import Data.Located (Located ((:@)), getPos, unLoc)
 import Language.NStar.CodeGen.Compiler (Compiler)
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode (Byte))
@@ -48,5 +49,5 @@ compileNot e@(RegE s) r
   | unLoc s == r = pure [rexW, Byte 0xF7, modRM 0b11 0x2 (registerNumber r)]
   -- when the destination and the source are the same register,
   -- we actually don't need to move anything
-  | otherwise = ([rexW, Byte 0xF7, modRM 0b11 0x2 (registerNumber $ unLoc s)] <>) <$> compileMv e r
+  | otherwise = compileMv e r <&> (<> [rexW, Byte 0xF7, modRM 0b11 0x2 (registerNumber r)])
 compileNot _ _ = undefined
