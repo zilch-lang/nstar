@@ -230,6 +230,7 @@ tc_nop _ = do
     Ξ; Γ; χ; σ; ε ⊢ᴵ nop ⊣ χ; σ; ε
 
   -}
+
   pure TC.NOP
 
 tc_salloc :: (?tcFlags :: TypecheckerFlags) => Located Type -> Position -> Typechecker TC.TypedInstruction
@@ -531,6 +532,7 @@ tc_and (x :@ p1) (y :@ p2) (r :@ p3) p4 = do
   ──────────────────────────────────────────────────────────────────────
            Ξ; Γ; χ; σ; ε ⊢ᴵ and x, y, r ⊣ χ, r : sN; σ; ε
   -}
+
   g <- gets (gamma . snd)
   e :@ p4 <- gets (epsilon . snd)
 
@@ -566,6 +568,7 @@ tc_or (x :@ p1) (y :@ p2) (r :@ p3) p4 = do
   ──────────────────────────────────────────────────────────────────────
            Ξ; Γ; χ; σ; ε ⊢ᴵ or x, y, r ⊣ χ, r : sN; σ; ε
   -}
+
   g <- gets (gamma . snd)
   e :@ p4 <- gets (epsilon . snd)
 
@@ -601,6 +604,7 @@ tc_xor (x :@ p1) (y :@ p2) (r :@ p3) p4 = do
   ──────────────────────────────────────────────────────────────────────
            Ξ; Γ; χ; σ; ε ⊢ᴵ xor x, y, r ⊣ χ, r : sN; σ; ε
   -}
+
   g <- gets (gamma . snd)
   e :@ p4 <- gets (epsilon . snd)
 
@@ -622,6 +626,37 @@ tc_xor (x :@ p1) (y :@ p2) (r :@ p3) p4 = do
   extendChi (r :@ p3) τx
 
   pure (TC.XOR x y (r :@ p3))
+
+tc_not :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Register -> Position -> Typechecker TC.TypedInstruction
+tc_not (x :@ p1) (r :@ p2) p3 = do
+  {-
+     Ξ; Γ; χ; σ; ε ⊢ᵀ e : uN                   r is a register           r ≠ ε
+  ────────────────────────────────────────────────────────────────────────────────
+               Ξ; Γ; χ; σ; ε ⊢ᴵ not e, r ⊣ χ, r : uN; σ; ε
+
+     Ξ; Γ; χ; σ; ε ⊢ᵀ e : sN                   r is a register           r ≠ ε
+  ────────────────────────────────────────────────────────────────────────────────
+               Ξ; Γ; χ; σ; ε ⊢ᴵ not e, r ⊣ χ, r : sN; σ; ε
+  -}
+
+  e :@ p4 <- gets (epsilon . snd)
+
+  case e of
+    -- r ≠ ε
+    RegisterContT r2 | r == r2 -> throwError (TryingToOverwriteRegisterContinuation (r :@ p2) p2)
+    _ -> pure ()
+
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ e : uN or Ξ; Γ; χ; σ; ε ⊢ᵀ e : sN
+  (τx, x) <- typecheckExpr x p1 False
+
+  case τx of
+    UnsignedT _ :@ _ -> pure ()
+    SignedT _ :@ _ -> pure ()
+    t :@ p5 -> throwError (ExpectedIntegralType t p5)
+
+  extendChi (r :@ p2) τx
+
+  pure (TC.NOT x (r :@ p2))
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

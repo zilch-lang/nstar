@@ -252,7 +252,7 @@ data Instruction where
     Located Expr ->
     -- | The second operand
     Located Expr ->
-    -- | The destination of the computation
+    -- | The destination of the computation.
     Located Register ->
     Instruction
   -- | Performs a bitwise OR on the first parameters and store the result in the third.
@@ -261,7 +261,7 @@ data Instruction where
     Located Expr ->
     -- | The second operand
     Located Expr ->
-    -- | The destination of the computation
+    -- | The destination of the computation.
     Located Register ->
     Instruction
   -- | Performs a bitwise XOR on the first parameters and store the result in the third.
@@ -270,7 +270,14 @@ data Instruction where
     Located Expr ->
     -- | The second operand
     Located Expr ->
-    -- | The destination of the computation
+    -- | The destination of the computation.
+    Located Register ->
+    Instruction
+  -- | Performs one's complement negation (bit reversion) on the parameter and store the result in the second parameter.
+  NOT ::
+    -- | The operand to reverse
+    Located Expr ->
+    -- | The destination of the computation.
     Located Register ->
     Instruction
 
@@ -394,6 +401,8 @@ data Token where
   Or :: Token
   -- | The @xor@ instruction
   Xor :: Token
+  -- | The @not@ instruction
+  Not :: Token
   -- TODO: add more instructions
   -- Symbols
 

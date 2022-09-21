@@ -5,6 +5,9 @@ main: forall (s: Ts, e: Tc).{| forall().{ %r0: s64 | s -> e }::s -> 0 }
     ; and %r0, 0xDEADC0DE, %r0
     ; or %r1, 0xDEADC0DE, %r0
     ; xor 0xFF00FF00, %r0, %r0
+    ; not 0x34, %r0
+    ; not %r1, %r0 
+    ; not %r1, %r1
     ; sld 0, %r5
     ; sfree
     ; ret

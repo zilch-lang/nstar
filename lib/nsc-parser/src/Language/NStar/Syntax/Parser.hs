@@ -217,7 +217,8 @@ parseInstruction = do
             parseSref,
             parseAnd,
             parseOr,
-            parseXor
+            parseXor,
+            parseNot
           ]
       )
 
@@ -486,5 +487,13 @@ parseXor =
     lexeme (parseSymbol Xor)
       *> ( XOR <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
+             <*> (lexeme (parseSymbol Comma) *> parseRegister)
+         )
+
+parseNot :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseNot =
+  located $
+    lexeme (parseSymbol Not)
+      *> ( NOT <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )

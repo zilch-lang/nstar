@@ -175,5 +175,12 @@ data TypedInstruction where
     -- | > s
     Located Register ->
     TypedInstruction
+  -- | Performs one's complement negation (bit reversing) on @e@ and return result in register @r@.
+  NOT ::
+    -- | > e
+    Located Expr ->
+    -- | > r
+    Located Register ->
+    TypedInstruction
 
 deriving instance Show TypedInstruction

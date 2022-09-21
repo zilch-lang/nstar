@@ -151,6 +151,7 @@ identifierOrKeyword = located do
       "and" -> And
       "or" -> Or
       "xor" -> Xor
+      "not" -> Not
       -- Registers
       "r0" -> R0'
       "r1" -> R1'
