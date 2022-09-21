@@ -255,6 +255,15 @@ data Instruction where
     -- | The destination of the computation
     Located Register ->
     Instruction
+  -- | Performs a bitwise OR on the first parameters and store the result in the third.
+  OR ::
+    -- | The first operand
+    Located Expr ->
+    -- | The second operand
+    Located Expr ->
+    -- | The destination of the computation
+    Located Register ->
+    Instruction
 
 -- TODO: add more instructions
 
@@ -372,6 +381,8 @@ data Token where
   Sref :: Token
   -- | The @and@ instruction
   And :: Token
+  -- | The @or@ instruction
+  Or :: Token
   -- TODO: add more instructions
   -- Symbols
 

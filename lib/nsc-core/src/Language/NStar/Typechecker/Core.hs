@@ -150,8 +150,20 @@ data TypedInstruction where
     TypedInstruction
   -- | Performs bitwise AND on @x@ and @y@ and store result in register @s@.
   AND ::
+    -- | > x
     Located Expr ->
+    -- | > y
     Located Expr ->
+    -- | > s
+    Located Register ->
+    TypedInstruction
+  -- | Performs bitwise OR on @x@ and @y@ and store result in register @s@.
+  OR ::
+    -- | > x
+    Located Expr ->
+    -- | > y
+    Located Expr ->
+    -- | > s
     Located Register ->
     TypedInstruction
 

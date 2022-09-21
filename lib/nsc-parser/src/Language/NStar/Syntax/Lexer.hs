@@ -149,6 +149,7 @@ identifierOrKeyword = located do
       "st" -> St
       "sref" -> Sref
       "and" -> And
+      "or" -> Or
       -- Registers
       "r0" -> R0'
       "r1" -> R1'

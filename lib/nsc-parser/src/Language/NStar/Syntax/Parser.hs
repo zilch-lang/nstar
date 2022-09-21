@@ -215,7 +215,8 @@ parseInstruction = do
             parseLd,
             parseSt,
             parseSref,
-            parseAnd
+            parseAnd,
+            parseOr
           ]
       )
 
@@ -465,6 +466,15 @@ parseAnd =
   located $
     lexeme (parseSymbol And)
       *> ( AND <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
+             <*> (lexeme (parseSymbol Comma) *> parseRegister)
+         )
+
+parseOr :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseOr =
+  located $
+    lexeme (parseSymbol Or)
+      *> ( OR <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )

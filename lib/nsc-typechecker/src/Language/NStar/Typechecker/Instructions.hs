@@ -2,6 +2,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Use camelCase" #-}
 
 module Language.NStar.Typechecker.Instructions where
 
@@ -549,6 +552,41 @@ tc_and (x :@ p1) (y :@ p2) (r :@ p3) p4 = do
   extendChi (r :@ p3) τx
 
   pure (TC.AND x y (r :@ p3))
+
+tc_or :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Located Register -> Position -> Typechecker TC.TypedInstruction
+tc_or (x :@ p1) (y :@ p2) (r :@ p3) p4 = do
+  {-
+     Ξ; Γ; χ; σ; ε ⊢ᵀ x : uN                Ξ; Γ; χ; σ; ε ⊢ᵀ y : uN
+               r is a register              r ≠ ε
+  ──────────────────────────────────────────────────────────────────────
+           Ξ; Γ; χ; σ; ε ⊢ᴵ or x, y, r ⊣ χ, r : uN; σ; ε
+
+     Ξ; Γ; χ; σ; ε ⊢ᵀ x : sN                Ξ; Γ; χ; σ; ε ⊢ᵀ y : sN
+               r is a register              r ≠ ε
+  ──────────────────────────────────────────────────────────────────────
+           Ξ; Γ; χ; σ; ε ⊢ᴵ or x, y, r ⊣ χ, r : sN; σ; ε
+  -}
+  g <- gets (gamma . snd)
+  e :@ p4 <- gets (epsilon . snd)
+
+  case e of
+    -- r ≠ ε
+    RegisterContT r2 | r == r2 -> throwError (TryingToOverwriteRegisterContinuation (r :@ p3) p3)
+    _ -> pure ()
+
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ x : uN or Ξ; Γ; χ; σ; ε ⊢ᵀ x : sN
+  (τx, x) <- typecheckExpr x p1 False
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ y : uN or Ξ; Γ; χ; σ; ε ⊢ᵀ y : sN
+  (τy, y) <- typecheckExpr y p2 False
+
+  case τx of
+    UnsignedT _ :@ _ -> unify τx τy
+    SignedT _ :@ _ -> unify τx τy
+    t :@ p5 -> throwError (ExpectedIntegralType t p5)
+
+  extendChi (r :@ p3) τx
+
+  pure (TC.OR x y (r :@ p3))
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

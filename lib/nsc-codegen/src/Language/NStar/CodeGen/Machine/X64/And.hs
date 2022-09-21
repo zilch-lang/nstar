@@ -102,7 +102,7 @@ compileAnd x@(RegE r1) y@(ImmE _) r2
   where
     bytes = ([rexW, Byte 0x21, modRM 0b00 (registerNumber r2) 0x4, sib 0b00 0x4 0x5] <>) <$> compileExprX64 32 y
 -- strangely enough, GAS uses the `REX.W + 21 /r` call with a SIB byte instead of the `REX.W + 83 /4 ib`
--- I don't quite know why but the `REX.W + 83 /4 ib` does not seem to work for me...
+-- I don't quite know why but the `REX.W + 81 /4 ib` does not seem to work for me...
 
 -- we only allow 32-bits immediate values on x64
 -- if you want 64-bits immediate values, you'll need to move them inside registers

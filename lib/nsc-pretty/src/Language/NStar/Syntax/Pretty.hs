@@ -1,28 +1,26 @@
-{-|
-  Module: Language.NStar.Syntax.Pretty
-  Copyright: (c) Mesabloo, 2020
-  License: BSD3
-  Stability: experimental
--}
-
+-- |
+--  Module: Language.NStar.Syntax.Pretty
+--  Copyright: (c) Mesabloo, 2020
+--  License: BSD3
+--  Stability: experimental
 module Language.NStar.Syntax.Pretty where
 
-import Prettyprinter
-import Language.NStar.Syntax.Core
-import qualified Data.Text as Text
-import Data.Located (unLoc, Located((:@)))
+import Data.Located (Located ((:@)), unLoc)
 import qualified Data.Map as Map
+import qualified Data.Text as Text
+import Language.NStar.Syntax.Core
+import Prettyprinter
 import Prelude hiding ((<$>))
 
 instance Pretty Program where
   pretty (Program stts) = vsep (fmap pretty stts)
 
 instance Pretty Section where
-  pretty (CodeS sect)    = "section code {" <> line <> indent 4 (vsep (fmap pretty sect)) <> line <> "}"
-  pretty (DataS sect)    = "section data {" <> line <> indent 4 (vsep (fmap pretty sect)) <> line <> "}"
-  pretty (RODataS sect)  = "section rodata {" <> line <> indent 4 (vsep (fmap pretty sect)) <> line <> "}"
-  pretty (UDataS sect)   = "section udata {" <> line <> indent 4 (vsep (fmap pretty sect)) <> line <> "}"
-  pretty (IncludeS sec)  = "include {" <> line <> indent 4 (vsep (fmap pretty sec)) <> line <> "}"
+  pretty (CodeS sect) = "section code {" <> line <> indent 4 (vsep (fmap pretty sect)) <> line <> "}"
+  pretty (DataS sect) = "section data {" <> line <> indent 4 (vsep (fmap pretty sect)) <> line <> "}"
+  pretty (RODataS sect) = "section rodata {" <> line <> indent 4 (vsep (fmap pretty sect)) <> line <> "}"
+  pretty (UDataS sect) = "section udata {" <> line <> indent 4 (vsep (fmap pretty sect)) <> line <> "}"
+  pretty (IncludeS sec) = "include {" <> line <> indent 4 (vsep (fmap pretty sec)) <> line <> "}"
   pretty (ExternCodeS s) = "section extern.code {" <> line <> indent 4 (vsep (fmap pretty s)) <> line <> "}"
 
 instance Pretty Binding where
@@ -33,9 +31,10 @@ instance Pretty ReservedSpace where
 
 instance Pretty Statement where
   pretty (Label name ty block) = pretty name <+> align (colon <+> pretty ty <> line <> equals <+> prettyBlock block)
-    where prettyBlock is = mconcat (punctuate (line <> semi <> space) (fmap pprint is))
+    where
+      prettyBlock is = mconcat (punctuate (line <> semi <> space) (fmap pprint is))
 
-          pprint (i, unsafe) = (if unsafe then "unsafe " else mempty) <> pretty i
+      pprint (i, unsafe) = (if unsafe then "unsafe " else mempty) <> pretty i
 
 instance Pretty Kind where
   pretty (T n) = "T" <> pretty n
@@ -56,9 +55,11 @@ instance Pretty Type where
   pretty (PtrT t) = "*" <> pretty t
   pretty (RecordT maps st cont open) =
     lbrace <+> mconcat (punctuate comma (Map.foldlWithKey f [] maps)) <+> "|" <+> pretty st <+> "→" <+> pretty cont <+> rbrace
-    where f list reg ty = (pretty reg <+> colon <+> pretty ty) : list
+    where
+      f list reg ty = (pretty reg <+> colon <+> pretty ty) : list
   pretty (ForAllT binds ty) = "∀" <> parens (mconcat (punctuate comma $ fmap output binds)) <> dot <> pretty ty
-    where output (var, kind) = pretty var <+> colon <+> pretty kind
+    where
+      output (var, kind) = pretty var <+> colon <+> pretty kind
   pretty (RegisterContT r) = pretty r
   pretty (StackContT i) = pretty i
   pretty BangT = "!"
@@ -75,26 +76,28 @@ instance Pretty Register where
       f R5 = "r5"
 
 instance Pretty Instruction where
-  pretty (MV s d)       = "mv" <+> pretty s <> comma <+> pretty d
-  pretty (RET)          = "ret"
-  pretty (JMP lbl)      = "jmp" <+> pretty lbl
-  pretty (CALL lbl)     = "call" <+> pretty lbl
-  pretty (ADD inc dst)  = "add" <+> pretty inc <> comma <+> pretty dst
-  pretty (SUB inc dst)  = "sub" <+> pretty inc <> comma <+> pretty dst
-  pretty (NOP)          = "nop"
-  pretty (SALLOC t)     = "salloc" <+> pretty t
-  pretty (SFREE)        = "sfree"
-  pretty (SLD s d)      = "sld" <+> pretty s <> comma <+> pretty d
-  pretty (SST s d)      = "sst" <+> pretty s <> comma <+> pretty d
-  pretty (LD s d)       = "ld" <+> pretty s <> comma <+> pretty d
-  pretty (ST s d)       = "st" <+> pretty s <> comma <+> pretty d
-  pretty (SREF n r)     = "sref" <+> pretty n <> comma <+> pretty r
+  pretty (MV s d) = "mv" <+> pretty s <> comma <+> pretty d
+  pretty (RET) = "ret"
+  pretty (JMP lbl) = "jmp" <+> pretty lbl
+  pretty (CALL lbl) = "call" <+> pretty lbl
+  pretty (ADD inc dst) = "add" <+> pretty inc <> comma <+> pretty dst
+  pretty (SUB inc dst) = "sub" <+> pretty inc <> comma <+> pretty dst
+  pretty (NOP) = "nop"
+  pretty (SALLOC t) = "salloc" <+> pretty t
+  pretty (SFREE) = "sfree"
+  pretty (SLD s d) = "sld" <+> pretty s <> comma <+> pretty d
+  pretty (SST s d) = "sst" <+> pretty s <> comma <+> pretty d
+  pretty (LD s d) = "ld" <+> pretty s <> comma <+> pretty d
+  pretty (ST s d) = "st" <+> pretty s <> comma <+> pretty d
+  pretty (SREF n r) = "sref" <+> pretty n <> comma <+> pretty r
+  pretty (AND x y r) = "and" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
+  pretty (OR x y r) = "or" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
 
 instance Pretty Constant where
-  pretty (IntegerC (i :@ _))   = pretty  i
+  pretty (IntegerC (i :@ _)) = pretty i
   pretty (CharacterC (c :@ _)) = squotes (pretty c)
-  pretty (ArrayC csts)         = lbracket <> hsep (fmap pretty csts) <+> rbracket
-  pretty (StructC cs)          = tupled (fmap pretty cs)
+  pretty (ArrayC csts) = lbracket <> hsep (fmap pretty csts) <+> rbracket
+  pretty (StructC cs) = tupled (fmap pretty cs)
 
 instance Pretty Expr where
   pretty (ImmE i) = pretty i

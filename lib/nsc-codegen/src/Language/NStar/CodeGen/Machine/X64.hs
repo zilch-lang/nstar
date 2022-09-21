@@ -23,6 +23,7 @@ import Language.NStar.CodeGen.Machine.X64.Jmp (compileJmp)
 import Language.NStar.CodeGen.Machine.X64.Ld (compileLd)
 import Language.NStar.CodeGen.Machine.X64.Mv (compileMv)
 import Language.NStar.CodeGen.Machine.X64.Nop (compileNop)
+import Language.NStar.CodeGen.Machine.X64.Or (compileOr)
 import Language.NStar.CodeGen.Machine.X64.Salloc (compileSalloc)
 import Language.NStar.CodeGen.Machine.X64.Sfree (compileSfree)
 import Language.NStar.CodeGen.Machine.X64.Sld (compileSld)
@@ -59,6 +60,7 @@ compileInstrInterX64 (LD o p r) = compileLd (unLoc o) (unLoc p) (unLoc r)
 compileInstrInterX64 (ST r o p) = compileSt (unLoc r) (unLoc o) (unLoc p)
 compileInstrInterX64 (SREF n p r) = compileSref (unLoc n) (unLoc p) (unLoc r)
 compileInstrInterX64 (AND x y r) = compileAnd (unLoc x) (unLoc y) (unLoc r)
+compileInstrInterX64 (OR x y r) = compileOr (unLoc x) (unLoc y) (unLoc r)
 compileInstrInterX64 i = internalError $ "not yet supported: compileInterInstrX64 " <> show i
 
 ---------------------------------------------------------------------------------------------------------------------
