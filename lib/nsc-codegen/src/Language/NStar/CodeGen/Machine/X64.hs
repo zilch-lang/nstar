@@ -18,6 +18,7 @@ import Internal.Error (internalError)
 import Language.NStar.CodeGen.Compiler
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode (..))
 import Language.NStar.CodeGen.Machine.X64.And (compileAnd)
+import Language.NStar.CodeGen.Machine.X64.Cmvz (compileCmvz)
 import Language.NStar.CodeGen.Machine.X64.Expression (compileConstantX64, int32, int64)
 import Language.NStar.CodeGen.Machine.X64.Jmp (compileJmp)
 import Language.NStar.CodeGen.Machine.X64.Ld (compileLd)
@@ -65,6 +66,7 @@ compileInstrInterX64 (AND x y r) = compileAnd (unLoc x) (unLoc y) (unLoc r)
 compileInstrInterX64 (OR x y r) = compileOr (unLoc x) (unLoc y) (unLoc r)
 compileInstrInterX64 (XOR x y r) = compileXor (unLoc x) (unLoc y) (unLoc r)
 compileInstrInterX64 (NOT e r) = compileNot (unLoc e) (unLoc r)
+compileInstrInterX64 (CMVZ a b c r) = compileCmvz (unLoc a) (unLoc b) (unLoc c) (unLoc r)
 compileInstrInterX64 i = internalError $ "not yet supported: compileInterInstrX64 " <> show i
 
 ---------------------------------------------------------------------------------------------------------------------

@@ -658,6 +658,38 @@ tc_not (x :@ p1) (r :@ p2) p3 = do
 
   pure (TC.NOT x (r :@ p2))
 
+tc_cmvz :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Located Expr -> Located Register -> Position -> Typechecker TC.TypedInstruction
+tc_cmvz (a :@ p1) (b :@ p2) (c :@ p3) (r :@ p4) p5 = do
+  {-
+                Ξ; Γ; χ; σ; ε ⊢ a ∈ {uN, sN}
+    Ξ; Γ; χ; σ; ε ⊢ b : τ₂     r ≠ ε      Ξ; Γ; χ; σ; ε ⊢ c : τ₂
+  ─────────────────────────────────────────────────────────────────
+      Ξ; Γ; χ; σ; ε ⊢ cmvz a, b, c, r ⊣ Ξ; Γ; χ, r : τ₂; σ; ε
+  -}
+
+  e :@ p6 <- gets (epsilon . snd)
+
+  -- Ξ; Γ; χ; σ; ε ⊢ a ∈ {uN, sN}
+  (τa, a) <- typecheckExpr a p1 False
+  case τa of
+    SignedT _ :@ _ -> pure ()
+    UnsignedT _ :@ _ -> pure ()
+    t :@ p7 -> throwError (ExpectedIntegralType t p7)
+
+  -- Ξ; Γ; χ; σ; ε ⊢ b : τ₂
+  (τb, b) <- typecheckExpr b p2 False
+  -- Ξ; Γ; χ; σ; ε ⊢ c : τ₂
+  (τc, c) <- typecheckExpr c p3 False
+
+  unify τb τc
+
+  case e of
+    -- r ≠ ε
+    RegisterContT r2 | r == r2 -> throwError (TryingToOverwriteRegisterContinuation (r :@ p2) p2)
+    _ -> pure ()
+
+  pure (TC.CMVZ a b c (r :@ p4))
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

@@ -152,6 +152,8 @@ identifierOrKeyword = located do
       "or" -> Or
       "xor" -> Xor
       "not" -> Not
+      "cmvz" -> Cmvz
+      "cmvnz" -> Cmvnz
       -- Registers
       "r0" -> R0'
       "r1" -> R1'

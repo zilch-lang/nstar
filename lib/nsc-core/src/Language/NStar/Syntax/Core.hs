@@ -280,6 +280,28 @@ data Instruction where
     -- | The destination of the computation.
     Located Register ->
     Instruction
+  -- | Move different values depending on whether the first argument is @0@ or not.
+  CMVZ ::
+    -- | The value to compare to @0@.
+    Located Expr ->
+    -- | The value to move when the first argument is equal to @0@.
+    Located Expr ->
+    -- | The value to move when the first argument is not equal to @0@.
+    Located Expr ->
+    -- | The destination register.
+    Located Register ->
+    Instruction
+  -- | Move different values depending on whether the first argument is @0@ or not.
+  CMVNZ ::
+    -- | The value to compare to @0@.
+    Located Expr ->
+    -- | The value to move when the first argument is not equal to @0@.
+    Located Expr ->
+    -- | The value to move when the first argument is equal to @0@.
+    Located Expr ->
+    -- | The destination register.
+    Located Register ->
+    Instruction
 
 -- TODO: add more instructions
 
@@ -403,6 +425,10 @@ data Token where
   Xor :: Token
   -- | The @not@ instruction
   Not :: Token
+  -- | The @cmovz@ instruction
+  Cmvz :: Token
+  -- | The @cmovnz@ instruction
+  Cmvnz :: Token
   -- TODO: add more instructions
   -- Symbols
 

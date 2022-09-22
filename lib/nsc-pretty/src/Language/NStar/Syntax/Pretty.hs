@@ -92,6 +92,10 @@ instance Pretty Instruction where
   pretty (SREF n r) = "sref" <+> pretty n <> comma <+> pretty r
   pretty (AND x y r) = "and" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
   pretty (OR x y r) = "or" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
+  pretty (NOT x r) = "not" <+> pretty x <> comma <+> pretty r
+  pretty (XOR x y r) = "xor" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
+  pretty (CMVZ a b c r) = "cmvz" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty r
+  pretty (CMVNZ a b c r) = "cmvnz" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty r
 
 instance Pretty Constant where
   pretty (IntegerC (i :@ _)) = pretty i

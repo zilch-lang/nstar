@@ -182,5 +182,16 @@ data TypedInstruction where
     -- | > r
     Located Register ->
     TypedInstruction
+  -- | Moves @b@ inside @r@ if @a@ is @0@, otherwise move @c@ inside @r@.
+  CMVZ ::
+    -- | > a
+    Located Expr ->
+    -- | > b
+    Located Expr ->
+    -- | > c
+    Located Expr ->
+    -- | > r
+    Located Register ->
+    TypedInstruction
 
 deriving instance Show TypedInstruction
