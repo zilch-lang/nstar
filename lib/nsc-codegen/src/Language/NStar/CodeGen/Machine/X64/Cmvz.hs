@@ -7,13 +7,15 @@ module Language.NStar.CodeGen.Machine.X64.Cmvz
   )
 where
 
-import Data.Located (unLoc)
+import Data.Located (Located ((:@)), unLoc)
 import Language.NStar.CodeGen.Compiler (Compiler)
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode (Byte))
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
 import Language.NStar.CodeGen.Machine.Internal.X64.REX (rexW)
 import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
 import Language.NStar.CodeGen.Machine.X64.Expression (int8)
+import Language.NStar.CodeGen.Machine.X64.Mv (compileMv)
+import Language.NStar.Syntax.Core (Immediate (I))
 import Language.NStar.Typechecker.Core (Expr (..), Register)
 
 -- $encoding
@@ -29,6 +31,10 @@ compileCmvz (RegE a) (RegE b) (RegE c) r =
       <>
       -- cmovnz c r
       [rexW, Byte 0x0F, Byte 0x45, modRM 0b11 (registerNumber $ unLoc c) (registerNumber r)]
+compileCmvz (ImmE (I i :@ _)) (RegE b) (RegE c) r = case i of
+  -- if we can evaluate the conditional, compile to simple moves
+  0 -> compileMv (RegE b) r
+  _ -> compileMv (RegE c) r
 compileCmvz _ _ _ _ = undefined
 
 -- X64 does not seem to allow CMP with two immediates, nor CMOVcc with an immediate as first operand...
