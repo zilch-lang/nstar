@@ -81,7 +81,7 @@ instance Pretty Instruction where
   pretty (JMP lbl) = "jmp" <+> pretty lbl
   pretty (CALL lbl) = "call" <+> pretty lbl
   pretty (ADD inc dst r) = "add" <+> pretty inc <> comma <+> pretty dst <> comma <+> pretty r
-  pretty (SUB inc dst) = "sub" <+> pretty inc <> comma <+> pretty dst
+  pretty (SUB inc dst r) = "sub" <+> pretty inc <> comma <+> pretty dst <> comma <+> pretty r
   pretty (NOP) = "nop"
   pretty (SALLOC t) = "salloc" <+> pretty t
   pretty (SFREE) = "sfree"

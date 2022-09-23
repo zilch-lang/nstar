@@ -157,6 +157,7 @@ identifierOrKeyword = located do
       "add" -> Add
       "shiftl" -> Shiftl
       "shiftr" -> Shiftr
+      "sub" -> Sub
       -- Registers
       "r0" -> R0'
       "r1" -> R1'

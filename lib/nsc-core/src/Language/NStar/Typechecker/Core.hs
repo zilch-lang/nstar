@@ -202,6 +202,15 @@ data TypedInstruction where
     -- | > r
     Located Register ->
     TypedInstruction
+  -- | Stores the result of @a - b@ in @r@.
+  SUB ::
+    -- | > a
+    Located Expr ->
+    -- | > b
+    Located Expr ->
+    -- | > r
+    Located Register ->
+    TypedInstruction
   -- | Performs logical left shift on @x@ and @y@ and store result in register @s@.
   SHIFTL ::
     -- | > x

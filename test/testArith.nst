@@ -5,6 +5,8 @@ main: forall (s: Ts, e: Tc).{| forall().{ %r0: s64 | s -> e }::s -> 0 }
     ; add %r0, 0xDEADC0DE, %r0
     ; add %r0, %r1, %r0
     ; add %r0, %r1, %r2
+    ; add %r0, 1, %r0 
+    ; sub %r0, 1, %r0
     ; sld 0, %r5
     ; sfree
     ; ret

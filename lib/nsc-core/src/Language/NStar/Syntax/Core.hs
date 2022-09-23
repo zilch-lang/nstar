@@ -205,10 +205,14 @@ data Instruction where
     -- | The destination operand
     Located Register ->
     Instruction
+  -- | Performs subtraction on the first two parameters and store the result in the third.
   SUB ::
+    -- | The source operand
     Located Expr ->
+    -- | The decrement value
     Located Expr ->
-    -- -> Located Register -- ^ The destination register
+    -- | The destination operand
+    Located Register ->
     Instruction
   -- | Does strictly nothing. May be used as a padding instruction.
   NOP :: Instruction
@@ -455,6 +459,8 @@ data Token where
   Shiftl :: Token
   -- | The @shiftr@ instruction
   Shiftr :: Token
+  -- | The @sub@ instruction
+  Sub :: Token
   -- TODO: add more instructions
   -- Symbols
 

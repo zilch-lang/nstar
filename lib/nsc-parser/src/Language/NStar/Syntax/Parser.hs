@@ -190,7 +190,7 @@ parseBlock =
     ]
 
 parseTerminalInstruction :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
-parseTerminalInstruction =
+parseTerminalInstruction = MP.label "a terminal instruction" do
   lexeme $
     MP.choice
       [ parseRet,
@@ -200,7 +200,7 @@ parseTerminalInstruction =
 
 -- | Parses an instruction call from the N*'s instruction set.
 parseInstruction :: (?parserFlags :: ParserFlags) => Parser (Located Instruction, Bool)
-parseInstruction = do
+parseInstruction = MP.label "an instruction" do
   isUnsafe <- MP.option False (True <$ lexeme (parseSymbol UnSafe))
 
   (,isUnsafe)
@@ -223,7 +223,8 @@ parseInstruction = do
             parseCmvnz,
             parseAdd,
             parseShiftl,
-            parseShiftr
+            parseShiftr,
+            parseSub
           ]
       )
 
@@ -528,6 +529,15 @@ parseAdd =
   located $
     lexeme (parseSymbol Add)
       *> ( ADD <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
+             <*> (lexeme (parseSymbol Comma) *> parseRegister)
+         )
+
+parseSub :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseSub =
+  located $
+    lexeme (parseSymbol Sub)
+      *> ( SUB <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )

@@ -16,6 +16,7 @@ import Language.NStar.CodeGen.Machine.Internal.X64.REX (rexW)
 import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
 import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64)
 import Language.NStar.CodeGen.Machine.X64.Mv (compileMv)
+import Language.NStar.Syntax.Core (Immediate (..))
 import Language.NStar.Typechecker.Core (Expr (..), Register)
 
 -- $encoding
@@ -89,7 +90,17 @@ compileAdd x@(RegE a) (RegE b) r
   | unLoc a == r = pure [rexW, Byte 0x03, modRM 0b11 (registerNumber $ unLoc b) (registerNumber r)]
   | unLoc b == r = undefined
   | otherwise = compileMv x r <&> (<> [rexW, Byte 0x03, modRM 0b11 (registerNumber $ unLoc b) (registerNumber r)])
-compileAdd i@(ImmE _) (RegE b) r = compileMv i r <&> (<> [rexW, Byte 0x03, modRM 0b11 (registerNumber $ unLoc b) (registerNumber r)])
-compileAdd i j@(ImmE _) r = compileMv i r <&> (<> [Byte 0x81, modRM 0b11 0x0 (registerNumber r)]) >>= \tmp -> (tmp <>) <$> compileExprX64 32 j
-
+compileAdd i@(ImmE n) j@(RegE b) r = case unLoc n of
+  I 1 -> compileMv j r <&> (<> [rexW, Byte 0xFF, modRM 0b11 0x0 (registerNumber r)])
+  I (-1) -> compileMv j r <&> (<> [rexW, Byte 0xFF, modRM 0b11 0x1 (registerNumber r)])
+  --   ^^^ use INC instead of ADD if we know we are incrementing by ±1
+  _ -> compileMv i r <&> (<> [rexW, Byte 0x03, modRM 0b11 (registerNumber $ unLoc b) (registerNumber r)])
+compileAdd i j@(ImmE n) r =
+  compileMv i r >>= \tmp ->
+    (tmp <>) <$> case unLoc n of
+      I 1 -> pure [rexW, Byte 0xFF, modRM 0b11 0x0 (registerNumber r)]
+      I (-1) -> pure [rexW, Byte 0xFF, modRM 0b11 0x1 (registerNumber r)]
+      --   ^^^ use INC instead of ADD if we know we are incrementing by ±1
+      _ -> ([Byte 0x81, modRM 0b11 0x0 (registerNumber r)] <>) <$> compileExprX64 32 j
 -- TODO: check if @i@ is @RegE r@ and do not move if yes
+compileAdd _ _ _ = undefined

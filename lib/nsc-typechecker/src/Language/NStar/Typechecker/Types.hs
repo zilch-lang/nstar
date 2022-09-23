@@ -155,6 +155,7 @@ typecheckInstruction i p unsafe = do
     SC.ADD a b r -> tc_add a b r p
     SC.SHIFTL a b r -> tc_shiftl a b r p
     SC.SHIFTR a b r -> tc_shiftr a b r p
+    SC.SUB a b r -> tc_sub a b r p
     _ -> error $ "Unrecognized instruction '" <> show i <> "'."
 
   pure (TInstr (ti :@ p) chi sigma epsilon)

@@ -35,6 +35,7 @@ import Language.NStar.CodeGen.Machine.X64.Sld (compileSld)
 import Language.NStar.CodeGen.Machine.X64.Sref (compileSref)
 import Language.NStar.CodeGen.Machine.X64.Sst (compileSst)
 import Language.NStar.CodeGen.Machine.X64.St (compileSt)
+import Language.NStar.CodeGen.Machine.X64.Sub (compileSub)
 import Language.NStar.CodeGen.Machine.X64.Xor (compileXor)
 import Language.NStar.Syntax.Core hiding (Instruction (..), Label)
 import Language.NStar.Typechecker.Core
@@ -73,6 +74,7 @@ compileInstrInterX64 (CMVZ a b c r) = compileCmvz (unLoc a) (unLoc b) (unLoc c) 
 compileInstrInterX64 (ADD a b r) = compileAdd (unLoc a) (unLoc b) (unLoc r)
 compileInstrInterX64 (SHIFTL x n r) = compileShiftl (unLoc x) (unLoc n) (unLoc r)
 compileInstrInterX64 (SHIFTR x n r) = compileShiftr (unLoc x) (unLoc n) (unLoc r)
+compileInstrInterX64 (SUB a b r) = compileSub (unLoc a) (unLoc b) (unLoc r)
 compileInstrInterX64 i = internalError $ "not yet supported: compileInterInstrX64 " <> show i
 
 ---------------------------------------------------------------------------------------------------------------------
