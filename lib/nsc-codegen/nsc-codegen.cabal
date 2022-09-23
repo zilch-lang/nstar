@@ -34,6 +34,8 @@ library
       Language.NStar.CodeGen.Machine.X64.Or
       Language.NStar.CodeGen.Machine.X64.Salloc
       Language.NStar.CodeGen.Machine.X64.Sfree
+      Language.NStar.CodeGen.Machine.X64.Shiftl
+      Language.NStar.CodeGen.Machine.X64.Shiftr
       Language.NStar.CodeGen.Machine.X64.Sld
       Language.NStar.CodeGen.Machine.X64.Sref
       Language.NStar.CodeGen.Machine.X64.Sst

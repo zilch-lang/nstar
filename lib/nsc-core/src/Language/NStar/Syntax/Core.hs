@@ -304,6 +304,24 @@ data Instruction where
     -- | The destination register.
     Located Register ->
     Instruction
+  -- | Performs a logical left shift on the first parameters and store the result in the third.
+  SHIFTL ::
+    -- | The first operand
+    Located Expr ->
+    -- | The second operand
+    Located Integer ->
+    -- | The destination of the computation.
+    Located Register ->
+    Instruction
+  -- | Performs a logical right shift on the first parameters and store the result in the third.
+  SHIFTR ::
+    -- | The first operand
+    Located Expr ->
+    -- | The second operand
+    Located Integer ->
+    -- | The destination of the computation.
+    Located Register ->
+    Instruction
 
 -- TODO: add more instructions
 
@@ -433,6 +451,10 @@ data Token where
   Cmvnz :: Token
   -- | The @add@ instruction
   Add :: Token
+  -- | The @shiftl@ instruction
+  Shiftl :: Token
+  -- | The @shiftr@ instruction
+  Shiftr :: Token
   -- TODO: add more instructions
   -- Symbols
 

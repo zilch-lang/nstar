@@ -60,3 +60,5 @@ instance Pretty TypedInstruction where
   pretty (XOR x y r) = "xor" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
   pretty (CMVZ a b c r) = "cmvz" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty r
   pretty (ADD a b r) = "add" <+> pretty a <> comma <+> pretty b <> comma <+> pretty r
+  pretty (SHIFTL x y r) = "shiftl" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
+  pretty (SHIFTR x y r) = "shiftr" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r

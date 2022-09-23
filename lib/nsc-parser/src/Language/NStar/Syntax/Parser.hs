@@ -221,7 +221,9 @@ parseInstruction = do
             parseNot,
             parseCmvz,
             parseCmvnz,
-            parseAdd
+            parseAdd,
+            parseShiftl,
+            parseShiftr
           ]
       )
 
@@ -527,5 +529,23 @@ parseAdd =
     lexeme (parseSymbol Add)
       *> ( ADD <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
+             <*> (lexeme (parseSymbol Comma) *> parseRegister)
+         )
+
+parseShiftl :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseShiftl =
+  located $
+    lexeme (parseSymbol Shiftl)
+      *> ( SHIFTL <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> parseInteger)
+             <*> (lexeme (parseSymbol Comma) *> parseRegister)
+         )
+
+parseShiftr :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseShiftr =
+  located $
+    lexeme (parseSymbol Shiftr)
+      *> ( SHIFTR <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> parseInteger)
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )

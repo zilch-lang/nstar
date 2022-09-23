@@ -8,6 +8,8 @@ main: forall (s: Ts, e: Tc).{| forall().{ %r0: s64 | s -> e }::s -> 0 }
     ; not 0x34, %r0
     ; not %r1, %r0 
     ; not %r1, %r1
+    ; shiftl %r1, 2, %r1 
+    ; shiftl 3000, 4, %r1
     ; sld 0, %r5
     ; sfree
     ; ret

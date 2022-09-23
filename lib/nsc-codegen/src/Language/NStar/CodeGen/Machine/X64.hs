@@ -29,6 +29,8 @@ import Language.NStar.CodeGen.Machine.X64.Not (compileNot)
 import Language.NStar.CodeGen.Machine.X64.Or (compileOr)
 import Language.NStar.CodeGen.Machine.X64.Salloc (compileSalloc)
 import Language.NStar.CodeGen.Machine.X64.Sfree (compileSfree)
+import Language.NStar.CodeGen.Machine.X64.Shiftl (compileShiftl)
+import Language.NStar.CodeGen.Machine.X64.Shiftr (compileShiftr)
 import Language.NStar.CodeGen.Machine.X64.Sld (compileSld)
 import Language.NStar.CodeGen.Machine.X64.Sref (compileSref)
 import Language.NStar.CodeGen.Machine.X64.Sst (compileSst)
@@ -69,6 +71,8 @@ compileInstrInterX64 (XOR x y r) = compileXor (unLoc x) (unLoc y) (unLoc r)
 compileInstrInterX64 (NOT e r) = compileNot (unLoc e) (unLoc r)
 compileInstrInterX64 (CMVZ a b c r) = compileCmvz (unLoc a) (unLoc b) (unLoc c) (unLoc r)
 compileInstrInterX64 (ADD a b r) = compileAdd (unLoc a) (unLoc b) (unLoc r)
+compileInstrInterX64 (SHIFTL x n r) = compileShiftl (unLoc x) (unLoc n) (unLoc r)
+compileInstrInterX64 (SHIFTR x n r) = compileShiftr (unLoc x) (unLoc n) (unLoc r)
 compileInstrInterX64 i = internalError $ "not yet supported: compileInterInstrX64 " <> show i
 
 ---------------------------------------------------------------------------------------------------------------------

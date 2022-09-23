@@ -202,5 +202,23 @@ data TypedInstruction where
     -- | > r
     Located Register ->
     TypedInstruction
+  -- | Performs logical left shift on @x@ and @y@ and store result in register @s@.
+  SHIFTL ::
+    -- | > x
+    Located Expr ->
+    -- | > y
+    Located Integer ->
+    -- | > s
+    Located Register ->
+    TypedInstruction
+  -- | Performs logical right shift on @x@ and @y@ and store result in register @s@.
+  SHIFTR ::
+    -- | > x
+    Located Expr ->
+    -- | > y
+    Located Integer ->
+    -- | > s
+    Located Register ->
+    TypedInstruction
 
 deriving instance Show TypedInstruction
