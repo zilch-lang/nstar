@@ -63,3 +63,5 @@ instance Pretty TypedInstruction where
   pretty (SHIFTL x y r) = "shiftl" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
   pretty (SHIFTR x y r) = "shiftr" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
   pretty (SUB inc dst r) = "sub" <+> pretty inc <> comma <+> pretty dst <> comma <+> pretty r
+  pretty (SMUL a b r) = "smul" <+> pretty a <> comma <+> pretty b <> comma <+> pretty r
+  pretty (UMUL a b r) = "umul" <+> pretty a <> comma <+> pretty b <> comma <+> pretty r

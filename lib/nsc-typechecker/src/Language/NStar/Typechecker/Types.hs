@@ -18,6 +18,7 @@ import Control.Monad.Writer
 import Data.Bifunctor (bimap, first, second)
 import Data.Foldable (foldl')
 import Data.Located
+import qualified Data.Map as Map
 import Error.Diagnose (Diagnostic, addReport, def)
 import Language.NStar.Syntax.Core hiding (Instruction (..), Token (..))
 import qualified Language.NStar.Syntax.Core as SC (Instruction (..))
@@ -132,6 +133,9 @@ typecheckStatement (Label name ty is :@ p) = do
 typecheckInstruction :: (?tcFlags :: TypecheckerFlags) => SC.Instruction -> Position -> Bool -> Typechecker TypedStatement
 typecheckInstruction i p unsafe = do
   Ctx _ _ _ chi sigma epsilon <- gets snd
+  let chi' = flip Map.filter chi \case
+        BangT :@ _ -> False
+        _ -> True
 
   ti <- case i of
     SC.NOP -> tc_nop p
@@ -156,6 +160,7 @@ typecheckInstruction i p unsafe = do
     SC.SHIFTL a b r -> tc_shiftl a b r p
     SC.SHIFTR a b r -> tc_shiftr a b r p
     SC.SUB a b r -> tc_sub a b r p
+    SC.MUL a b r -> tc_mul a b r p
     _ -> error $ "Unrecognized instruction '" <> show i <> "'."
 
-  pure (TInstr (ti :@ p) chi sigma epsilon)
+  pure (TInstr (ti :@ p) chi' sigma epsilon)

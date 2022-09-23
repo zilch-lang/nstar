@@ -229,5 +229,23 @@ data TypedInstruction where
     -- | > s
     Located Register ->
     TypedInstruction
+  -- | Stores the result of unsigned @a × b@ in @r@.
+  UMUL ::
+    -- | > a
+    Located Expr ->
+    -- | > b
+    Located Expr ->
+    -- | > r
+    Located Register ->
+    TypedInstruction
+  -- | Stores the result of signed @a × b@ in @r@.
+  SMUL ::
+    -- | > a
+    Located Expr ->
+    -- | > b
+    Located Expr ->
+    -- | > r
+    Located Register ->
+    TypedInstruction
 
 deriving instance Show TypedInstruction

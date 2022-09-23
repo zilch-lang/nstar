@@ -224,7 +224,8 @@ parseInstruction = MP.label "an instruction" do
             parseAdd,
             parseShiftl,
             parseShiftr,
-            parseSub
+            parseSub,
+            parseMul
           ]
       )
 
@@ -557,5 +558,14 @@ parseShiftr =
     lexeme (parseSymbol Shiftr)
       *> ( SHIFTR <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
              <*> (lexeme (parseSymbol Comma) *> parseInteger)
+             <*> (lexeme (parseSymbol Comma) *> parseRegister)
+         )
+
+parseMul :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseMul =
+  located $
+    lexeme (parseSymbol Mul)
+      *> ( MUL <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )

@@ -326,6 +326,15 @@ data Instruction where
     -- | The destination of the computation.
     Located Register ->
     Instruction
+  -- | Performs multiplication on the first two parameters and store the result in the third.
+  MUL ::
+    -- | The source operand
+    Located Expr ->
+    -- | The increment value
+    Located Expr ->
+    -- | The destination operand
+    Located Register ->
+    Instruction
 
 -- TODO: add more instructions
 
@@ -461,6 +470,8 @@ data Token where
   Shiftr :: Token
   -- | The @sub@ instruction
   Sub :: Token
+  -- | The @mul@ instruction
+  Mul :: Token
   -- TODO: add more instructions
   -- Symbols
 
