@@ -690,6 +690,42 @@ tc_cmvz (a :@ p1) (b :@ p2) (c :@ p3) (r :@ p4) p5 = do
 
   pure (TC.CMVZ a b c (r :@ p4))
 
+tc_add :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Located Register -> Position -> Typechecker TC.TypedInstruction
+tc_add (x :@ p1) (y :@ p2) (r :@ p3) p4 = do
+  {-
+     Ξ; Γ; χ; σ; ε ⊢ᵀ x : uN                Ξ; Γ; χ; σ; ε ⊢ᵀ y : uN
+               r is a register              r ≠ ε
+  ──────────────────────────────────────────────────────────────────────
+           Ξ; Γ; χ; σ; ε ⊢ᴵ add x, y, r ⊣ χ, r : uN; σ; ε
+
+     Ξ; Γ; χ; σ; ε ⊢ᵀ x : sN                Ξ; Γ; χ; σ; ε ⊢ᵀ y : sN
+               r is a register              r ≠ ε
+  ──────────────────────────────────────────────────────────────────────
+           Ξ; Γ; χ; σ; ε ⊢ᴵ add x, y, r ⊣ χ, r : sN; σ; ε
+  -}
+
+  g <- gets (gamma . snd)
+  e :@ p4 <- gets (epsilon . snd)
+
+  case e of
+    -- r ≠ ε
+    RegisterContT r2 | r == r2 -> throwError (TryingToOverwriteRegisterContinuation (r :@ p3) p3)
+    _ -> pure ()
+
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ x : uN or Ξ; Γ; χ; σ; ε ⊢ᵀ x : sN
+  (τx, x) <- typecheckExpr x p1 False
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ y : uN or Ξ; Γ; χ; σ; ε ⊢ᵀ y : sN
+  (τy, y) <- typecheckExpr y p2 False
+
+  case τx of
+    UnsignedT _ :@ _ -> unify τx τy
+    SignedT _ :@ _ -> unify τx τy
+    t :@ p5 -> throwError (ExpectedIntegralType t p5)
+
+  extendChi (r :@ p3) τx
+
+  pure (TC.ADD x y (r :@ p3))
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

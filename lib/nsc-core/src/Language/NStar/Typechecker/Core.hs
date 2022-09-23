@@ -193,5 +193,14 @@ data TypedInstruction where
     -- | > r
     Located Register ->
     TypedInstruction
+  -- | Stores the result of @a + b@ in @r@.
+  ADD ::
+    -- | > a
+    Located Expr ->
+    -- | > b
+    Located Expr ->
+    -- | > r
+    Located Register ->
+    TypedInstruction
 
 deriving instance Show TypedInstruction

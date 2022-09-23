@@ -59,3 +59,4 @@ instance Pretty TypedInstruction where
   pretty (NOT x r) = "not" <+> pretty x <> comma <+> pretty r
   pretty (XOR x y r) = "xor" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
   pretty (CMVZ a b c r) = "cmvz" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty r
+  pretty (ADD a b r) = "add" <+> pretty a <> comma <+> pretty b <> comma <+> pretty r

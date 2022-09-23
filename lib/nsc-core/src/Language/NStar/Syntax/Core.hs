@@ -196,12 +196,14 @@ data Instruction where
   CALL ::
     Located Expr ->
     Instruction
+  -- | Performs addition on the first two parameters and store the result in the third.
   ADD ::
     -- | The source operand
     Located Expr ->
     -- | The increment value
-    -- -> Located Register -- ^ The destination register
     Located Expr ->
+    -- | The destination operand
+    Located Register ->
     Instruction
   SUB ::
     Located Expr ->
@@ -429,6 +431,8 @@ data Token where
   Cmvz :: Token
   -- | The @cmovnz@ instruction
   Cmvnz :: Token
+  -- | The @add@ instruction
+  Add :: Token
   -- TODO: add more instructions
   -- Symbols
 

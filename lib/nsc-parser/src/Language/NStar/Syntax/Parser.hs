@@ -220,7 +220,8 @@ parseInstruction = do
             parseXor,
             parseNot,
             parseCmvz,
-            parseCmvnz
+            parseCmvnz,
+            parseAdd
           ]
       )
 
@@ -517,5 +518,14 @@ parseCmvnz =
       *> ( CMVNZ <$> MP.choice [located (RegE <$> parseRegister)]
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
+             <*> (lexeme (parseSymbol Comma) *> parseRegister)
+         )
+
+parseAdd :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseAdd =
+  located $
+    lexeme (parseSymbol Add)
+      *> ( ADD <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )

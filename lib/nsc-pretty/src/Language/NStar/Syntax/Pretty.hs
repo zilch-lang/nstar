@@ -80,7 +80,7 @@ instance Pretty Instruction where
   pretty (RET) = "ret"
   pretty (JMP lbl) = "jmp" <+> pretty lbl
   pretty (CALL lbl) = "call" <+> pretty lbl
-  pretty (ADD inc dst) = "add" <+> pretty inc <> comma <+> pretty dst
+  pretty (ADD inc dst r) = "add" <+> pretty inc <> comma <+> pretty dst <> comma <+> pretty r
   pretty (SUB inc dst) = "sub" <+> pretty inc <> comma <+> pretty dst
   pretty (NOP) = "nop"
   pretty (SALLOC t) = "salloc" <+> pretty t

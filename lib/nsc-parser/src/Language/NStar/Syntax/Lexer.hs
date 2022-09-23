@@ -154,6 +154,7 @@ identifierOrKeyword = located do
       "not" -> Not
       "cmvz" -> Cmvz
       "cmvnz" -> Cmvnz
+      "add" -> Add
       -- Registers
       "r0" -> R0'
       "r1" -> R1'
