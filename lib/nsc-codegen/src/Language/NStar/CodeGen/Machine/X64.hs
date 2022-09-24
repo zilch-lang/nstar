@@ -20,6 +20,7 @@ import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode (..))
 import Language.NStar.CodeGen.Machine.X64.Add (compileAdd)
 import Language.NStar.CodeGen.Machine.X64.And (compileAnd)
 import Language.NStar.CodeGen.Machine.X64.Cjl (compileCjl)
+import Language.NStar.CodeGen.Machine.X64.Cjle (compileCjle)
 import Language.NStar.CodeGen.Machine.X64.Cjz (compileCjz)
 import Language.NStar.CodeGen.Machine.X64.Cmve (compileCmve)
 import Language.NStar.CodeGen.Machine.X64.Cmvl (compileCmvl)
@@ -89,6 +90,7 @@ compileInstrInterX64 _ (CMVLE a b c d r) = compileCmvle (unLoc a) (unLoc b) (unL
 compileInstrInterX64 _ (CMVE a b c d r) = compileCmve (unLoc a) (unLoc b) (unLoc c) (unLoc d) (unLoc r)
 compileInstrInterX64 _ (CJZ a l1 l2) = compileCjz (unLoc a) (unLoc l1) (unLoc l2)
 compileInstrInterX64 _ (CJL a b l1 l2) = compileCjl (unLoc a) (unLoc b) (unLoc l1) (unLoc l2)
+compileInstrInterX64 _ (CJLE a b l1 l2) = compileCjle (unLoc a) (unLoc b) (unLoc l1) (unLoc l2)
 compileInstrInterX64 _ i = internalError $ "not yet supported: compileInterInstrX64 " <> show i
 
 ---------------------------------------------------------------------------------------------------------------------

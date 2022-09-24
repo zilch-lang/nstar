@@ -70,3 +70,4 @@ instance Pretty TypedInstruction where
   pretty (CMVE a b c d r) = "cmve" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty d <> comma <+> pretty r
   pretty (CJZ a l1 l2) = "cjz" <+> pretty a <> comma <+> pretty l1 <> comma <+> pretty l2
   pretty (CJL a b l1 l2) = "cjl" <+> pretty a <> comma <+> pretty b <> comma <+> pretty l1 <> comma <+> pretty l2
+  pretty (CJLE a b l1 l2) = "cjle" <+> pretty a <> comma <+> pretty b <> comma <+> pretty l1 <> comma <+> pretty l2

@@ -171,6 +171,8 @@ identifierOrKeyword = located do
       "cjnz" -> Cjnz
       "cjl" -> Cjl
       "cjge" -> Cjge
+      "cjle" -> Cjle
+      "cjg" -> Cjg
       -- Registers
       "r0" -> R0'
       "r1" -> R1'
