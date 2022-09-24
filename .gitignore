@@ -5,3 +5,5 @@
 
 # NSC dump directory
 .nsc
+
+.ccls-cache/

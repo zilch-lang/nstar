@@ -7,7 +7,11 @@
 #include "section_header.h"
 #include "symbol.h"
 
-#include <elf.h>
+#ifndef _WIN32
+#  include <elf.h>
+#else 
+#  include "elf.h"
+#endif 
 
 /**
  * @brief Compiles an abstract ELF file.

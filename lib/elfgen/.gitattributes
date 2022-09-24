@@ -1,1 +1,2 @@
 Doxyfile linguist-generated=true
+include/elf.h linguist-vendored=true linguist-detectable=false

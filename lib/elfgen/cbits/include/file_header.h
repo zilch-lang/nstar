@@ -2,7 +2,11 @@
 #define ELFGEN_FILE_HEADER_H
 
 #include <stdint.h>
-#include <elf.h>
+#ifndef _WIN32
+#  include <elf.h>
+#else 
+#  include "elf.h"
+#endif 
 
 /**
  * @brief An abstract ELF file header.

@@ -7,7 +7,11 @@
 #include "elf64/fix.h"
 #include "elf64/internal_fix.h"
 
-#include <elf.h>
+#ifndef _WIN32
+#  include <elf.h>
+#else 
+#  include "elf.h"
+#endif 
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>

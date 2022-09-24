@@ -2,7 +2,11 @@
 #define ELFGEN_SECTION_HEADER_H
 
 #include <stdint.h>
-#include <elf.h>
+#ifndef _WIN32
+#  include <elf.h>
+#else 
+#  include "elf.h"
+#endif 
 
 #include "symbol.h"
 
