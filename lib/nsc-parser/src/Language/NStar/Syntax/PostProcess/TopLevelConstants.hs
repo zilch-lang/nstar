@@ -14,3 +14,4 @@ desugarTopLevelConstants (Program [DataS dat :@ p, rodat, udat, code, ext]) = Pr
         transformConstantIfNeeded c@(IntegerC _ :@ p) = ArrayC [c] :@ p
         transformConstantIfNeeded c@(CharacterC _ :@ p) = ArrayC [c] :@ p
         transformConstantIfNeeded c = c
+desugarTopLevelConstants _ = undefined

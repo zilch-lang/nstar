@@ -55,7 +55,7 @@ lexeme = MPL.lexeme (MPL.space whiteSpace inlineComment multilineComment)
 
 -- | Turns a list of tokens into an AST, as long as tokens are well ordered. Else, it throws an error.
 parseFile :: (?parserFlags :: ParserFlags) => FilePath -> [LToken] -> Either (Diagnostic String) (Program, Diagnostic String)
-parseFile file tokens = bimap (errorDiagnosticFromBundle "Parse error on input" Nothing) (second toDiagnostic) $ MP.runParser (runWriterT parseProgram) file tokens
+parseFile file tokens = bimap (errorDiagnosticFromBundle Nothing "Parse error on input" Nothing) (second toDiagnostic) $ MP.runParser (runWriterT parseProgram) file tokens
   where
     toDiagnostic = foldl' addReport def . fmap fromParseWarning
 

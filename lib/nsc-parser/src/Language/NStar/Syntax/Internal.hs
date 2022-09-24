@@ -17,11 +17,9 @@ module Language.NStar.Syntax.Internal
   )
 where
 
-import Data.Bifunctor (second)
 import Data.List (intercalate)
 import qualified Data.List.NonEmpty as NonEmpty (toList)
 import Data.Located
-import qualified Data.Set as Set (toList)
 import qualified Data.Text as Text (unpack)
 import Language.NStar.Syntax.Core as Core (LToken, Token (..))
 import qualified Text.Megaparsec as MP

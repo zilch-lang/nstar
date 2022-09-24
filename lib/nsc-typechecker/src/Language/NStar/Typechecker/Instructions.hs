@@ -22,7 +22,6 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Debug.Trace (traceShow)
 import Error.Diagnose
 import Internal.Error (internalError)
 import Language.NStar.Syntax.Core (Constant (..), Immediate (..))

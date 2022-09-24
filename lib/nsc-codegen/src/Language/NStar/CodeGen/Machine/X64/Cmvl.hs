@@ -8,13 +8,13 @@ module Language.NStar.CodeGen.Machine.X64.Cmvl
 where
 
 import Data.Functor ((<&>))
-import Data.Located (Located ((:@)), unLoc)
+import Data.Located (unLoc)
 import Language.NStar.CodeGen.Compiler (Compiler)
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode (Byte))
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
 import Language.NStar.CodeGen.Machine.Internal.X64.REX (rexW)
 import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
-import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64, int8)
+import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64)
 import Language.NStar.CodeGen.Machine.X64.Mv (compileMv)
 import Language.NStar.Syntax.Core (Immediate (I))
 import Language.NStar.Typechecker.Core (Expr (..), Register)

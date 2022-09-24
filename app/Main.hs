@@ -16,7 +16,7 @@ import Language.NStar.CodeGen (SupportedArch(..), compileToElf)
 -- ! Experimental; remove once tested
 import Data.Elf as Elf (compile, Size(..), Endianness(..), writeFile)
 -- ! end
-import Error.Diagnose (printDiagnostic, addFile)
+import Error.Diagnose (printDiagnostic, addFile, defaultStyle)
 import System.IO (stderr)
 import Console.NStar.Flags
 import Control.Monad (when)
@@ -67,7 +67,7 @@ tryCompile flags files = do
           liftIO $ Prelude.writeFile (joinPath [".nsc", "dump", "ast.debug"]) (show $ pretty ast)
 
         (tast, tcWarnings)    <- liftEither $ typecheck ast
-        liftIO (printDiagnostic stderr True withColor (foldl (uncurry . addFile) tcWarnings files))
+        liftIO (printDiagnostic stderr True withColor 4 defaultStyle (foldl (uncurry . addFile) tcWarnings files))
 
         when dumpTypedAST do
           liftIO $ createDirectoryIfMissing True (joinPath [".nsc", "dump"])
@@ -78,7 +78,7 @@ tryCompile flags files = do
     Left diag    -> do
       files <- readIORef allFiles
 
-      printDiagnostic stderr True withColor (foldl (uncurry . addFile) diag files)
+      printDiagnostic stderr True withColor 4 defaultStyle (foldl (uncurry . addFile) diag files)
       exitFailure
     Right p     -> do
       -- ! Experimental codegen

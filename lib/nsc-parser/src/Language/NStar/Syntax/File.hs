@@ -1,35 +1,37 @@
-{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ViewPatterns #-}
 
 module Language.NStar.Syntax.File (parseFile, parseAST) where
 
-import Language.NStar.Syntax.Lexer
-import qualified Language.NStar.Syntax.Parser as P
-import Language.NStar.Syntax.PostProcessor
+import qualified Algebra.Graph.AdjacencyMap as G
+import Console.NStar.Flags (LexerFlags, ParserFlags)
+import Control.Monad (forM, forM_, when)
+import Control.Monad.Except (ExceptT, liftEither, runExceptT, throwError)
+import Control.Monad.IO.Class (liftIO)
+import Data.Bifunctor (second)
+import Data.ByteString (readFile)
+import Data.IORef
+import Data.List (groupBy, intercalate)
+import Data.Located (Located ((:@)), Position (..), unLoc)
 import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Text.Encoding (decodeUtf8)
-import Error.Diagnose (Diagnostic, def, addReport, printDiagnostic, addFile, err, Marker(This))
-import Language.NStar.Syntax.Core (Program(..), Section(..))
-import qualified Algebra.Graph.AdjacencyMap as G
-import Control.Monad.Except (ExceptT, runExceptT, throwError, liftEither)
-import Control.Monad (when, forM, forM_)
-import Console.NStar.Flags (ParserFlags, LexerFlags)
-import System.Directory (canonicalizePath, makeRelativeToCurrentDirectory, doesFileExist)
-import Control.Monad.IO.Class (liftIO)
-import Data.ByteString (readFile)
-import Data.Bifunctor (second)
-import Data.Located (unLoc, Located((:@)), Position(..))
-import System.IO (stderr)
-import Data.IORef
-import System.FilePath.Posix (equalFilePath, normalise, (</>), isValid, takeFileName)
-import Data.List (intercalate, groupBy)
+import Error.Diagnose (Diagnostic, Marker (This), addFile, addReport, def, defaultStyle, Report (Err), printDiagnostic)
 import Internal.Error (internalError)
+import Language.NStar.Syntax.Core (Program (..), Section (..))
+import Language.NStar.Syntax.Lexer
+import qualified Language.NStar.Syntax.Parser as P
+import Language.NStar.Syntax.PostProcessor
+import System.Directory (canonicalizePath, doesFileExist, makeRelativeToCurrentDirectory)
+import System.FilePath.Posix (equalFilePath, isValid, normalise, takeFileName, (</>))
+import System.IO (stderr)
 
 type CompUnit = ExceptT (Diagnostic String) IO
 
-parseFile :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
-          => FilePath -> IO ([(FilePath, String)], Either (Diagnostic String) Program)
+parseFile ::
+  (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath]) =>
+  FilePath ->
+  IO ([(FilePath, String)], Either (Diagnostic String) Program)
 parseFile file = do
   let f = file :@ Position (0, 0) (0, 0) "command-line"
 
@@ -44,8 +46,11 @@ parseFile file = do
   files <- readIORef files
   pure (files, res)
 
-parseAST :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
-         => Located FilePath -> Program -> IO ([(FilePath, String)], Either (Diagnostic String) Program)
+parseAST ::
+  (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath]) =>
+  Located FilePath ->
+  Program ->
+  IO ([(FilePath, String)], Either (Diagnostic String) Program)
 parseAST f prog = do
   files <- newIORef []
 
@@ -58,12 +63,12 @@ parseAST f prog = do
   files <- readIORef files
   pure (files, res)
 
-
-parseUnit :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
-          => G.AdjacencyMap (Located FilePath)
-          -> IORef [(FilePath, String)]
-          -> Located FilePath
-          -> CompUnit Program
+parseUnit ::
+  (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath]) =>
+  G.AdjacencyMap (Located FilePath) ->
+  IORef [(FilePath, String)] ->
+  Located FilePath ->
+  CompUnit Program
 parseUnit includeGraph includeFiles path@(filePath :@ p) = do
   when (not $ isValid filePath) do
     throwError (invalidFilePath path)
@@ -71,9 +76,9 @@ parseUnit includeGraph includeFiles path@(filePath :@ p) = do
   filesFound <- liftIO $ queryIncludePath ?includePath filePath
 
   filePath <- case filesFound of
-    []  -> throwError (unknownFile ?includePath path)
+    [] -> throwError (unknownFile ?includePath path)
     [f] -> pure f
-    fs  -> throwError (multipleFilesFound fs)
+    fs -> throwError (multipleFilesFound fs)
 
   fileContent <- liftIO $ readFileUtf8 filePath
   let content = (filePath, Text.unpack fileContent)
@@ -81,49 +86,53 @@ parseUnit includeGraph includeFiles path@(filePath :@ p) = do
   liftIO $ modifyIORef' includeFiles (content :)
 
   (tokens, warns) <- liftEither $ lexFile filePath fileContent
-  liftIO $ printDiagnostic stderr True True (uncurry (addFile warns) content)
+  liftIO $ printDiagnostic stderr True True 4 defaultStyle (uncurry (addFile warns) content)
   (ast, warns) <- liftEither $ P.parseFile filePath tokens
-  liftIO $ printDiagnostic stderr True True  (uncurry (addFile warns) content)
+  liftIO $ printDiagnostic stderr True True 4 defaultStyle (uncurry (addFile warns) content)
 
   processUnitAST includeGraph includeFiles path ast
 
-processUnitAST :: (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath])
-               => G.AdjacencyMap (Located FilePath)
-               -> IORef [(FilePath, String)]
-               -> Located FilePath
-               -> Program
-               -> CompUnit Program
+processUnitAST ::
+  (?lexerFlags :: LexerFlags, ?parserFlags :: ParserFlags, ?includePath :: [FilePath]) =>
+  G.AdjacencyMap (Located FilePath) ->
+  IORef [(FilePath, String)] ->
+  Located FilePath ->
+  Program ->
+  CompUnit Program
 processUnitAST includeGraph includeFiles path ast = do
   let Program sections = ast
-  newSections <- mconcat <$> forM sections \ case
-    IncludeS files :@ _ -> do
-      (includedFiles, includeGraph) <- second G.overlays . unzip <$> forM files \ newFile -> do
-        let f = Text.unpack <$> newFile
-        pure (f, includeGraph `G.overlay` G.edge path f)
+  newSections <-
+    mconcat <$> forM sections \case
+      IncludeS files :@ _ -> do
+        (includedFiles, includeGraph) <-
+          second G.overlays . unzip <$> forM files \newFile -> do
+            let f = Text.unpack <$> newFile
+            pure (f, includeGraph `G.overlay` G.edge path f)
 
-      checkCycles (includeGraph, path)
+        checkCycles (includeGraph, path)
 
-      mconcat . fmap toSections <$> forM includedFiles \ f -> do
-        alreadyIncluded <- fmap fst <$> liftIO (readIORef includeFiles)
-        if unLoc f `elem` alreadyIncluded
-        then pure (Program [])
-        else parseUnit includeGraph includeFiles f
-    s                   -> pure [s]
+        mconcat . fmap toSections <$> forM includedFiles \f -> do
+          alreadyIncluded <- fmap fst <$> liftIO (readIORef includeFiles)
+          if unLoc f `elem` alreadyIncluded
+            then pure (Program [])
+            else parseUnit includeGraph includeFiles f
+      s -> pure [s]
 
   pure (postProcessAST $ Program newSections)
-  where toSections (Program ss) = ss
+  where
+    toSections (Program ss) = ss
 
 ------------------------------------------------------------------------------------------------------------------------------
 
 queryIncludePath :: [FilePath] -> FilePath -> IO [FilePath]
-queryIncludePath [] _     = pure []
-queryIncludePath (p:ps) f = do
+queryIncludePath [] _ = pure []
+queryIncludePath (p : ps) f = do
   let path = p </> f
 
   exists <- doesFileExist path
   if exists
-  then (path :) <$> queryIncludePath ps f
-  else queryIncludePath ps f
+    then (path :) <$> queryIncludePath ps f
+    else queryIncludePath ps f
 
 -- | Strictly read a file into a 'Text' using a UTF-8 character
 -- encoding. In the event of a character encoding error, a Unicode
@@ -135,30 +144,30 @@ unknownFile :: [FilePath] -> Located FilePath -> Diagnostic String
 unknownFile ip (f :@ p) =
   let includePath =
         if null ip
-        then ""
-        else "\nCurrent include path:\n- " <> intercalate "\n- " (normalise <$> ip)
-  in addReport def $ err ("File '" <> f <> "' not found" <> includePath) [ (p, This "") ] []
+          then ""
+          else "\nCurrent include path:\n- " <> intercalate "\n- " (normalise <$> ip)
+   in addReport def $ Err Nothing ("File '" <> f <> "' not found" <> includePath) [(p, This "")] []
 
 invalidFilePath :: Located FilePath -> Diagnostic String
-invalidFilePath (f :@ p) = addReport def $ err ("Invalid file path '" <> f <> "'") [ (p, This "") ] []
+invalidFilePath (f :@ p) = addReport def $ Err Nothing ("Invalid file path '" <> f <> "'") [(p, This "")] []
 
 multipleFilesFound :: [FilePath] -> Diagnostic String
 multipleFilesFound [] = internalError "Unreachable case 'multipleFilesFound []'"
-multipleFilesFound fs@(f:_) =
+multipleFilesFound fs@(f : _) =
   let paths = mappend "- " <$> fs
-  in addReport def $ err ("Cannot include file '" <> takeFileName f <> "' because more than one has been found in the include path:\n" <> intercalate "\n" paths) [] []
+   in addReport def $ Err Nothing ("Cannot include file '" <> takeFileName f <> "' because more than one has been found in the include path:\n" <> intercalate "\n" paths) [] []
 
 checkCycles :: (G.AdjacencyMap (Located FilePath), Located FilePath) -> CompUnit ()
 checkCycles (g, root) = dfs [root] g root
 
 dfs :: [Located FilePath] -> G.AdjacencyMap (Located FilePath) -> Located FilePath -> CompUnit ()
 dfs stack g root =
-  forM_ (G.postSet root g) \ p -> do
+  forM_ (G.postSet root g) \p -> do
     when (p `elem` stack) do
-      throwError (cyclicInclude $ dropWhile (/= p) $ reverse $ p:stack)
-    dfs (p:stack) g p
+      throwError (cyclicInclude $ dropWhile (/= p) $ reverse $ p : stack)
+    dfs (p : stack) g p
 
 cyclicInclude :: [Located FilePath] -> Diagnostic String
 cyclicInclude cycle =
-  let positions = flip map cycle \ (f :@ p) -> ("- '" <> f <> "' is included by '" <> file p <> "'")
-  in addReport def $ err ("Cyclic includes detected:\n" <> intercalate "\n" positions) [] []
+  let positions = flip map cycle \(f :@ p) -> ("- '" <> f <> "' is included by '" <> file p <> "'")
+   in addReport def $ Err Nothing ("Cyclic includes detected:\n" <> intercalate "\n" positions) [] []

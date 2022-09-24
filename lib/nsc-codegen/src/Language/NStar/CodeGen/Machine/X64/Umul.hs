@@ -8,7 +8,6 @@ module Language.NStar.CodeGen.Machine.X64.Umul
 where
 
 import Control.Monad (when)
-import Data.Functor ((<&>))
 import Data.Located (Located ((:@)), Position, unLoc)
 import Data.Map (Map)
 import qualified Data.Map as Map
@@ -18,9 +17,7 @@ import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode (Byte))
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
 import Language.NStar.CodeGen.Machine.Internal.X64.REX (rexW)
 import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
-import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64)
 import Language.NStar.CodeGen.Machine.X64.Mv (compileMv)
-import Language.NStar.Syntax.Core (Immediate (..))
 import Language.NStar.Typechecker.Core (Expr (..), Register (..), Type)
 
 -- $encoding

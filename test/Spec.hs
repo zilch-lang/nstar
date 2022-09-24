@@ -5,6 +5,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# OPTIONS -Wno-orphans #-}
 
 module Main (main) where
 
@@ -18,7 +19,7 @@ import Language.NStar.Syntax.PostProcessor (postProcessAST)
 import Language.NStar.Typechecker (typecheck)
 import Language.NStar.CodeGen
 import Data.List (isInfixOf)
-import Text.Diagnose ((<~<), prettyText, Diagnostic, reportError, Marker(..), diagnostic, (<++>))
+import Error.Diagnose (addFile, Diagnostic, Report (Err), def, addReport, prettyDiagnostic, defaultStyle)
 import Data.Bifunctor (first)
 import Console.NStar.Flags (LexerFlags(..), ParserFlags(..), TypecheckerFlags(..))
 import Control.DeepSeq (deepseq, NFData)
@@ -82,7 +83,7 @@ check file = do
         (ast, _) <- first (, Ps) $! parseFile file tokens
         ast <- pure $! postProcessAST ast
         (ast, _) <- first (, Tc) $! typecheck ast
-        _ <- maybeToEither errorCallCodeGen $ teaspoon (compileToElf @S64 X64 ast `deepseq` ())
+        _ <- maybeToEither errorCallCodeGen $ teaspoon (compileToElf @'S64 X64 ast `deepseq` ())
         pure ast
 
   specify file $
@@ -92,17 +93,18 @@ check file = do
       Left (_, Any)                    -> pure () -- test fails as expected
       Left (d, e) | expectedError == e -> pure ()
                   | otherwise          ->
-                      expectationFailure ("Expected to fail in " <> show expectedError <>
+                      let d' = addFile d file (Text.unpack content)
+                       in expectationFailure ("Expected to fail in " <> show expectedError <>
                                                " phase but failed in " <> show e <> " phase with error:\n" <>
-                                               show (prettyText (d <~< (file, lines $ Text.unpack content))))
+                                               show (defaultStyle $ prettyDiagnostic True 4 d'))
       Right _ | expectedError /= No    -> expectationFailure ("Test should have failed in " <> show expectedError <> " phase, but passed all phases!")
               | otherwise              -> pure () -- test passes as expected
 
 maybeToEither :: e -> Maybe a -> Either e a
 maybeToEither e = maybe (Left e) Right
 
-errorCallCodeGen :: (Diagnostic [] String Char, Error)
-errorCallCodeGen = (diagnostic <++> reportError "Error call during code generation" [] [], Cg)
+errorCallCodeGen :: (Diagnostic String, Error)
+errorCallCodeGen = (def `addReport` Err Nothing "Error call during code generation" [] [], Cg)
 
 -- Orphan instances for 'deepseq'
 

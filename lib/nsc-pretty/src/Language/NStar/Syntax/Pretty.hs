@@ -7,7 +7,6 @@ module Language.NStar.Syntax.Pretty where
 
 import Data.Located (Located ((:@)), unLoc)
 import qualified Data.Map as Map
-import qualified Data.Text as Text
 import Language.NStar.Syntax.Core
 import Prettyprinter
 import Prelude hiding ((<$>))

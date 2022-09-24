@@ -14,7 +14,7 @@ import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode (..))
 import Language.NStar.CodeGen.Machine.Internal.X64.ModRM (modRM)
 import Language.NStar.CodeGen.Machine.Internal.X64.REX (rexW)
 import Language.NStar.CodeGen.Machine.Internal.X64.RegisterEncoding (registerNumber)
-import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64, int8)
+import Language.NStar.CodeGen.Machine.X64.Expression (compileExprX64)
 import Language.NStar.CodeGen.Machine.X64.Jmp (compileJmp)
 import Language.NStar.Syntax.Core (Expr (..), Immediate (..))
 

@@ -62,7 +62,7 @@ lexFile ::
   Text ->
   Either (Diagnostic String) ([LToken], Diagnostic String)
 lexFile file input =
-  bimap (errorDiagnosticFromBundle "Lexical error on input" Nothing) (second toDiagnostic) $ MP.runParser (runWriterT lexProgram) file input
+  bimap (errorDiagnosticFromBundle Nothing "Lexical error on input" Nothing) (second toDiagnostic) $ MP.runParser (runWriterT lexProgram) file input
   where
     toDiagnostic warns = foldl' addReport def (fromLexicalWarning <$> warns)
 

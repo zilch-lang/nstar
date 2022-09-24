@@ -6,7 +6,7 @@
 module Language.NStar.Syntax.Errors where
 
 import qualified Text.Megaparsec as MP
-import Error.Diagnose (warn, Report)
+import Error.Diagnose (Report (Warn))
 import Error.Diagnose.Compat.Megaparsec (HasHints(..))
 import Data.Data (Data)
 import Data.Typeable (Typeable)
@@ -21,7 +21,7 @@ data LexicalError
 data LexicalWarning
 
 fromLexicalWarning :: LexicalWarning -> Report String
-fromLexicalWarning _ = warn "" [] []
+fromLexicalWarning _ = Warn Nothing "" [] []
 
 instance Show LexicalError where
   show UnrecognizedEscapeSequence = "unrecognized character escape sequence"
@@ -40,7 +40,7 @@ data SemanticError
 data ParseWarning
 
 fromParseWarning :: ParseWarning -> Report String
-fromParseWarning _ = warn "" [] []
+fromParseWarning _ = Warn Nothing "" [] []
 
 instance Show SemanticError where
   show (NoSuchRegister t) = "unrecognized register " <> showToken t
