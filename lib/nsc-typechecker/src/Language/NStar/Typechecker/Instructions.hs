@@ -682,6 +682,7 @@ tc_cmvz (a :@ p1) (b :@ p2) (c :@ p3) (r :@ p4) p5 = do
   (τc, c) <- typecheckExpr c p3 False
 
   unify τb τc
+  checkCanBeCompared τb τc p5
 
   case e of
     -- r ≠ ε
@@ -894,7 +895,7 @@ tc_cmvl (a :@ p1) (b :@ p2) (c :@ p3) (d :@ p4) (r :@ p5) p6 = do
   (τd, d) <- typecheckExpr d p4 False
 
   unify τa τb
-  -- TODO: check that τa can be checked for equality (e.g. no function pointer equality)
+  checkCanBeCompared τa τb p6
   unify τc τd
 
   case e of
@@ -935,7 +936,7 @@ tc_cmvle (a :@ p1) (b :@ p2) (c :@ p3) (d :@ p4) (r :@ p5) p6 = do
   (τd, d) <- typecheckExpr d p4 False
 
   unify τa τb
-  -- TODO: check that τa can be checked for equality (e.g. no function pointer equality)
+  checkCanBeCompared τa τb p6
   unify τc τd
 
   case e of
@@ -976,7 +977,7 @@ tc_cmve (a :@ p1) (b :@ p2) (c :@ p3) (d :@ p4) (r :@ p5) p6 = do
   (τd, d) <- typecheckExpr d p4 False
 
   unify τa τb
-  -- TODO: check that τa can be checked for equality (e.g. no function pointer equality)
+  checkCanBeCompared τa τb p6
   unify τc τd
 
   case e of
@@ -1055,7 +1056,7 @@ tc_cjl (a :@ p1) (b :@ p2) (lt :@ p3) (lf :@ p4) p5 = do
   (τb, b) <- typecheckExpr b p2 False
 
   unify τa τb
-  -- TODO: check that τa can be checked for equality (e.g. no function pointer equality)
+  checkCanBeCompared τa τb p5
 
   pure (TC.CJL a b lt lf)
 
@@ -1088,7 +1089,7 @@ tc_cjle (a :@ p1) (b :@ p2) (lt :@ p3) (lf :@ p4) p5 = do
   (τb, b) <- typecheckExpr b p2 False
 
   unify τa τb
-  -- TODO: check that τa can be checked for equality (e.g. no function pointer equality)
+  checkCanBeCompared τa τb p5
 
   pure (TC.CJLE a b lt lf)
 
@@ -1121,13 +1122,18 @@ tc_cje (a :@ p1) (b :@ p2) (lt :@ p3) (lf :@ p4) p5 = do
   (τb, b) <- typecheckExpr b p2 False
 
   unify τa τb
-  -- TODO: check that τa can be checked for equality (e.g. no function pointer equality)
+  checkCanBeCompared τa τb p5
 
   pure (TC.CJE a b lt lf)
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
+
+checkCanBeCompared :: Located Type -> Located Type -> Position -> Typechecker ()
+checkCanBeCompared (UnsignedT _ :@ _) (UnsignedT _ :@ _) _ = pure ()
+checkCanBeCompared (SignedT _ :@ _) (SignedT _ :@ _) _ = pure ()
+checkCanBeCompared τ₁ τ₂ p = throwError $ CannotCompareTypes τ₁ τ₂ p
 
 getNthFromStack :: (?tcFlags :: TypecheckerFlags) => Integer -> Located Type -> Typechecker (Integer, Located Type)
 getNthFromStack n s = do
@@ -1191,7 +1197,9 @@ typecheckExpr e@(RegE r) p _ = do
      Ξ; Γ; χ, r : τ; σ; ε ⊢ᵀ r : τ
   -}
   ctx <- gets (chi . snd)
-  maybe (throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))) (pure . (,e :@ p)) (Map.lookup r ctx)
+  case Map.lookup r ctx of
+    Nothing -> throwError (RegisterNotFoundInContext (unLoc r) p (Map.keysSet ctx))
+    Just (t :@ _) -> pure (t :@ p, e :@ p)
 typecheckExpr e@(NameE n@(name :@ _) ts) p _ = do
   {-
            l : τ ∈ ΞD

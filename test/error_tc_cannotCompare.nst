@@ -1,0 +1,4 @@
+section code {
+  test: forall(s: Ts, e: Tc). { %r0: *u64, %r1: *u32, %r5: forall(). {|s -> e } | s -> %r5 }
+      = cje %r0, %r1, test<s, e>, test<s, e>
+}

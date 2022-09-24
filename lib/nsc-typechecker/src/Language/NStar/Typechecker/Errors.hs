@@ -59,6 +59,7 @@ data TypecheckError
   | OutOfBoundsStructureAccess Integer Integer Position
   | ExpectedIntegralType Type Position
   | CannotConditionallyMoveContinuation Position
+  | CannotCompareTypes (Located Type) (Located Type) Position
 
 data TypecheckWarning
 
@@ -103,6 +104,7 @@ fromTypecheckError (StructureOffsetMustBeKnown p1 p2 p3) = structureOffsetMustBe
 fromTypecheckError (OutOfBoundsStructureAccess o s p) = outOfBoundsStructureAccess o s p
 fromTypecheckError (ExpectedIntegralType t p) = expectedIntegralType t p
 fromTypecheckError (CannotConditionallyMoveContinuation p) = cannotConditionallyMoveContinuation p
+fromTypecheckError (CannotCompareTypes t1 t2 p) = cannotCompareTypes t1 t2 p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -445,4 +447,14 @@ cannotConditionallyMoveContinuation p =
   err
     "Trying to move continuation conditionally."
     [(p, This "While typechecking this instruction.")]
+    []
+
+cannotCompareTypes :: Located Type -> Located Type -> Position -> Report String
+cannotCompareTypes (t1 :@ p1) (t2 :@ p2) p3 =
+  err
+    "Cannot compare values of these types together."
+    [ (p3, This "While checking that comparison can be performed here"),
+      (p1, Where $ "This has type '" <> show (pretty t1) <> "'"),
+      (p2, Where $ "This has type '" <> show (pretty t2) <> "'")
+    ]
     []
