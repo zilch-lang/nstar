@@ -167,6 +167,8 @@ identifierOrKeyword = located do
       "cmvg" -> Cmvg
       "cmve" -> Cmve
       "cmvne" -> Cmvne
+      "cjz" -> Cjz
+      "cjnz" -> Cjnz
       -- Registers
       "r0" -> R0'
       "r1" -> R1'

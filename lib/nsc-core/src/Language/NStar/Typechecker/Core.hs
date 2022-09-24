@@ -286,5 +286,14 @@ data TypedInstruction where
     -- | > r
     Located Register ->
     TypedInstruction
+  -- | Jump to @l₁@ if @a@ is @0@, otherwise jump to @l₂@.
+  CJZ ::
+    -- | > a
+    Located Expr ->
+    -- | > l₁
+    Located Expr ->
+    -- | > l₂
+    Located Expr ->
+    TypedInstruction
 
 deriving instance Show TypedInstruction

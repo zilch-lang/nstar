@@ -401,6 +401,22 @@ data Instruction where
     -- | The destination register.
     Located Register ->
     Instruction
+  -- | @cjz@ changes the control flow to the first label if the first parameter is @0@, else to the second label.
+  CJZ ::
+    Located Expr ->
+    -- | The first label
+    Located Expr ->
+    -- | The second label
+    Located Expr ->
+    Instruction
+  -- | @cjnz@ changes the control flow to the first label if the first parameter is not @0@, else to the second label.
+  CJNZ ::
+    Located Expr ->
+    -- | The first label
+    Located Expr ->
+    -- | The second label
+    Located Expr ->
+    Instruction
 
 -- TODO: add more instructions
 
@@ -550,6 +566,10 @@ data Token where
   Cmve :: Token
   -- | The @cmvne@ instruction
   Cmvne :: Token
+  -- | The @cjz@ instruction
+  Cjz :: Token
+  -- | The @cjnz@ instruction
+  Cjnz :: Token
   -- TODO: add more instructions
   -- Symbols
 

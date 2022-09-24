@@ -995,6 +995,37 @@ tc_cmve (a :@ p1) (b :@ p2) (c :@ p3) (d :@ p4) (r :@ p5) p6 = do
 
   pure (TC.CMVE a b c d (r :@ p5))
 
+tc_cjz :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Located Expr -> Position -> Typechecker TC.TypedInstruction
+tc_cjz (a :@ p1) (lt :@ p2) (lf :@ p3) p4 = do
+  {-
+     Ξ; Γ; χ; σ; ε ⊢ᵀ lᵗ<v⃗> : ∀().{ χ₁′ | σ → ε }     χ ∼ χ₁′
+     Ξ; Γ; χ; σ; ε ⊢ᵀ lᶠ<v⃗> : ∀().{ χ₂′ | σ → ε }     χ ∼ χ₂′
+                Ξ; Γ; χ; σ; ε ⊢ᵀ a ∈ {uN, sN}
+  ─────────────────────────────────────────────────────────────── conditional jump
+          Ξ; Γ; χ; σ; ε ⊢ᴵ cjz a, lᵗ<v⃗>, lᶠ<v⃗> ⊣ χ; σ; ε
+  -}
+
+  x <- gets (chi . snd)
+  s <- gets (sigma . snd)
+  e <- gets (epsilon . snd)
+
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ lᵗ<v⃗> : ∀().{ χ₁′ | σ → ε }
+  -- > χ ∼ χ₁′
+  (ty, lt) <- typecheckExpr lt p2 False
+  unify (ForAllT [] (RecordT x s e False :@ p2) :@ p2) ty
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ lᶠ<v⃗> : ∀().{ χ₂′ | σ → ε }
+  -- > χ ∼ χ₂′
+  (ty, lf) <- typecheckExpr lf p3 False
+  unify (ForAllT [] (RecordT x s e False :@ p3) :@ p3) ty
+
+  (ty, a) <- typecheckExpr a p1 False
+  case ty of
+    UnsignedT _ :@ _ -> pure ()
+    SignedT _ :@ _ -> pure ()
+    t :@ p5 -> throwError (ExpectedIntegralType t p5)
+
+  pure (TC.CJZ a lt lf)
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

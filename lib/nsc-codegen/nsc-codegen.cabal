@@ -24,6 +24,7 @@ library
       Language.NStar.CodeGen.Machine.X64
       Language.NStar.CodeGen.Machine.X64.Add
       Language.NStar.CodeGen.Machine.X64.And
+      Language.NStar.CodeGen.Machine.X64.Cjz
       Language.NStar.CodeGen.Machine.X64.Cmve
       Language.NStar.CodeGen.Machine.X64.Cmvl
       Language.NStar.CodeGen.Machine.X64.Cmvle
