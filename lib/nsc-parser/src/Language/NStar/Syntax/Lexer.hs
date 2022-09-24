@@ -163,6 +163,8 @@ identifierOrKeyword = located do
       "mul" -> Mul
       "cmvl" -> Cmvl
       "cmvge" -> Cmvge
+      "cmvle" -> Cmvle
+      "cmvg" -> Cmvg
       -- Registers
       "r0" -> R0'
       "r1" -> R1'

@@ -357,6 +357,28 @@ data Instruction where
     -- | The destination register.
     Located Register ->
     Instruction
+  -- | Move different values depending on whether the first argument is less than or equal to the second argument or not.
+  CMVLE ::
+    Located Expr ->
+    Located Expr ->
+    -- | The value to move when the first argument is not equal to @0@.
+    Located Expr ->
+    -- | The value to move when the first argument is equal to @0@.
+    Located Expr ->
+    -- | The destination register.
+    Located Register ->
+    Instruction
+  -- | Move different values depending on whether the first argument is greater than the second argument or not.
+  CMVG ::
+    Located Expr ->
+    Located Expr ->
+    -- | The value to move when the first argument is not equal to @0@.
+    Located Expr ->
+    -- | The value to move when the first argument is equal to @0@.
+    Located Expr ->
+    -- | The destination register.
+    Located Register ->
+    Instruction
 
 -- TODO: add more instructions
 
@@ -498,6 +520,10 @@ data Token where
   Cmvl :: Token
   -- | The @cmvge@ instruction
   Cmvge :: Token
+  -- | The @cmvle@ instruction
+  Cmvle :: Token
+  -- | The @cmvg@ instruction
+  Cmvg :: Token
   -- TODO: add more instructions
   -- Symbols
 

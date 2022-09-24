@@ -101,6 +101,8 @@ instance Pretty Instruction where
   pretty (MUL a b r) = "mul" <+> pretty a <> comma <+> pretty b <> comma <+> pretty r
   pretty (CMVL a b c d r) = "cmvl" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty d <> comma <+> pretty r
   pretty (CMVGE a b c d r) = "cmvge" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty d <> comma <+> pretty r
+  pretty (CMVLE a b c d r) = "cmvle" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty d <> comma <+> pretty r
+  pretty (CMVG a b c d r) = "cmvg" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty d <> comma <+> pretty r
 
 instance Pretty Constant where
   pretty (IntegerC (i :@ _)) = pretty i

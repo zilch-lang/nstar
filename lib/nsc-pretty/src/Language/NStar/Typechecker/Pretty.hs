@@ -66,3 +66,4 @@ instance Pretty TypedInstruction where
   pretty (SMUL a b r) = "smul" <+> pretty a <> comma <+> pretty b <> comma <+> pretty r
   pretty (UMUL a b r) = "umul" <+> pretty a <> comma <+> pretty b <> comma <+> pretty r
   pretty (CMVL a b c d r) = "cmvl" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty d <> comma <+> pretty r
+  pretty (CMVLE a b c d r) = "cmvle" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty d <> comma <+> pretty r
