@@ -233,7 +233,9 @@ parseInstruction = MP.label "an instruction" do
             parseCmvl,
             parseCmvge,
             parseCmvle,
-            parseCmvg
+            parseCmvg,
+            parseCmve,
+            parseCmvne
           ]
       )
 
@@ -616,6 +618,28 @@ parseCmvg =
   located $
     lexeme (parseSymbol Cmvg)
       *> ( CMVG <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
+             <*> (lexeme (parseSymbol Comma) *> parseRegister)
+         )
+
+parseCmve :: MonadParser m => m (Located Instruction)
+parseCmve =
+  located $
+    lexeme (parseSymbol Cmve)
+      *> ( CMVE <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
+             <*> (lexeme (parseSymbol Comma) *> parseRegister)
+         )
+
+parseCmvne :: MonadParser m => m (Located Instruction)
+parseCmvne =
+  located $
+    lexeme (parseSymbol Cmvne)
+      *> ( CMVNE <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])

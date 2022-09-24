@@ -165,6 +165,8 @@ identifierOrKeyword = located do
       "cmvge" -> Cmvge
       "cmvle" -> Cmvle
       "cmvg" -> Cmvg
+      "cmve" -> Cmve
+      "cmvne" -> Cmvne
       -- Registers
       "r0" -> R0'
       "r1" -> R1'
