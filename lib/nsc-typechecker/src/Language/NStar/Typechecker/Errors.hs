@@ -58,6 +58,7 @@ data TypecheckError
   | StructureOffsetMustBeKnown Position Position Position
   | OutOfBoundsStructureAccess Integer Integer Position
   | ExpectedIntegralType Type Position
+  | CannotConditionallyMoveContinuation Position
 
 data TypecheckWarning
 
@@ -101,6 +102,7 @@ fromTypecheckError (CannotTakeReferenceToFunctionPointerOnStack s n p1 p2) = can
 fromTypecheckError (StructureOffsetMustBeKnown p1 p2 p3) = structureOffsetMustBeACompileTimeConstant p1 p2 p3
 fromTypecheckError (OutOfBoundsStructureAccess o s p) = outOfBoundsStructureAccess o s p
 fromTypecheckError (ExpectedIntegralType t p) = expectedIntegralType t p
+fromTypecheckError (CannotConditionallyMoveContinuation p) = cannotConditionallyMoveContinuation p
 
 -- | Happens when there is no possible coercion from the first type to the second type.
 uncoercibleTypes :: (Type, Position) -> (Type, Position) -> Report String
@@ -436,4 +438,11 @@ expectedIntegralType t p =
   err
     "Expected an integral type."
     [(p, This $ "Got type " <> show (pretty t) <> " instead")]
+    []
+
+cannotConditionallyMoveContinuation :: Position -> Report String
+cannotConditionallyMoveContinuation p =
+  err
+    "Trying to move continuation conditionally."
+    [(p, This "While typechecking this instruction.")]
     []

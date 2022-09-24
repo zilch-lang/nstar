@@ -335,6 +335,17 @@ data Instruction where
     -- | The destination operand
     Located Register ->
     Instruction
+  -- | Move different values depending on whether the first argument is less than the second argument or not.
+  CMVL ::
+    Located Expr ->
+    Located Expr ->
+    -- | The value to move when the first argument is not equal to @0@.
+    Located Expr ->
+    -- | The value to move when the first argument is equal to @0@.
+    Located Expr ->
+    -- | The destination register.
+    Located Register ->
+    Instruction
 
 -- TODO: add more instructions
 
@@ -472,6 +483,8 @@ data Token where
   Sub :: Token
   -- | The @mul@ instruction
   Mul :: Token
+  -- | the @cmvl@ instruction
+  Cmvl :: Token
   -- TODO: add more instructions
   -- Symbols
 

@@ -159,6 +159,7 @@ identifierOrKeyword = located do
       "shiftr" -> Shiftr
       "sub" -> Sub
       "mul" -> Mul
+      "cmvl" -> Cmvl
       -- Registers
       "r0" -> R0'
       "r1" -> R1'

@@ -225,7 +225,8 @@ parseInstruction = MP.label "an instruction" do
             parseShiftl,
             parseShiftr,
             parseSub,
-            parseMul
+            parseMul,
+            parseCmvl
           ]
       )
 
@@ -509,7 +510,7 @@ parseCmvz :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseCmvz =
   located $
     lexeme (parseSymbol Cmvz)
-      *> ( CMVZ <$> MP.choice [located (RegE <$> parseRegister)]
+      *> ( CMVZ <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
@@ -519,7 +520,7 @@ parseCmvnz :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
 parseCmvnz =
   located $
     lexeme (parseSymbol Cmvnz)
-      *> ( CMVNZ <$> MP.choice [located (RegE <$> parseRegister)]
+      *> ( CMVNZ <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
@@ -567,5 +568,16 @@ parseMul =
     lexeme (parseSymbol Mul)
       *> ( MUL <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
+             <*> (lexeme (parseSymbol Comma) *> parseRegister)
+         )
+
+parseCmvl :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseCmvl =
+  located $
+    lexeme (parseSymbol Cmvl)
+      *> ( CMVL <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )

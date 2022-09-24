@@ -19,6 +19,7 @@ import Language.NStar.CodeGen.Compiler
 import Language.NStar.CodeGen.Machine.Internal.Intermediate (InterOpcode (..))
 import Language.NStar.CodeGen.Machine.X64.Add (compileAdd)
 import Language.NStar.CodeGen.Machine.X64.And (compileAnd)
+import Language.NStar.CodeGen.Machine.X64.Cmvl (compileCmvl)
 import Language.NStar.CodeGen.Machine.X64.Cmvz (compileCmvz)
 import Language.NStar.CodeGen.Machine.X64.Expression (compileConstantX64, int32, int64)
 import Language.NStar.CodeGen.Machine.X64.Jmp (compileJmp)
@@ -79,6 +80,7 @@ compileInstrInterX64 _ (SHIFTR x n r) = compileShiftr (unLoc x) (unLoc n) (unLoc
 compileInstrInterX64 _ (SUB a b r) = compileSub (unLoc a) (unLoc b) (unLoc r)
 compileInstrInterX64 _ (SMUL a b r) = compileSmul (unLoc a) (unLoc b) (unLoc r)
 compileInstrInterX64 chi (UMUL a b (r :@ p)) = compileUmul chi (unLoc a) (unLoc b) r p
+compileInstrInterX64 _ (CMVL a b c d r) = compileCmvl (unLoc a) (unLoc b) (unLoc c) (unLoc d) (unLoc r)
 compileInstrInterX64 _ i = internalError $ "not yet supported: compileInterInstrX64 " <> show i
 
 ---------------------------------------------------------------------------------------------------------------------

@@ -247,5 +247,18 @@ data TypedInstruction where
     -- | > r
     Located Register ->
     TypedInstruction
+  -- | Moves @c@ inside @r@ if @a@ is less than @b@, otherwise move @d@ inside @r@.
+  CMVL ::
+    -- | > a
+    Located Expr ->
+    -- | > b
+    Located Expr ->
+    -- | > c
+    Located Expr ->
+    -- | > d
+    Located Expr ->
+    -- | > r
+    Located Register ->
+    TypedInstruction
 
 deriving instance Show TypedInstruction

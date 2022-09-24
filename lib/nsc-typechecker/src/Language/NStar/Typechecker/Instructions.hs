@@ -661,10 +661,10 @@ tc_not (x :@ p1) (r :@ p2) p3 = do
 tc_cmvz :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Located Expr -> Located Register -> Position -> Typechecker TC.TypedInstruction
 tc_cmvz (a :@ p1) (b :@ p2) (c :@ p3) (r :@ p4) p5 = do
   {-
-                Ξ; Γ; χ; σ; ε ⊢ a ∈ {uN, sN}
-    Ξ; Γ; χ; σ; ε ⊢ b : τ₂     r ≠ ε      Ξ; Γ; χ; σ; ε ⊢ c : τ₂
+    Ξ; Γ; χ; σ; ε ⊢ᵀ a ∈ {uN, sN}          r ≠ ε ∧ b ≠ ε ∧ c ≠ ε
+      Ξ; Γ; χ; σ; ε ⊢ᵀ b : τ₂          Ξ; Γ; χ; σ; ε ⊢ᵀ c : τ₂
   ─────────────────────────────────────────────────────────────────
-      Ξ; Γ; χ; σ; ε ⊢ cmvz a, b, c, r ⊣ Ξ; Γ; χ, r : τ₂; σ; ε
+      Ξ; Γ; χ; σ; ε ⊢ᴵ cmvz a, b, c, r ⊣ Ξ; Γ; χ, r : τ₂; σ; ε
   -}
 
   e :@ p6 <- gets (epsilon . snd)
@@ -686,6 +686,13 @@ tc_cmvz (a :@ p1) (b :@ p2) (c :@ p3) (r :@ p4) p5 = do
   case e of
     -- r ≠ ε
     RegisterContT r2 | r == r2 -> throwError (TryingToOverwriteRegisterContinuation (r :@ p2) p2)
+    RegisterContT r2 -> do
+      case unLoc b of
+        RegE r3 | r2 == unLoc r3 -> throwError (CannotConditionallyMoveContinuation p5)
+        _ -> pure ()
+      case unLoc c of
+        RegE r3 | r2 == unLoc r3 -> throwError (CannotConditionallyMoveContinuation p5)
+        _ -> pure ()
     _ -> pure ()
 
   pure (TC.CMVZ a b c (r :@ p4))
@@ -864,6 +871,47 @@ tc_mul (x :@ p1) (y :@ p2) (r :@ p3) p4 = do
     UnsignedT _ :@ _ -> pure (TC.UMUL x y (r :@ p3))
     SignedT _ :@ _ -> pure (TC.SMUL x y (r :@ p3))
     _ -> undefined
+
+tc_cmvl :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Located Expr -> Located Expr -> Located Register -> Position -> Typechecker TC.TypedInstruction
+tc_cmvl (a :@ p1) (b :@ p2) (c :@ p3) (d :@ p4) (r :@ p5) p6 = do
+  {-
+     Ξ; Γ; χ; σ; ε ⊢ᵀ a : τ₁          Ξ; Γ; χ; σ; ε ⊢ᵀ b : τ₁
+                      r ≠ ε ∧ c ≠ ε ∧ d ≠ ε
+     Ξ; Γ; χ; σ; ε ⊢ᵀ c : τ₂           Ξ; Γ; χ; σ; ε ⊢ᵀ d : τ₂
+  ─────────────────────────────────────────────────────────────────
+     Ξ; Γ; χ; σ; ε ⊢ᴵ cmvl a, b, c, d, r ⊣ Ξ; Γ; χ, r : τ₂; σ; ε
+  -}
+
+  e :@ p7 <- gets (epsilon . snd)
+
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ a : τ₁
+  (τa, a) <- typecheckExpr a p1 False
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ b : τ₁
+  (τb, b) <- typecheckExpr b p2 False
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ c : τ₂
+  (τc, c) <- typecheckExpr c p3 False
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ d : τ₂
+  (τd, d) <- typecheckExpr d p4 False
+
+  unify τa τb
+  -- TODO: check that τa can be checked for equality (e.g. no function pointer equality)
+  unify τc τd
+
+  case e of
+    -- r ≠ ε
+    RegisterContT r2 | r == r2 -> throwError (TryingToOverwriteRegisterContinuation (r :@ p5) p5)
+    RegisterContT r2 -> do
+      case unLoc c of
+        RegE r3 | r2 == unLoc r3 -> throwError (CannotConditionallyMoveContinuation p6)
+        _ -> pure ()
+      case unLoc d of
+        RegE r3 | r2 == unLoc r3 -> throwError (CannotConditionallyMoveContinuation p6)
+        _ -> pure ()
+    _ -> pure ()
+
+  extendChi (r :@ p3) τc
+
+  pure (TC.CMVL a b c d (r :@ p5))
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
