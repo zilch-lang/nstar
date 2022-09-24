@@ -201,7 +201,9 @@ parseTerminalInstruction = MP.label "a terminal instruction" do
         parseJmp,
         parseCall,
         parseCjz,
-        parseCjnz
+        parseCjnz,
+        parseCjl,
+        parseCjge
       ]
 
 -- | Parses an instruction call from the N*'s instruction set.
@@ -662,6 +664,26 @@ parseCjnz =
   located $
     lexeme (parseSymbol Cjnz)
       *> ( CJNZ <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> parseLabel)
+             <*> (lexeme (parseSymbol Comma) *> parseLabel)
+         )
+
+parseCjl :: MonadParser m => m (Located Instruction)
+parseCjl =
+  located $
+    lexeme (parseSymbol Cjl)
+      *> ( CJL <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
+             <*> (lexeme (parseSymbol Comma) *> parseLabel)
+             <*> (lexeme (parseSymbol Comma) *> parseLabel)
+         )
+
+parseCjge :: MonadParser m => m (Located Instruction)
+parseCjge =
+  located $
+    lexeme (parseSymbol Cjge)
+      *> ( CJGE <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
              <*> (lexeme (parseSymbol Comma) *> parseLabel)
              <*> (lexeme (parseSymbol Comma) *> parseLabel)
          )

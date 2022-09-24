@@ -417,6 +417,24 @@ data Instruction where
     -- | The second label
     Located Expr ->
     Instruction
+  -- | @cjl@ changes the control flow to the first label if the first parameter is less than the second parameter, else to the second label.
+  CJL ::
+    Located Expr ->
+    Located Expr ->
+    -- | The first label
+    Located Expr ->
+    -- | The second label
+    Located Expr ->
+    Instruction
+  -- | @cjge@ changes the control flow to the first label if the first parameter is greater than or equal to the second parameter, else to the second label.
+  CJGE ::
+    Located Expr ->
+    Located Expr ->
+    -- | The first label
+    Located Expr ->
+    -- | The second label
+    Located Expr ->
+    Instruction
 
 -- TODO: add more instructions
 
@@ -570,6 +588,10 @@ data Token where
   Cjz :: Token
   -- | The @cjnz@ instruction
   Cjnz :: Token
+  -- | The @cjl@ instruction
+  Cjl :: Token
+  -- | The @cjge@ instruction
+  Cjge :: Token 
   -- TODO: add more instructions
   -- Symbols
 

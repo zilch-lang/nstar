@@ -169,6 +169,8 @@ typecheckInstruction i p unsafe = do
     SC.CMVNE a b c d r -> tc_cmve a b d c r p
     SC.CJZ a l1 l2 -> tc_cjz a l1 l2 p
     SC.CJNZ a l1 l2 -> tc_cjz a l2 l1 p
+    SC.CJL a b l1 l2 -> tc_cjl a b l1 l2 p
+    SC.CJGE a b l1 l2 -> tc_cjl b a l2 l1 p
     _ -> error $ "Unrecognized instruction '" <> show i <> "'."
 
   pure (TInstr (ti :@ p) chi' sigma epsilon)

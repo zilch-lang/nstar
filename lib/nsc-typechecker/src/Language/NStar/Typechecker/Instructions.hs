@@ -1026,6 +1026,39 @@ tc_cjz (a :@ p1) (lt :@ p2) (lf :@ p3) p4 = do
 
   pure (TC.CJZ a lt lf)
 
+tc_cjl :: (?tcFlags :: TypecheckerFlags) => Located Expr -> Located Expr -> Located Expr -> Located Expr -> Position -> Typechecker TC.TypedInstruction
+tc_cjl (a :@ p1) (b :@ p2) (lt :@ p3) (lf :@ p4) p5 = do
+  {-
+     Ξ; Γ; χ; σ; ε ⊢ᵀ lᵗ<v⃗> : ∀().{ χ₁′ | σ → ε }     χ ∼ χ₁′
+     Ξ; Γ; χ; σ; ε ⊢ᵀ lᶠ<v⃗> : ∀().{ χ₂′ | σ → ε }     χ ∼ χ₂′
+     Ξ; Γ; χ; σ; ε ⊢ᵀ a : τ₁         Ξ; Γ; χ; σ; ε ⊢ᵀ b : τ₁
+  ─────────────────────────────────────────────────────────────── conditional jump
+        Ξ; Γ; χ; σ; ε ⊢ᴵ cjl a, b, lᵗ<v⃗>, lᶠ<v⃗> ⊣ χ; σ; ε
+  -}
+
+  x <- gets (chi . snd)
+  s <- gets (sigma . snd)
+  e <- gets (epsilon . snd)
+
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ lᵗ<v⃗> : ∀().{ χ₁′ | σ → ε }
+  -- > χ ∼ χ₁′
+  (ty, lt) <- typecheckExpr lt p2 False
+  unify (ForAllT [] (RecordT x s e False :@ p2) :@ p2) ty
+  -- > Ξ; Γ; χ; σ; ε ⊢ᵀ lᶠ<v⃗> : ∀().{ χ₂′ | σ → ε }
+  -- > χ ∼ χ₂′
+  (ty, lf) <- typecheckExpr lf p3 False
+  unify (ForAllT [] (RecordT x s e False :@ p3) :@ p3) ty
+
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ a : τ₁
+  (τa, a) <- typecheckExpr a p1 False
+  -- Ξ; Γ; χ; σ; ε ⊢ᵀ b : τ₁
+  (τb, b) <- typecheckExpr b p2 False
+
+  unify τa τb
+  -- TODO: check that τa can be checked for equality (e.g. no function pointer equality)
+
+  pure (TC.CJL a b lt lf)
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------

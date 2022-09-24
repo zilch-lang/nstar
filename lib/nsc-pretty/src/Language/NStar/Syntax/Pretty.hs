@@ -107,6 +107,8 @@ instance Pretty Instruction where
   pretty (CMVNE a b c d r) = "cmvne" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty d <> comma <+> pretty r
   pretty (CJZ a l1 l2) = "cjz" <+> pretty a <> comma <+> pretty l1 <> comma <+> pretty l2
   pretty (CJNZ a l1 l2) = "cjnz" <+> pretty a <> comma <+> pretty l1 <> comma <+> pretty l2
+  pretty (CJL a b l1 l2) = "cjl" <+> pretty a <> comma <+> pretty b <> comma <+> pretty l1 <> comma <+> pretty l2
+  pretty (CJGE a b l1 l2) = "cjge" <+> pretty a <> comma <+> pretty b <> comma <+> pretty l1 <> comma <+> pretty l2
 
 instance Pretty Constant where
   pretty (IntegerC (i :@ _)) = pretty i

@@ -1,13 +1,16 @@
 section code {
-  f: forall(s: Ts, e: Tc). { %r5: forall().{| s -> e } | s -> %r5 }
+  f: forall(s: Ts, e: Tc). { %r5: forall(). {| s -> e } | s -> %r5 }
    = mv 25, %r0 
    ; cjz %r0, g<s, e>, h<s, e>
 
-  g: forall(s: Ts, e: Tc). { %r5: forall().{| s -> e } | s -> %r5 }
+  g: forall(s: Ts, e: Tc). { %r5: forall(). {| s -> e } | s -> %r5 }
    = mv 5, %r0
    ; cjz 3, g<s, e>, h<s, e>
 
-  h: forall(s: Ts, e: Tc). { %r0: u64, %r5: forall().{ %r1: u64 | s -> e } | s -> %r5 }
+  h: forall(s: Ts, e: Tc). { %r0: u64, %r5: forall(). {| s -> e } | s -> %r5 }
    = mv %r0, %r1
-   ; cjnz %r1, g<s, e>, h<s, e>
+   ; cjl %r0, %r1, g<s, e>, i<s, e>
+
+  i: forall(s: Ts, e: Tc). { %r0: u64, %r1: u64, %r5: forall(). {| s -> e } | s -> %r5 }
+   = cjnz %r1, g<s, e>, h<s, e>
 }
