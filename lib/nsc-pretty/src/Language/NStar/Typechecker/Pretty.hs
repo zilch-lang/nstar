@@ -71,3 +71,4 @@ instance Pretty TypedInstruction where
   pretty (CJZ a l1 l2) = "cjz" <+> pretty a <> comma <+> pretty l1 <> comma <+> pretty l2
   pretty (CJL a b l1 l2) = "cjl" <+> pretty a <> comma <+> pretty b <> comma <+> pretty l1 <> comma <+> pretty l2
   pretty (CJLE a b l1 l2) = "cjle" <+> pretty a <> comma <+> pretty b <> comma <+> pretty l1 <> comma <+> pretty l2
+  pretty (CJE a b l1 l2) = "cje" <+> pretty a <> comma <+> pretty b <> comma <+> pretty l1 <> comma <+> pretty l2

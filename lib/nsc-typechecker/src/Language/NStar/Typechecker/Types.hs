@@ -173,6 +173,8 @@ typecheckInstruction i p unsafe = do
     SC.CJGE a b l1 l2 -> tc_cjl b a l2 l1 p
     SC.CJLE a b l1 l2 -> tc_cjle a b l1 l2 p
     SC.CJG a b l1 l2 -> tc_cjle b a l2 l1 p
+    SC.CJE a b l1 l2 -> tc_cje a b l1 l2 p
+    SC.CJNE a b l1 l2 -> tc_cje a b l2 l1 p
     _ -> error $ "Unrecognized instruction '" <> show i <> "'."
 
   pure (TInstr (ti :@ p) chi' sigma epsilon)

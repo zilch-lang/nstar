@@ -17,4 +17,7 @@ section code {
   j: forall(s: Ts, e: Tc). { %r0: u64, %r5: forall(). {| s -> e } | s -> %r5 }
    = mv 25, %r1 
    ; cjg 50, %r1, j<s, e>, i<s, e>
+
+  k: forall(s: Ts, e: Tc). { %r0: u64, %r2: u64, %r5: forall(). {| s -> e } | s -> %r5 }
+   = cje %r0, %r2, k<s, e>, k<s, e>
 }

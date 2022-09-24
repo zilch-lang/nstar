@@ -317,5 +317,16 @@ data TypedInstruction where
     -- | > l₂
     Located Expr ->
     TypedInstruction
+  -- | Jump to @l₁@ if @a@ is equal to @b@, otherwise jump to @l₂@.
+  CJE ::
+    -- | > a
+    Located Expr ->
+    -- | > b
+    Located Expr ->
+    -- | > l₁
+    Located Expr ->
+    -- | > l₂
+    Located Expr ->
+    TypedInstruction
 
 deriving instance Show TypedInstruction
