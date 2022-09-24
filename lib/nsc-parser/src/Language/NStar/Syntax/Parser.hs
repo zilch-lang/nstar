@@ -1,3 +1,5 @@
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
@@ -13,7 +15,7 @@
 module Language.NStar.Syntax.Parser (parseFile) where
 
 import Console.NStar.Flags (ParserFlags (..))
-import Control.Monad.Writer (WriterT, runWriterT)
+import Control.Monad.Writer (MonadWriter, runWriterT)
 import Data.Bifunctor (bimap, second)
 import Data.Foldable (foldl')
 import Data.Located (Located (..), getPos, unLoc)
@@ -29,9 +31,11 @@ import Language.NStar.Syntax.Internal
 import qualified Text.Megaparsec as MP
 import qualified Text.Megaparsec.Char.Lexer as MPL
 
-type Parser a = WriterT [ParseWarning] (MP.Parsec SemanticError [LToken]) a
+-- type Parser a = WriterT [ParseWarning] (MP.Parsec SemanticError [LToken]) a
 
-lexeme :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
+type MonadParser m = (?parserFlags :: ParserFlags, MonadFail m, MonadWriter [ParseWarning] m, MP.MonadParsec SemanticError [LToken] m)
+
+lexeme :: MonadParser m => m a -> m a
 lexeme = MPL.lexeme (MPL.space whiteSpace inlineComment multilineComment)
   where
     inlineComment = () <$ MP.satisfy isInlineComment
@@ -56,19 +60,19 @@ parseFile file tokens = bimap (errorDiagnosticFromBundle "Parse error on input" 
     toDiagnostic = foldl' addReport def . fmap fromParseWarning
 
 -- | Parses a sequence of either typed labels or instruction calls.
-parseProgram :: (?parserFlags :: ParserFlags) => Parser Program
+parseProgram :: MonadParser m => m Program
 parseProgram = lexeme (pure ()) *> (Program <$> MP.many section) <* parseEOF
   where
     section = lexeme . located $ MP.choice [parseInclude, MP.try parseCodeSection, MP.try parseDataSection, parseExternCodeSection]
 
-parseCodeSection :: (?parserFlags :: ParserFlags) => Parser Section
+parseCodeSection :: MonadParser m => m Section
 parseCodeSection =
   CodeS <$> do
     lexeme (parseSymbol Section)
     lexeme (parseSymbol (Id "code"))
     lexeme $ betweenBraces (MP.many parseTypedLabel)
 
-parseDataSection :: (?parserFlags :: ParserFlags) => Parser Section
+parseDataSection :: MonadParser m => m Section
 parseDataSection =
   DataS <$> do
     lexeme (parseSymbol Section)
@@ -80,7 +84,7 @@ parseDataSection =
         <*> (lexeme parseType <* lexeme (parseSymbol Equal))
         <*> (lexeme parseConstant)
 
-parseInclude :: (?parserFlags :: ParserFlags) => Parser Section
+parseInclude :: MonadParser m => m Section
 parseInclude =
   IncludeS <$> do
     lexeme (parseSymbol Include)
@@ -89,7 +93,7 @@ parseInclude =
     toText (Str s) = s
     toText t = internalError $ "Cannot get text of non string token " <> show t
 
-parseExternCodeSection :: (?parserFlags :: ParserFlags) => Parser Section
+parseExternCodeSection :: MonadParser m => m Section
 parseExternCodeSection =
   ExternCodeS <$> do
     lexeme (parseSymbol Section)
@@ -104,11 +108,11 @@ parseExternCodeSection =
 
 -- | Parses the end of file. There is no guarantee that any parser will try to parse something after the end of file.
 --   This has to be dealt with on our own. No more token should be available after consuming the end of file.
-parseEOF :: (?parserFlags :: ParserFlags) => Parser ()
+parseEOF :: MonadParser m => m ()
 parseEOF = () <$ parseSymbol EOF
 
 -- | Parses an identifier and returns its textual representation.
-parseIdentifier :: (?parserFlags :: ParserFlags) => Parser (Located Text)
+parseIdentifier :: MonadParser m => m (Located Text)
 parseIdentifier = MP.label "an identifier" $ lexeme do
   Id i :@ p <- MP.satisfy isIdentifier
   pure (i :@ p)
@@ -116,17 +120,17 @@ parseIdentifier = MP.label "an identifier" $ lexeme do
     isIdentifier (Id _ :@ _) = True
     isIdentifier (_ :@ _) = False
 
-parseString :: (?parserFlags :: ParserFlags) => Parser LToken
+parseString :: MonadParser m => m LToken
 parseString = MP.label "a string" $ lexeme $ MP.satisfy isString
   where
     isString (Str _ :@ _) = True
     isString _ = False
 
 -- | Parses a symbol and returns it.
-parseSymbol :: (?parserFlags :: ParserFlags) => Token -> Parser LToken
+parseSymbol :: MonadParser m => Token -> m LToken
 parseSymbol t1 = MP.label (showToken t1) $ MP.satisfy \(t2 :@ _) -> t2 == t1
 
-parseRegister :: (?parserFlags :: ParserFlags) => Parser (Located Register)
+parseRegister :: MonadParser m => m (Located Register)
 parseRegister = MP.label "a register" $ located $ parseSymbol Percent *> reg
   where
     reg =
@@ -140,7 +144,7 @@ parseRegister = MP.label "a register" $ located $ parseSymbol Percent *> reg
           MP.lookAhead MP.anySingle >>= MP.customFailure . NoSuchRegister . unLoc
         ]
 
-parseInteger :: (?parserFlags :: ParserFlags) => Parser (Located Integer)
+parseInteger :: MonadParser m => m (Located Integer)
 parseInteger = MP.label "an integer" $ lexeme do
   Integer i :@ p <- MP.satisfy isInteger
   pure (read (Text.unpack i) :@ p)
@@ -148,7 +152,7 @@ parseInteger = MP.label "an integer" $ lexeme do
     isInteger (Integer _ :@ _) = True
     isInteger _ = False
 
-parseCharacter :: (?parserFlags :: ParserFlags) => Parser (Located Char)
+parseCharacter :: MonadParser m => m (Located Char)
 parseCharacter = MP.label "a character" $ lexeme do
   Char c :@ p <- MP.satisfy isCharacter
   pure (c :@ p)
@@ -157,39 +161,39 @@ parseCharacter = MP.label "a character" $ lexeme do
     isCharacter _ = False
 
 -- | Parses something between braces.
-betweenBraces :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
+betweenBraces :: MonadParser m => m a -> m a
 betweenBraces = MP.between (lexeme $ parseSymbol LBrace) (parseSymbol RBrace)
 
 -- | Parses something between brackets.
-betweenBrackets :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
+betweenBrackets :: MonadParser m => m a -> m a
 betweenBrackets = MP.between (lexeme $ parseSymbol LBracket) (parseSymbol RBracket)
 
 -- | Parses something between parentheses.
-betweenParens :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
+betweenParens :: MonadParser m => m a -> m a
 betweenParens = MP.between (lexeme $ parseSymbol LParen) (parseSymbol RParen)
 
 -- | Parses something between angles.
-betweenAngles :: (?parserFlags :: ParserFlags) => Parser a -> Parser a
+betweenAngles :: MonadParser m => m a -> m a
 betweenAngles = MP.between (lexeme $ parseSymbol LAngle) (parseSymbol RAngle)
 
 -----------------------------------
 
 -- | Parses a typed label.
-parseTypedLabel :: (?parserFlags :: ParserFlags) => Parser (Located Statement)
+parseTypedLabel :: MonadParser m => m (Located Statement)
 parseTypedLabel =
   lexeme . located $
     Label <$> (lexeme parseIdentifier <* lexeme (parseSymbol Colon))
       <*> lexeme (parseForallType (parseRecordType True))
       <*> (lexeme (parseSymbol Equal) *> parseBlock)
 
-parseBlock :: (?parserFlags :: ParserFlags) => Parser [(Located Instruction, Bool)]
+parseBlock :: MonadParser m => m [(Located Instruction, Bool)]
 parseBlock =
   MP.choice
     [ (:) <$> parseInstruction <*> (lexeme (parseSymbol Semi) *> lexeme parseBlock),
       pure . (,False) <$> parseTerminalInstruction
     ]
 
-parseTerminalInstruction :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseTerminalInstruction :: MonadParser m => m (Located Instruction)
 parseTerminalInstruction = MP.label "a terminal instruction" do
   lexeme $
     MP.choice
@@ -199,7 +203,7 @@ parseTerminalInstruction = MP.label "a terminal instruction" do
       ]
 
 -- | Parses an instruction call from the N*'s instruction set.
-parseInstruction :: (?parserFlags :: ParserFlags) => Parser (Located Instruction, Bool)
+parseInstruction :: MonadParser m => m (Located Instruction, Bool)
 parseInstruction = MP.label "an instruction" do
   isUnsafe <- MP.option False (True <$ lexeme (parseSymbol UnSafe))
 
@@ -234,7 +238,7 @@ parseInstruction = MP.label "an instruction" do
 ------------------------------------------------------------------------------------------------------------
 
 -- | Parses a forall type variable binder.
-parseForallType :: (?parserFlags :: ParserFlags) => Parser (Located Type) -> Parser (Located Type)
+parseForallType :: MonadParser m => m (Located Type) -> m (Located Type)
 parseForallType pty =
   located $
     ForAllT <$> (lexeme (parseSymbol Forall) *> (betweenParens $ lexeme binder `MP.sepBy` lexeme (parseSymbol Comma)) <* lexeme (parseSymbol Dot))
@@ -245,7 +249,7 @@ parseForallType pty =
         <*> (lexeme (parseSymbol Colon) *> lexeme parseKind)
 
 -- | Parses a non-stack type. To parse a stack type, see 'parseStackType'.
-parseType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseType :: MonadParser m => m (Located Type)
 parseType =
   MP.choice
     [ parseForallType (parseRecordType True),
@@ -257,7 +261,7 @@ parseType =
     ]
 
 -- | Parses a record type.
-parseRecordType :: (?parserFlags :: ParserFlags) => Bool -> Parser (Located Type)
+parseRecordType :: MonadParser m => Bool -> m (Located Type)
 parseRecordType open = located do
   (chi, sigma, epsilon) <- betweenBraces do
     (,,) <$> lexeme field `MP.sepBy` lexeme (parseSymbol Comma)
@@ -269,37 +273,37 @@ parseRecordType open = located do
     field = (,) <$> (lexeme parseRegister <* lexeme (parseSymbol Colon)) <*> (parseBang MP.<|> parseType)
 
 -- | Parses any sort of signed integer type.
-parseSignedType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseSignedType :: MonadParser m => m (Located Type)
 parseSignedType = located $ fmap SignedT . MP.choice $ signed <$> [8, 16, 32, 64]
   where
     signed n = fromIntegral n <$ parseSymbol (Id ("s" <> Text.pack (show n)))
 
 -- | Parses any sort of unsigned integer type.
-parseUnsignedType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseUnsignedType :: MonadParser m => m (Located Type)
 parseUnsignedType = located $ fmap UnsignedT . MP.choice $ unsigned <$> [8, 16, 32, 64]
   where
     unsigned n = fromIntegral n <$ parseSymbol (Id ("u" <> Text.pack (show n)))
 
 -- | Parses a pointer to a type.
-parsePointerType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parsePointerType :: MonadParser m => m (Located Type)
 parsePointerType = lexeme . located $ lexeme (parseSymbol Star) *> (PtrT <$> parseType)
 
 -- | Parses a stack type.
-parseStackType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseStackType :: MonadParser m => m (Located Type)
 parseStackType = foldr1 cons <$> (parseType `MP.sepBy1` MP.try (lexeme (pure ()) *> lexeme (parseSymbol DoubleColon)))
   where
     cons stack@(_ :@ p) ty = ConsT stack ty :@ p
 
 -- | Parses a type variable.
-parseVariableType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseVariableType :: MonadParser m => m (Located Type)
 parseVariableType = located $ VarT <$> parseIdentifier
 
 -- | Parses a structure type.
-parseStructType :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseStructType :: MonadParser m => m (Located Type)
 parseStructType = located $ PackedStructT <$> betweenParens ((lexeme parseType `MP.sepBy` lexeme (parseSymbol Comma)) MP.<|> pure [])
 
 -- | Parses a type kind.
-parseKind :: (?parserFlags :: ParserFlags) => Parser (Located Kind)
+parseKind :: MonadParser m => m (Located Kind)
 parseKind =
   located $
     MP.choice
@@ -309,7 +313,7 @@ parseKind =
         Tc <$ parseSymbol TcK
       ]
 
-parseContinuation :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseContinuation :: MonadParser m => m (Located Type)
 parseContinuation =
   located $
     MP.choice
@@ -318,13 +322,13 @@ parseContinuation =
         VarT <$> parseIdentifier
       ]
 
-parseBang :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseBang :: MonadParser m => m (Located Type)
 parseBang = located $ BangT <$ parseSymbol Bang
 
 ------------------------------------------------------------------------------------------------------------
 
 -- | Parses an immediate literal value.
-parseImmediate :: (?parserFlags :: ParserFlags) => Parser (Located Immediate)
+parseImmediate :: MonadParser m => m (Located Immediate)
 parseImmediate =
   located $
     MP.choice
@@ -333,13 +337,13 @@ parseImmediate =
       ]
 
 -- | Parses a literal label name.
-parseLabel :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
+parseLabel :: MonadParser m => m (Located Expr)
 parseLabel =
   located $
     NameE <$> parseIdentifier
       <*> MP.option [] (betweenAngles (parseSpecialization `MP.sepBy` lexeme (parseSymbol Comma)))
 
-parseSpecialization :: (?parserFlags :: ParserFlags) => Parser (Located Type)
+parseSpecialization :: MonadParser m => m (Located Type)
 parseSpecialization =
   MP.choice
     [ MP.try (lexeme parseStackType),
@@ -350,14 +354,14 @@ parseSpecialization =
     ]
 
 -- | Parses a base-pointer offset.
-parseBasePtrOffset :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
+parseBasePtrOffset :: MonadParser m => m (Located Expr)
 parseBasePtrOffset =
   located $
     BaseOffsetE <$> MP.choice [located $ RegE <$> parseRegister, parseLabel]
       <*> betweenBrackets (MP.choice [located $ RegE <$> parseRegister, located $ ImmE <$> located (I <$> parseSignedInteger)])
 
 -- | Parses a byte-pointer offset.
-parseBytePtrOffset :: (?parserFlags :: ParserFlags) => Parser (Located Expr)
+parseBytePtrOffset :: MonadParser m => m (Located Expr)
 parseBytePtrOffset =
   located $
     ByteOffsetE <$> do
@@ -365,32 +369,32 @@ parseBytePtrOffset =
       MP.option (ImmE (I 0 :@ source) :@ source) (MP.choice [located $ RegE <$> parseRegister, located $ ImmE <$> located (I <$> parseSignedInteger)])
       <*> betweenParens (MP.choice [located $ RegE <$> parseRegister, parseLabel])
 
-parseSignedInteger :: (?parserFlags :: ParserFlags) => Parser Integer
+parseSignedInteger :: MonadParser m => m Integer
 parseSignedInteger = MP.label "an integer" $ (*) <$> sign <*> (unLoc <$> parseInteger)
   where
     sign = MP.choice [-1 <$ parseSymbol Minus, 1 <$ parseSymbol Plus, 1 <$ pure ()]
 
 ----------------------------------------------------------------------------------------------------------------
 
-parseConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
+parseConstant :: MonadParser m => m (Located Constant)
 parseConstant = parseIntegerConstant MP.<|> parseCharacterConstant MP.<|> parseStringConstant MP.<|> parseArrayConstant MP.<|> parseStructConstant
 
-parseIntegerConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
+parseIntegerConstant :: MonadParser m => m (Located Constant)
 parseIntegerConstant = located $ MP.label "an integer constant" $ IntegerC <$> located parseSignedInteger
 
-parseCharacterConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
+parseCharacterConstant :: MonadParser m => m (Located Constant)
 parseCharacterConstant = located $ MP.label "a character constant" $ CharacterC <$> parseCharacter
 
-parseArrayConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
+parseArrayConstant :: MonadParser m => m (Located Constant)
 parseArrayConstant = located $ MP.label "an array constant" $ ArrayC <$> betweenBrackets (MP.many (lexeme parseConstant))
 
-parseStringConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
+parseStringConstant :: MonadParser m => m (Located Constant)
 parseStringConstant = located $ MP.label "a string constant" $ toArrayConstant <$> parseString
   where
     toArrayConstant (Str chars :@ p) = ArrayC $ ((:@ p) . CharacterC . (:@ p) <$> Text.unpack chars) <> [CharacterC ('\0' :@ p) :@ p]
     toArrayConstant l = internalError $ "Invalid string token " <> show (unLoc l)
 
-parseStructConstant :: (?parserFlags :: ParserFlags) => Parser (Located Constant)
+parseStructConstant :: MonadParser m => m (Located Constant)
 parseStructConstant = located $ MP.label "a structure constant" $ StructC <$> betweenParens (MP.option [] (lexeme parseField `MP.sepBy` lexeme (parseSymbol Comma)))
   where
     parseField = parseIntegerConstant MP.<|> parseCharacterConstant MP.<|> parseStructConstant
@@ -398,7 +402,7 @@ parseStructConstant = located $ MP.label "a structure constant" $ StructC <$> be
 ----------------------------------------------------------------------------------------------------------------
 
 -- | Parses a @mov@ instruction.
-parseMv :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseMv :: MonadParser m => m (Located Instruction)
 parseMv =
   located $
     lexeme (parseSymbol Mv)
@@ -407,32 +411,32 @@ parseMv =
          )
 
 -- | Parses a @ret@ instruction.
-parseRet :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseRet :: MonadParser m => m (Located Instruction)
 parseRet = located $ RET <$ lexeme (parseSymbol Ret)
 
 -- | Parses a @jmp@ instruction.
-parseJmp :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseJmp :: MonadParser m => m (Located Instruction)
 parseJmp =
   located $
     lexeme (parseSymbol Jmp) *> (JMP <$> parseLabel)
 
-parseCall :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseCall :: MonadParser m => m (Located Instruction)
 parseCall =
   located $
     lexeme (parseSymbol Call) *> (CALL <$> parseLabel)
 
-parseNop :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseNop :: MonadParser m => m (Located Instruction)
 parseNop = located $ NOP <$ lexeme (parseSymbol Nop)
 
-parseSalloc :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseSalloc :: MonadParser m => m (Located Instruction)
 parseSalloc =
   located $
     lexeme (parseSymbol Salloc) *> (SALLOC <$> parseType)
 
-parseSfree :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseSfree :: MonadParser m => m (Located Instruction)
 parseSfree = located $ SFREE <$ lexeme (parseSymbol Sfree)
 
-parseSld :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseSld :: MonadParser m => m (Located Instruction)
 parseSld =
   located $
     lexeme (parseSymbol Sld)
@@ -440,7 +444,7 @@ parseSld =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseSst :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseSst :: MonadParser m => m (Located Instruction)
 parseSst =
   located $
     lexeme (parseSymbol Sst)
@@ -448,7 +452,7 @@ parseSst =
              <*> (lexeme (parseSymbol Comma) *> parseInteger)
          )
 
-parseLd :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseLd :: MonadParser m => m (Located Instruction)
 parseLd =
   located $
     lexeme (parseSymbol Ld)
@@ -456,7 +460,7 @@ parseLd =
              <*> (lexeme (parseSymbol Comma) *> (located $ RegE <$> parseRegister))
          )
 
-parseSt :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseSt :: MonadParser m => m (Located Instruction)
 parseSt =
   located $
     lexeme (parseSymbol St)
@@ -464,7 +468,7 @@ parseSt =
              <*> (lexeme (parseSymbol Comma) *> MP.choice [MP.try parseBytePtrOffset, parseBasePtrOffset])
          )
 
-parseSref :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseSref :: MonadParser m => m (Located Instruction)
 parseSref =
   located $
     lexeme (parseSymbol Sref)
@@ -472,7 +476,7 @@ parseSref =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseAnd :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseAnd :: MonadParser m => m (Located Instruction)
 parseAnd =
   located $
     lexeme (parseSymbol And)
@@ -481,7 +485,7 @@ parseAnd =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseOr :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseOr :: MonadParser m => m (Located Instruction)
 parseOr =
   located $
     lexeme (parseSymbol Or)
@@ -490,7 +494,7 @@ parseOr =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseXor :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseXor :: MonadParser m => m (Located Instruction)
 parseXor =
   located $
     lexeme (parseSymbol Xor)
@@ -499,7 +503,7 @@ parseXor =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseNot :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseNot :: MonadParser m => m (Located Instruction)
 parseNot =
   located $
     lexeme (parseSymbol Not)
@@ -507,7 +511,7 @@ parseNot =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseCmvz :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseCmvz :: MonadParser m => m (Located Instruction)
 parseCmvz =
   located $
     lexeme (parseSymbol Cmvz)
@@ -517,7 +521,7 @@ parseCmvz =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseCmvnz :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseCmvnz :: MonadParser m => m (Located Instruction)
 parseCmvnz =
   located $
     lexeme (parseSymbol Cmvnz)
@@ -527,7 +531,7 @@ parseCmvnz =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseAdd :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseAdd :: MonadParser m => m (Located Instruction)
 parseAdd =
   located $
     lexeme (parseSymbol Add)
@@ -536,7 +540,7 @@ parseAdd =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseSub :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseSub :: MonadParser m => m (Located Instruction)
 parseSub =
   located $
     lexeme (parseSymbol Sub)
@@ -545,7 +549,7 @@ parseSub =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseShiftl :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseShiftl :: MonadParser m => m (Located Instruction)
 parseShiftl =
   located $
     lexeme (parseSymbol Shiftl)
@@ -554,7 +558,7 @@ parseShiftl =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseShiftr :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseShiftr :: MonadParser m => m (Located Instruction)
 parseShiftr =
   located $
     lexeme (parseSymbol Shiftr)
@@ -563,7 +567,7 @@ parseShiftr =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseMul :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseMul :: MonadParser m => m (Located Instruction)
 parseMul =
   located $
     lexeme (parseSymbol Mul)
@@ -572,7 +576,7 @@ parseMul =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseCmvl :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseCmvl :: MonadParser m => m (Located Instruction)
 parseCmvl =
   located $
     lexeme (parseSymbol Cmvl)
@@ -583,7 +587,7 @@ parseCmvl =
              <*> (lexeme (parseSymbol Comma) *> parseRegister)
          )
 
-parseCmvge :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseCmvge :: MonadParser m => m (Located Instruction)
 parseCmvge =
   located $
     lexeme (parseSymbol Cmvge)
