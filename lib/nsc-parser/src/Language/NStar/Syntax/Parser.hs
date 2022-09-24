@@ -226,7 +226,8 @@ parseInstruction = MP.label "an instruction" do
             parseShiftr,
             parseSub,
             parseMul,
-            parseCmvl
+            parseCmvl,
+            parseCmvge
           ]
       )
 
@@ -576,6 +577,17 @@ parseCmvl =
   located $
     lexeme (parseSymbol Cmvl)
       *> ( CMVL <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
+             <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
+             <*> (lexeme (parseSymbol Comma) *> parseRegister)
+         )
+
+parseCmvge :: (?parserFlags :: ParserFlags) => Parser (Located Instruction)
+parseCmvge =
+  located $
+    lexeme (parseSymbol Cmvge)
+      *> ( CMVGE <$> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)]
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister), located (ImmE <$> parseImmediate)])
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])
              <*> (lexeme (parseSymbol Comma) *> MP.choice [located (RegE <$> parseRegister)])

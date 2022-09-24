@@ -98,8 +98,9 @@ instance Pretty Instruction where
   pretty (CMVNZ a b c r) = "cmvnz" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty r
   pretty (SHIFTL x y r) = "shiftl" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
   pretty (SHIFTR x y r) = "shiftr" <+> pretty x <> comma <+> pretty y <> comma <+> pretty r
-  pretty (MUL a b r) = "add" <+> pretty a <> comma <+> pretty b <> comma <+> pretty r
+  pretty (MUL a b r) = "mul" <+> pretty a <> comma <+> pretty b <> comma <+> pretty r
   pretty (CMVL a b c d r) = "cmvl" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty d <> comma <+> pretty r
+  pretty (CMVGE a b c d r) = "cmvge" <+> pretty a <> comma <+> pretty b <> comma <+> pretty c <> comma <+> pretty d <> comma <+> pretty r
 
 instance Pretty Constant where
   pretty (IntegerC (i :@ _)) = pretty i
