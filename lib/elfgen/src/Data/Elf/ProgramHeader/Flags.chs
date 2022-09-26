@@ -8,7 +8,11 @@ module Data.Elf.ProgramHeader.Flags
 , pf_x, pf_w, pf_r
 ) where
 
-#include <elf.h>
+#ifndef _WIN32
+#  include <elf.h>
+#else 
+#  include "elf.h"
+#endif
 
 import Data.Bits (Bits, shiftL)
 import Data.Elf.Types

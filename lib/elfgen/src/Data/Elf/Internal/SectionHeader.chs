@@ -14,7 +14,11 @@ import Foreign.Storable (Storable(..))
 import Data.Elf.Internal.Serialize (Serializable(..))
 import Data.Elf.Internal.BusSize (Size(..))
 
-#include <elf.h>
+#ifndef _WIN32
+#  include <elf.h>
+#else 
+#  include "elf.h"
+#endif
 
 -- | Section header parameterized by the architecture bus size @n@.
 data Elf_Shdr n = Elf_Shdr

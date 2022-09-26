@@ -1,0 +1,4 @@
+# The type of file descriptors on Linux.
+type fd = u32
+
+type umode_t = u16

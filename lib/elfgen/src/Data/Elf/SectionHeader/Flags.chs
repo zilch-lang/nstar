@@ -15,7 +15,11 @@ import Data.Elf.Types (Elf_Xword)
 import Data.Elf.Internal.BusSize
 import GHC.Generics (Generic)
 
-#include <elf.h>
+#ifndef _WIN32
+#  include <elf.h>
+#else 
+#  include "elf.h"
+#endif
 
 type SFlags = Flag
 -- | Section flags

@@ -16,7 +16,11 @@ import Foreign.Storable (Storable(..))
 import Data.Elf.Internal.BusSize (Size(..))
 import Data.Elf.Internal.Serialize (Serializable(..))
 
-#include <elf.h>
+#ifndef _WIN32
+#  include <elf.h>
+#else 
+#  include "elf.h"
+#endif
 
 -- | Program segment header parameterized by the CPU bus size @n@.
 data Elf_Phdr n = Elf_Phdr

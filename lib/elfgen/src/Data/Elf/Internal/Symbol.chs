@@ -23,7 +23,11 @@ import Data.Elf.Types
 import Data.Elf.Internal.Serialize (Serializable(..))
 import Foreign.Storable (Storable(..))
 
-#include <elf.h>
+#ifndef _WIN32
+#  include <elf.h>
+#else 
+#  include "elf.h"
+#endif
 
 -- | Symbol table entry.
 data Elf_Sym (n :: Size)

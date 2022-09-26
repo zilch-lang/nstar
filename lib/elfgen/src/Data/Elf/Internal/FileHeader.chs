@@ -42,7 +42,11 @@ module Data.Elf.Internal.FileHeader
   -- * @'e_flags'@
 ) where
 
-#include <elf.h>
+#ifndef _WIN32
+#  include <elf.h>
+#else 
+#  include "elf.h"
+#endif
 
 import Data.Elf.Types
 import Foreign.Storable (Storable(..))

@@ -22,7 +22,11 @@ module Data.Elf.FileHeader.Flags
 , ef_ia_64_abi64, ef_ia_64_arch
 ) where
 
-#include <elf.h>
+#ifndef _WIN32
+#  include <elf.h>
+#else 
+#  include "elf.h"
+#endif
 
 import Data.Elf.Types
 import Data.Bits (Bits)
