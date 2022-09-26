@@ -1,0 +1,16 @@
+# -*- nstar -*-
+
+include {
+    "amd64-driver.nst"
+    "linux/syscall-x64.nst"
+}
+
+section code {
+    _main: forall(s: Ts, e: Tc).{ %r5: forall().{ %r0: u64 | s -> e } | s -> %r5 }
+         = mv %r5, %r1
+         ; mv 1, %r5
+         ; syscall 60
+         ; mv %r1, %r5
+         ; ret
+}
+
