@@ -1,0 +1,3 @@
+packages: . lib/elfgen lib/nsc-core lib/nsc-parser lib/nsc-flags lib/nsc-pretty lib/nsc-typechecker lib/nsc-codegen
+
+constraints: diagnose +megaparsec-compat

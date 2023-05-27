@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.5.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -52,9 +52,9 @@ library
     , nsc-core
     , nsc-parser
     , nsc-typechecker
+  default-language: Haskell2010
   if flag(debug)
     ghc-options: -g3
-  default-language: Haskell2010
 
 executable nsc
   main-is: Main.hs
@@ -85,9 +85,9 @@ executable nsc
     , nsc-typechecker
     , prettyprinter
     , text
+  default-language: Haskell2010
   if flag(debug)
     ghc-options: -g3
-  default-language: Haskell2010
 
 test-suite nsc-tests
   type: exitcode-stdio-1.0
@@ -118,6 +118,6 @@ test-suite nsc-tests
     , nsc-typechecker
     , spoon
     , text
+  default-language: Haskell2010
   if flag(debug)
     ghc-options: -g3
-  default-language: Haskell2010

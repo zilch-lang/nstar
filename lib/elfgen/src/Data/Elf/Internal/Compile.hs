@@ -94,7 +94,7 @@ mkAbstractObject :: forall (n :: Size). ElfObject n -> ElfObject n
 mkAbstractObject ElfObject {..} =
   let sectByNames = fetchSectionNamesFrom (SNull : sections)
 
-      segs = PPhdr : PLoad (section "PHDR") pf_r : segments
+      segs = PPhdr : PLoad (section "PHDR") (pf_r @n) : segments
       --                             ^^^^ Special identifier, to refer to the PHDR segment
 
       symbols = sort $ ElfSymbol "" ST_NoType SB_Local SV_Default : sectionsAsSymbols (Map.keys sectByNames) <> fetchSymbols sections

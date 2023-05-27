@@ -39,11 +39,11 @@ deriving instance Enum (Flag n)
 
 
 -- | Segment is executable
-pf_x :: Flag n
+pf_x :: forall (n :: Size). Flag n
 pf_x = Flag {#const PF_X#}
 -- | Segment is writable
-pf_w :: Flag n
+pf_w :: forall (n :: Size). Flag n
 pf_w = Flag {#const PF_W#}
 -- | Segment is readable
-pf_r :: Flag n
+pf_r :: forall (n :: Size). Flag n
 pf_r = Flag {#const PF_R#}

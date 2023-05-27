@@ -1,0 +1,18 @@
+include { 
+  "amd64-driver.nst"
+}
+
+section code {
+  _main: forall(s: Ts, e: Tc). { %r5: forall(). { %r0: u64 | s -> e } | s -> %r5 }
+       = mv 10, %r0
+       ; mv 0, %r1
+       ; jmp loop<s, e>
+
+  loop: forall(s: Ts, e: Tc). { %r0: u64, %r1: u64, %r5: forall(). { %r0: u64 | s -> e } | s -> %r5 }
+      = add %r0, 0, %r0 
+      ; add %r1, 1, %r1
+      ; cjl %r0, 1000000, end<s, e>, loop<s, e>
+
+  end: forall(s: Ts, e: Tc). { %r0: u64, %r5: forall(). { %r0: u64 | s -> e } | s -> %r5 }
+     = ret
+}

@@ -2,8 +2,12 @@
 *~
 *.o
 *.out
+dist-*/
 
 # NSC dump directory
 .nsc
 
 .ccls-cache/
+
+# Nix build result directory
+result
