@@ -20,7 +20,7 @@
               });
             in
             rec {
-              inherit diagnose;
+              inherit diagnose elfgen nsc-core nsc-codegen nsc-flags nsc-typechecker nsc-pretty nsc-parser;
             };
         };
 
@@ -30,23 +30,13 @@
         elfgen = pkgs.haskell.lib.overrideCabal (haskellPackages.callCabal2nix "elfgen" "${self}/lib/elfgen" { }) (drv: {
           buildDepends = [ haskellPackages.c2hs ];
         });
-        nsc-codegen = haskellPackages.callCabal2nix "nsc-codegen" "${self}/lib/nsc-codegen" {
-          inherit elfgen nsc-core;
-        };
+        nsc-codegen = haskellPackages.callCabal2nix "nsc-codegen" "${self}/lib/nsc-codegen" { };
         nsc-core = haskellPackages.callCabal2nix "nsc-core" "${self}/lib/nsc-core" { };
         nsc-flags = haskellPackages.callCabal2nix "nsc-flags" "${self}/lib/nsc-flags" { };
-        nsc-typechecker = haskellPackages.callCabal2nix "nsc-typechecker" "${self}/lib/nsc-typechecker" {
-          inherit nsc-core nsc-flags nsc-pretty;
-        };
-        nsc-parser = haskellPackages.callCabal2nix "nsc-parser" "${self}/lib/nsc-parser" {
-          inherit nsc-core nsc-flags;
-        };
-        nsc-pretty = haskellPackages.callCabal2nix "nsc-pretty" "${self}/lib/nsc-pretty" {
-          inherit nsc-core;
-        };
-        nsc = haskellPackages.callCabal2nix "nsc" self {
-          inherit elfgen nsc-codegen nsc-core nsc-flags nsc-typechecker nsc-parser;
-        };
+        nsc-typechecker = haskellPackages.callCabal2nix "nsc-typechecker" "${self}/lib/nsc-typechecker" { };
+        nsc-parser = haskellPackages.callCabal2nix "nsc-parser" "${self}/lib/nsc-parser" { };
+        nsc-pretty = haskellPackages.callCabal2nix "nsc-pretty" "${self}/lib/nsc-pretty" { };
+        nsc = haskellPackages.callCabal2nix "nsc" self { };
       in
       {
         packages = {
